@@ -1085,7 +1085,7 @@ function renderRankings(data, ids) {
 function rkDetail(b) {
   if (!b) return `<p class="hint">Click a bot above to see its score run by run.</p>`;
   const variants = [...new Set(b.series.map((p) => p.variant))];
-  return `<h3><span class="term" data-term="rk_series"${TAB}>Run by run</span>: ${esc(b.name)}${b.group ? ` <span class="dim">${esc(b.group)}</span>` : ""}</h3>
+  return `<h3><span class="term" data-term="rk_series"${TAB}>Run by run</span>: <span class="nocase">${esc(b.name)}</span>${b.group ? ` <span class="dim nocase">${esc(b.group)}</span>` : ""}</h3>
     ${seriesChart(b)}
     <div class="rk-keys">${variants.map((v) => `<span class="rk-key"><i style="background:${vHue(v)}"></i>${esc(variantShort(v))}</span>`).join("")}
       <span class="rk-key"><i class="avg"></i>overall ${signed(b.vs_par)}</span></div>`;
