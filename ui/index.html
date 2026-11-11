@@ -8,89 +8,73 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand">
-    <h1>Pokerbot practice</h1>
-    <span class="sub">local line-ups, matches and replays</span>
-  </div>
-  <button id="theme" class="ghost small" type="button" title="Switch light / dark / system theme">Theme: system</button>
+  <h1>Pokerbot practice</h1>
+  <span id="engine-note" class="engine-note term-q" tabindex="0"></span>
 </header>
-
-<div class="unofficial" role="note" id="engine-banner">Checking for the organizers' kit…</div>
 
 <div class="layout">
   <!-- ======================================================= sidebar -->
   <aside class="side">
-    <section class="card">
-      <div class="card-head">
-        <h2>Line-up</h2>
-        <button id="refresh-bots" class="ghost small" type="button" title="Re-scan folders for agent.py">Refresh bots</button>
-      </div>
-      <div class="row gap">
-        <label class="inline">Seats
-          <span class="stepper">
-            <button type="button" id="seat-minus" aria-label="Remove a seat">&minus;</button>
-            <output id="seat-count">8</output>
-            <button type="button" id="seat-plus" aria-label="Add a seat">+</button>
-          </span>
-        </label>
-        <select id="preset" aria-label="Load a preset line-up">
-          <option value="">Preset line-up&hellip;</option>
-        </select>
-      </div>
-      <ol id="seats" class="seats"></ol>
-      <p class="hint">Entry #0's bot is "you" in presets. Bots are re-read from disk on every run.</p>
-    </section>
-
-    <section class="card">
-      <h2>Match settings</h2>
+    <section class="card" id="match-card">
+      <h2>Match</h2>
       <div class="grid2">
-        <label class="span2">Engine
+        <label class="span2" id="engine-label" data-term="engine" hidden><span class="term">Engine</span>
           <select id="s-engine">
             <option value="kit">Organizers' kit (real rules)</option>
             <option value="mini">Mini simulator (unofficial)</option>
           </select>
         </label>
-        <label class="span2">Variant (mini simulator)
+        <label class="span2" data-term="variant"><span class="term">Variant</span>
           <select id="s-variant"><option value="holdem">Standard hold'em</option></select>
         </label>
-        <label>Tables <input id="s-tables" type="number" min="1" max="5000" value="200"></label>
-        <label>Seed
-          <span class="with-btn"><input id="s-seed" type="text" value="practice" spellcheck="false">
-          <button id="seed-random" class="ghost small" type="button" title="New random seed">&#x21bb;</button></span>
-        </label>
-        <label>Hand cap <input id="s-handcap" type="number" min="1" max="2000" value="250"></label>
-        <label>Hands / level <input id="s-hpl" type="number" min="1" max="1000" value="20"></label>
-        <label>Payouts <input id="s-payouts" type="text" value="50 30 20" spellcheck="false"></label>
-        <label>Starting stack <input id="s-stack" type="number" min="20" value="2000"></label>
+        <label data-term="tables"><span class="term">Tables</span> <input id="s-tables" type="number" min="1" max="5000" value="200"></label>
+        <label data-term="seed"><span class="term">Seed</span> <input id="s-seed" type="text" value="" placeholder="picked per run" spellcheck="false" autocomplete="off"></label>
       </div>
-      <p class="hint" id="settings-hint"></p>
+      <label class="check" data-term="newseed"><input type="checkbox" id="s-newseed" checked> <span class="term">New seed every run</span></label>
+      <label class="check" data-term="vary"><input type="checkbox" id="s-vary" checked> <span class="term">Vary rules by seed</span> <span class="dim small">cap, levels, stack, payouts</span></label>
+      <details id="advanced" class="advanced" hidden>
+        <summary>Advanced: fixed rules</summary>
+        <div class="grid2">
+          <label data-term="handcap"><span class="term">Hand cap</span> <input id="s-handcap" type="number" min="1" max="2000" value="250"></label>
+          <label data-term="hpl"><span class="term">Hands / level</span> <input id="s-hpl" type="number" min="1" max="1000" value="20"></label>
+          <label data-term="payouts"><span class="term">Payouts</span> <input id="s-payouts" type="text" value="50 30 20" spellcheck="false"></label>
+          <label data-term="stack"><span class="term">Starting stack</span> <input id="s-stack" type="number" min="20" value="2000"></label>
+        </div>
+      </details>
       <div class="run-row">
-        <button id="run" class="primary" type="button">Run match</button>
+        <button id="run" class="primary" type="button" title="Ctrl+Enter">Run match</button>
         <button id="cancel" class="ghost" type="button" hidden>Cancel</button>
       </div>
       <div id="progress" class="progress" hidden>
         <div class="bar"><span id="progress-fill"></span></div>
         <span id="progress-text"></span>
       </div>
-      <div id="run-error" class="error-box" hidden></div>
+      <div id="run-error" class="error-box" role="alert" hidden></div>
     </section>
 
     <section class="card">
-      <h2>Bots on disk</h2>
-      <ul id="bot-list" class="bot-list"></ul>
-      <form id="clone-form" class="clone" autocomplete="off">
-        <h3>Clone a bot</h3>
+      <div class="card-head">
+        <h2><span class="term" data-term="lineup" tabindex="0">Line-up</span></h2>
         <div class="row gap">
-          <select id="clone-source" aria-label="Bot to copy"></select>
-          <span class="arrow">&rarr;</span>
-          <input id="clone-name" type="text" placeholder="new_name" aria-label="New folder name" spellcheck="false">
+          <span class="stepper" data-term="seats">
+            <button type="button" id="seat-minus" aria-label="Remove a seat">&minus;</button>
+            <output id="seat-count">8</output>
+            <button type="button" id="seat-plus" aria-label="Add a seat">+</button>
+          </span>
+          <button id="clear-seats" class="ghost small" type="button">Clear</button>
         </div>
+      </div>
+      <ol id="seats" class="seats"></ol>
+
+      <div class="card-head bots-head">
+        <h3>Bots: click to add</h3>
         <div class="row gap">
-          <button class="primary small" type="submit">Clone</button>
-          <span class="hint">letters, digits, _ and - only; never overwrites</span>
+          <input id="bot-filter" type="text" placeholder="filter" aria-label="Filter bots" spellcheck="false" autocomplete="off">
+          <button id="refresh-bots" class="ghost small" type="button" title="Re-scan folders for agent.py (also happens when this window regains focus)">&#x21bb;</button>
         </div>
-        <div id="clone-msg" class="msg" hidden></div>
-      </form>
+      </div>
+      <div id="bot-info" class="bot-info" hidden></div>
+      <div id="bot-list" class="bot-list"></div>
     </section>
   </aside>
 
@@ -98,36 +82,20 @@
   <main class="main">
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="results" aria-selected="true">Results</button>
-      <button role="tab" data-tab="compare" aria-selected="false">Compare runs</button>
       <button role="tab" data-tab="replay" aria-selected="false">Hand replay</button>
     </nav>
 
     <!-- ---------------- results -->
     <section id="tab-results" class="tab" role="tabpanel">
-      <div class="card">
-        <div class="card-head">
-          <h2>Runs this session</h2>
-          <span class="hint">click a run to view it</span>
-        </div>
+      <div id="result-view"><div class="card"><p class="empty">No runs yet. Pick bots and press Run match.</p></div></div>
+      <div class="card" id="history-card" hidden>
+        <h3>Past runs</h3>
         <div class="table-wrap">
           <table class="history">
-            <thead><tr><th>#</th><th>Time</th><th>Line-up</th><th>Seed</th><th class="num">Tables</th><th>Status</th><th class="num">#0 pts</th><th class="num">Failed</th></tr></thead>
+            <thead><tr><th>Run</th><th>Variant</th><th class="num">Tables</th><th class="term" data-term="seed" tabindex="0">Seed</th><th class="term" data-term="topbot" tabindex="0">Top bot</th><th class="num term" data-term="pts" tabindex="0">Pts / table</th><th class="num term" data-term="failed_total" tabindex="0">Failed</th></tr></thead>
             <tbody id="history"></tbody>
           </table>
         </div>
-        <p id="history-empty" class="empty">No runs yet. Build a line-up and press <b>Run match</b>.</p>
-      </div>
-      <div id="result-view"></div>
-    </section>
-
-    <!-- ---------------- compare -->
-    <section id="tab-compare" class="tab" role="tabpanel" hidden>
-      <div class="card">
-        <div class="row gap wrap">
-          <label class="inline">A (baseline) <select id="cmp-a"></select></label>
-          <label class="inline">B (candidate) <select id="cmp-b"></select></label>
-        </div>
-        <div id="compare-view"><p class="empty">Run at least two matches to compare them.</p></div>
       </div>
     </section>
 
@@ -136,20 +104,21 @@
       <div class="card">
         <div class="row gap wrap replay-pickers">
           <label class="inline">Run <select id="rp-run"></select></label>
-          <label class="inline">Table <select id="rp-table"></select></label>
-          <label class="inline">Hand <select id="rp-hand"></select></label>
-          <label class="inline check"><input type="checkbox" id="rp-notable"> showdowns, all-ins &amp; busts only</label>
+          <label class="inline" data-term="rp_table"><span class="term">Table</span> <select id="rp-table"></select></label>
+          <label class="inline" data-term="rp_hand"><span class="term">Hand</span> <select id="rp-hand"></select></label>
+          <label class="inline check" data-term="notable"><input type="checkbox" id="rp-notable"> <span class="term">showdowns, all-ins &amp; busts only</span></label>
         </div>
         <div id="replay-empty" class="empty">Run a match to get replays.</div>
         <div id="replay-kit" class="kit-replay" hidden></div>
         <div id="replay-body" class="replay" hidden>
           <div class="felt-col">
+            <div id="rp-head" class="rp-head"></div>
             <div class="felt-wrap">
               <div class="felt" id="felt">
                 <div class="center">
                   <div id="rp-level" class="level"></div>
-                  <div id="rp-board" class="board"></div>
-                  <div id="rp-pot" class="pot"></div>
+                  <div id="rp-board" class="board" data-term="board"></div>
+                  <div id="rp-pot" class="pot" data-term="pot"></div>
                 </div>
               </div>
               <div id="rp-seats"></div>
@@ -165,7 +134,7 @@
               </label>
               <span id="rp-step" class="hint"></span>
             </div>
-            <div id="rp-chips" class="hint chips-check"></div>
+            <div id="rp-chips" class="hint chips-check" data-term="chips"></div>
           </div>
           <div class="log-col">
             <h3>Action log</h3>

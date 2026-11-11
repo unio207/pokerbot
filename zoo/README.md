@@ -35,7 +35,6 @@ ruleset says "unknown".
    cp -r zoo/_template zoo/gpt_aggro_1
    ```
 
-   The Clone button on the practice web page does the same thing.
 
 2. **Write the bot** in `zoo/<name>/agent.py`. Either:
    - follow [`zoo/_template/README.md`](_template/README.md): write `decide` and one

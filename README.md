@@ -62,9 +62,22 @@ actions; not a substitute for the kit.
 python ui/server.py
 ```
 
-Then open http://127.0.0.1:8765/. Pick a bot for each seat, run a match, and compare two
-runs on the same seed. Bots are re-read from disk on every run, so edit an `agent.py` and
-click Run again. The Clone button copies a bot folder to a new name for the next version.
+Then open http://127.0.0.1:8765/. Click bots to seat them, press Run, and read points per
+table, win rate, failed decisions and decision time per bot; the Hand replay tab steps
+through recorded hands on a drawn table. Bots are re-read from disk on every run, so edit
+an `agent.py` and run again, and a new bot folder appears in the list without a restart.
+
+- **Seed.** By default every run gets a new seed. Untick "new seed every run" and type one
+  to replay the same deals, for example to test one change to a bot.
+- **Vary rules by seed.** On by default: the seed also picks the hand cap (150 to 300),
+  hands per level (15 to 25) and starting stack (1,500 to 3,000), and every table draws
+  its own payouts, so a bot is not tuned to one exact tournament. The results show the
+  rules each run used. Turn it off to set them by hand.
+- **Speed.** Tables are played by several processes at once (half the processors by
+  default, `--workers N` to change), so 200 tables take a few seconds. A table's cards
+  depend only on the seed and the table number, so results do not depend on the workers.
+- **Warnings.** A bot that folded or checked every hand is flagged: a hold'em-only bot
+  does this in other variants, and the other bots' scores then mean little.
 
 The page has two engines, chosen under **Match settings**:
 

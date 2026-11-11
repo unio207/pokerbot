@@ -22,6 +22,7 @@ and against the Bay Area kit's source.
 | Copies | `agent.py` is imported once and two `Agent()` copies answer turns at random, so state kept on `self` breaks |
 | Scoring | Points by place; survivors at the cap split the rest by ICM; same-hand busts rank by starting stack, equal stacks tie and split |
 | Seating | Seats reshuffled every table; random starting button |
+| Repeatable | A table's cards, seats and any `random` calls a bot makes depend only on the seed and the table number, so the same seed gives the same match, in one process or many |
 | Upload check | Rejects imports of `poker_engine`/`pokerkit`, more than 1 MB of code, and libraries the competition machines lack |
 | Payouts per table | `--random-payouts` draws a different split of 100 per table |
 
@@ -47,6 +48,19 @@ and against the Bay Area kit's source.
   organizers' ranges are not published.
 - **Fillers and field size.** Every seat scores here; the platform fills short tables
   with bots whose finishes do not count.
+
+## Speed and variation
+
+`play` runs tables in several processes at once: half the processors by default,
+`--workers N` to change, `--workers 1` for one process. Decision times read slightly
+higher with many workers than with one; time a bot with `--workers 1` when it is close to
+the limit.
+
+`--vary` draws the hand cap, hands per level and starting stack from the seed and gives
+every table its own payouts, so different seeds are slightly different tournaments. The
+summary's `rules` shows what was used. Each bot's `vpip` and `pfr` in the summary are the
+share of hands it entered by choice, and raised, before the flop: 0 means the bot is not
+really playing, which is what a hold'em-only bot does in most other variants.
 
 ## Variants
 

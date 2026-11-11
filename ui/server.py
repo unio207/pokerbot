@@ -1,4 +1,4 @@
-"""Local web UI for practising bots: build line-ups, run matches, compare, replay.
+"""Local web UI for practising bots: build line-ups, run matches, read results, replay hands.
 
     python ui/server.py                # http://127.0.0.1:8765
     python ui/server.py --port 9000
@@ -8,8 +8,9 @@ Two engines:
 - "kit": every table is played by the organizers' starter kit (`poker-agent play`), so the
   variant, rules and the 1 ms limit are the real ones. Used by default when `poker-agent`
   is found (start this server from the kit's activated environment, or pass --kit).
-- "mini": the UNOFFICIAL in-process simulator in devtest/mini_sim.py: hold'em and the
-  variants in devtest/sim_variants.py, chosen per run.
+- "mini": the UNOFFICIAL simulator in devtest/mini_sim.py: hold'em and the variants in
+  devtest/sim_variants.py, chosen per run. Tables are played by a pool of worker
+  processes (--workers), so a run takes a few seconds.
 
 Standard library only. Bots are re-read from disk on every run, so edit an agent.py and
 click Run again; no restart needed.
@@ -17,11 +18,10 @@ click Run again; no restart needed.
 
 import argparse
 import atexit
-import gc
-import importlib.util
 import json
 import math
 import os
+import platform
 import random
 import re
 import shutil
@@ -32,9 +32,11 @@ import sys
 import threading
 import time
 import traceback
-import types
 from collections import Counter
+from concurrent.futures import ProcessPoolExecutor, wait
+from concurrent.futures.process import BrokenProcessPool
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from multiprocessing import get_context
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -43,17 +45,15 @@ ROOT = UI.parent
 SKIP_DIRS = {"ui", "devtest", "tools", "__pycache__", "node_modules", "venv", ".venv"}
 STATIC = {"/": ("index.html", "text/html"), "/index.html": ("index.html", "text/html"),
           "/app.js": ("app.js", "text/javascript"), "/style.css": ("style.css", "text/css")}  # fmt: skip
-NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 REPLAY_TABLES = 20  # tables per run that keep a full hand-by-hand replay
 MAX_TABLES = 5000
-KEEP_RUNS = 40  # runs kept in the session; replays only for the newest few
+KEEP_RUNS = 300  # runs kept (and reloaded from RUNS_DIR at start); replays only for the newest few
+RUNS_DIR = ROOT / "practice-runs"  # one JSON file per finished run, so history survives a restart
 KEEP_REPLAYS = 8
 FAILURE_NOTES = 5  # first N failure details kept per entry
 
-_spec = importlib.util.spec_from_file_location("mini_sim", ROOT / "devtest" / "mini_sim.py")
-mini_sim = importlib.util.module_from_spec(_spec)
-sys.modules["mini_sim"] = mini_sim
-_spec.loader.exec_module(mini_sim)
+sys.path.insert(0, str(ROOT / "devtest"))
+import mini_sim  # noqa: E402  (imported by name so worker processes can import it too)
 
 # ---------------------------------------------------------------------------- organizers' kit
 KIT: Path | None = None  # the kit's `poker-agent` executable, when found
@@ -144,10 +144,6 @@ def open_viewer(history: Path) -> str:
 
 
 # ---------------------------------------------------------------------------- bots on disk
-_load_counter = 0
-_load_lock = threading.Lock()
-
-
 def bot_folders() -> list[Path]:
     """Every folder at depth 1 or 2 under ROOT that holds an agent.py."""
     found = []
@@ -160,7 +156,11 @@ def bot_folders() -> list[Path]:
     return found
 
 
+HEADER_RE = re.compile(r"^(Source|Profile|Variants|Notes):[ \t]*(.*)$", re.MULTILINE)
+
+
 def discover_bots() -> list[dict]:
+    """Every bot folder, with its group (top folder) and the header fields zoo bots carry."""
     bots = []
     for folder in bot_folders():
         agent = folder / "agent.py"
@@ -168,8 +168,21 @@ def discover_bots() -> list[dict]:
             problems = mini_sim.check(agent)
         except Exception as error:  # noqa: BLE001
             problems = [f"check failed: {error}"]
-        bots.append({"path": folder.relative_to(ROOT).as_posix(), "name": folder.name,
-                     "modified": agent.stat().st_mtime, "problems": problems})  # fmt: skip
+        rel = folder.relative_to(ROOT).as_posix()
+        try:
+            head = agent.read_text(encoding="utf-8", errors="replace")[:3000]
+        except OSError:
+            head = ""
+        header = {key.lower(): value.strip() for key, value in HEADER_RE.findall(head)
+                  if value.strip() and not value.strip().startswith("<")}  # fmt: skip
+        # One line saying what the bot is: its Notes or Profile header, else the first
+        # sentence of the file's docstring.
+        opening = re.match(r"\s*(?:#[^\n]*\n\s*)*[rR]?(\"\"\"|\'\'\')\s*(.+?)(?:\.\s|\n\s*\n|\1)", head, re.DOTALL)
+        summary = header.get("notes") or header.get("profile") or (
+            " ".join(opening.group(2).split())[:200] if opening else "")
+        bots.append({"path": rel, "name": folder.name, "group": rel.split("/")[0] if "/" in rel else "",
+                     "modified": agent.stat().st_mtime, "problems": problems, "header": header,
+                     "summary": summary})  # fmt: skip
     return bots
 
 
@@ -185,53 +198,7 @@ def resolve_bot(rel) -> Path:
     return folder
 
 
-def load_agent_fresh(folder: Path):
-    """Like mini_sim.load_agent, but compiles the source directly so a stale .pyc is never used."""
-    global _load_counter
-    with _load_lock:
-        _load_counter += 1
-        name = f"uibot_{_load_counter}"
-    path = folder / "agent.py"
-    module = types.ModuleType(name)
-    module.__file__ = str(path)
-    code = compile(path.read_text(encoding="utf-8"), str(path), "exec")
-    sys.modules[name] = module  # dataclasses and friends look the module up while it executes
-    sys.path.insert(0, str(folder))
-    try:
-        exec(code, module.__dict__)  # noqa: S102 - running the team's own bot is the point
-    finally:
-        sys.path.remove(str(folder))
-        sys.modules.pop(name, None)
-    return mini_sim.CopyPool(module.Agent)
-
-
-def clone_bot(source_rel, new_name) -> str:
-    source = resolve_bot(source_rel)
-    if not isinstance(new_name, str) or not NAME_RE.match(new_name):
-        raise ValueError("Name may use only letters, digits, underscore and hyphen (1-64 chars).")
-    target = (source.parent / new_name).resolve()
-    if not target.is_relative_to(ROOT) or target.parent != source.parent.resolve():
-        raise ValueError("bad target")
-    if target.exists():
-        raise ValueError(f"{target.relative_to(ROOT).as_posix()} already exists; pick another name.")
-    shutil.copytree(source, target, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    return target.relative_to(ROOT).as_posix()
-
-
 # ---------------------------------------------------------------------------- runs
-class Rules:
-    """The attributes mini_sim.Table reads from its argparse namespace."""
-
-    def __init__(self, settings):
-        self.stack = settings["stack"]
-        self.decision_ms = 1
-        self.bank_ms = 100
-        self.hand_cap = settings["hand_cap"]
-        self.hands_per_level = settings["hands_per_level"]
-        self.payouts = tuple(settings["payouts"])
-        self.variant = settings["variant"]
-
-
 def _int(value, low, high, name):
     try:
         number = int(value)
@@ -267,7 +234,7 @@ def parse_settings(body) -> dict:
     variant = str(body.get("variant") or "holdem")
     if variant not in mini_sim.VARIANTS:
         raise ValueError(f"Variant must be one of: {', '.join(sorted(mini_sim.VARIANTS))}.")
-    return {
+    settings = {
         "engine": engine,
         # The kit plays its own variant; the choice applies to the mini simulator only.
         "variant": variant if engine == "mini" else "kit",
@@ -278,8 +245,15 @@ def parse_settings(body) -> dict:
         "hands_per_level": _int(body.get("hands_per_level", 20), 1, 1000, "Hands per level"),
         "stack": _int(body.get("stack", 2000), 20, 10**7, "Starting stack"),
         "payouts": payouts,
+        "random_payouts": False,
+        # Vary: the seed also picks the hand cap, hands per level and stack, and every table
+        # draws its own payouts, so each seed is a slightly different tournament. Mini only.
+        "vary": bool(body.get("vary")) and engine == "mini",
         "replay_tables": _int(body.get("replay_tables", REPLAY_TABLES), 0, 50, "Replay tables"),
     }
+    if settings["vary"]:
+        settings.update(mini_sim.vary_rules(seed))
+    return settings
 
 
 def summarize(values, weights=None):
@@ -317,6 +291,8 @@ class Run:
         self.kit_stderr = ""
         self.replays = []  # per recorded table: {table, labels, places, points, hands}
         self.bot_mtimes = {}
+        self.bot_info = {}  # per bot path: summary, variants and upload-check problems when the run started
+        self.file = None  # where the run is saved under RUNS_DIR
 
     def public(self, full=True):
         out = {"id": self.id, "status": self.status, "error": self.error, "done": self.done,
@@ -328,7 +304,8 @@ class Run:
             out["results"] = self.results
         else:
             out["results"] = self.results and {"entries": [
-                {k: e[k] for k in ("label", "bot", "average_points", "se", "failed_decisions")}
+                {k: e.get(k) for k in ("label", "bot", "average_points", "se", "failed_decisions",
+                                       "win_rate", "top3_rate")}
                 for e in self.results["entries"]], "par": self.results["par"]}  # fmt: skip
         return out
 
@@ -339,37 +316,35 @@ class Run:
         self.status, self.started = "running", time.time()
         bots = [resolve_bot(rel) for rel in s["lineup"]]
         labels = [f"{bot.name}#{index}" for index, bot in enumerate(bots)]
+        known = {bot["path"]: bot for bot in discover_bots()}
+        for rel in dict.fromkeys(s["lineup"]):
+            bot = known.get(rel, {})
+            self.bot_info[rel] = {"summary": bot.get("summary", ""), "problems": bot.get("problems", []),
+                                  "variants": bot.get("header", {}).get("variants", "")}  # fmt: skip
         if s["engine"] == "kit":
             return self.execute_kit(s, bots, labels)
-        try:
-            loaded = {}
-            for bot, rel in zip(bots, s["lineup"]):
-                if bot not in loaded:
-                    self.bot_mtimes[rel] = (bot / "agent.py").stat().st_mtime
-                    loaded[bot] = load_agent_fresh(bot)
-        except Exception:  # noqa: BLE001
-            self.status, self.error = "error", "Could not load a bot:\n" + traceback.format_exc(limit=-4)
-            self.finished = time.time()
-            return
+        for bot, rel in zip(bots, s["lineup"]):
+            self.bot_mtimes[rel] = (bot / "agent.py").stat().st_mtime
         n = len(bots)
         points = [[] for _ in labels]
         places = [Counter() for _ in labels]
         failures = [0] * n
         notes = [[] for _ in labels]
         latency = [[] for _ in labels]
-        # The server keeps old runs' replays in memory, and a full cyclic-GC pass over them takes
-        # ~100 ms. If one landed inside a timed decision it would count as a false timeout, so the
-        # collector is paused while tables play and run between tables instead.
-        gc.collect()
-        gc.freeze()
-        gc.disable()
+        activity = [[0, 0, 0] for _ in labels]  # hands dealt, entered by choice, raised before the flop
         try:
-            self.play_tables(s, bots, labels, loaded, points, places, failures, notes, latency)
-        finally:
-            gc.enable()
-            gc.collect()
-            gc.freeze()
-        self.finish(s, labels, points, places, failures, notes, latency)
+            self.play_tables(s, bots, labels, points, places, failures, notes, latency, activity)
+        except BrokenProcessPool:
+            reset_pool()
+            self.status, self.finished = "error", time.time()
+            self.error = ("A worker process died while playing a table. A bot probably ended the "
+                          "process (sys.exit, a crash in a C library) or ran out of memory.")  # fmt: skip
+            return
+        except Exception:  # noqa: BLE001
+            self.status, self.finished = "error", time.time()
+            self.error = "A table could not be played:\n" + traceback.format_exc(limit=-6)
+            return
+        self.finish(s, labels, points, places, failures, notes, latency, activity=activity)
 
     def execute_kit(self, s, bots, labels):
         """Play the match with the organizers' `poker-agent play`, in a few calls so there is
@@ -429,46 +404,59 @@ class Run:
             self.status = "cancelled"
         self.finish(s, labels, points, places, failures, [[] for _ in labels], None, weights)
 
-    def play_tables(self, s, bots, labels, loaded, points, places, failures, notes, latency):
-        rules = Rules(s)
-        n = len(bots)
-        for number in range(s["tables"]):
+    def play_tables(self, s, bots, labels, points, places, failures, notes, latency, activity):
+        """Tables are played by a pool of worker processes. Each table's cards and seats come
+        from (seed, table number) alone, so the result is the same as playing them in order."""
+        spec = {
+            "bots": [str(bot) for bot in bots], "seed": s["seed"], "token": f"run-{self.id}-{self.created}",
+            "fresh": True, "notes": FAILURE_NOTES, "replay_tables": s["replay_tables"],
+            "rules": {"stack": s["stack"], "decision_ms": 1, "bank_ms": 100, "hand_cap": s["hand_cap"],
+                      "hands_per_level": s["hands_per_level"], "payouts": tuple(s["payouts"]),
+                      "variant": s["variant"], "random_payouts": s["random_payouts"]},
+        }  # fmt: skip
+        pool = get_pool()
+        waiting = list(range(s["tables"]))
+        running = {}
+        played = {}
+        while waiting or running:
             if self.cancel:
+                for future in running:
+                    future.cancel()
                 self.status = "cancelled"
                 break
-            rng = random.Random(f"{s['seed']}:{number}")
-            order = list(range(n))
-            rng.shuffle(order)
-            # Bots that use the global `random` module get a per-table seed too, so the same
-            # seed replays the same match (the CLI leaves it unseeded).
-            random.seed(f"{s['seed']}:{number}:bots")
-
-            def on_failure(seat, hand, reason, detail, number=number, order=order):
-                entry = order[seat]
-                if len(notes[entry]) < FAILURE_NOTES:
-                    notes[entry].append({"table": number, "hand": hand, "reason": reason, "detail": detail})
-
-            record = number < s["replay_tables"]
-            table = mini_sim.Table([loaded[bots[i]] for i in order], rng, rules, f"mini-{number}",
-                                   record=record, on_failure=on_failure)  # fmt: skip
-            result = table.play()
-            finish = table.places()
+            while waiting and len(running) < 2 * WORKERS:
+                number = waiting.pop(0)
+                running[pool.submit(mini_sim.play_table, spec, number)] = number
+            finished, _ = wait(running, timeout=0.2, return_when="FIRST_COMPLETED")
+            for future in finished:
+                played[running.pop(future)] = future.result()
+                self.done = len(played)
+        if self.cancel:  # keep only the unbroken run of tables from the start
+            count = next((k for k in range(s["tables"]) if k not in played), s["tables"])
+            played = {k: played[k] for k in range(count)}
+            self.done = count
+        for number in sorted(played):
+            table = played[number]
+            order = table["order"]
             for seat, index in enumerate(order):
-                points[index].append(result[seat])
-                places[index][finish[seat]] += 1
-                failures[index] += table.failures[seat]
-                latency[index].extend(table.latency[seat])
-            if record:
+                points[index].append(table["points"][seat])
+                places[index][table["places"][seat]] += 1
+                failures[index] += table["failures"][seat]
+                latency[index].extend(table["latency"][seat])
+                for k, name in enumerate(("dealt", "vpip", "pfr")):
+                    activity[index][k] += table[name][seat]
+            for note in table["notes"]:
+                if len(notes[note["entry"]]) < FAILURE_NOTES:
+                    notes[note["entry"]].append({k: note[k] for k in ("table", "hand", "reason", "detail")})
+            if table["hands"] is not None:
                 self.replays.append({
                     "table": number,
                     "seats": [{"label": labels[i], "bot": s["lineup"][i], "entry": i} for i in order],
-                    "places": finish, "points": [round(p, 3) for p in result],
-                    "failures": table.failures[:], "hands": table.hands,
+                    "places": table["places"], "points": [round(p, 3) for p in table["points"]],
+                    "payouts": table["payouts"], "failures": table["failures"], "hands": table["hands"],
                 })  # fmt: skip
-            self.done = number + 1
-            gc.collect(1)  # young generations only: cheap, and outside any timed decision
 
-    def finish(self, s, labels, points, places, failures, notes, latency, weights=None):
+    def finish(self, s, labels, points, places, failures, notes, latency, weights=None, activity=None):
         n = len(labels)
         tables = self.done
         if tables == 0:
@@ -486,7 +474,7 @@ class Run:
         if kit:  # the kit sets the payouts; every table pays out the same total
             par = sum(summarize(points[i], weights)[0] for i in range(n)) / n
         else:
-            par = sum(s["payouts"]) / n
+            par = (100 if s["random_payouts"] else sum(s["payouts"])) / n
         entries = []
         for i, label in enumerate(labels):
             mean, se = stats(points[i])
@@ -496,6 +484,13 @@ class Run:
                 "average_points": round(mean, 3), "se": round(se, 3), "vs_par": round(mean - par, 3),
                 "places": {str(k): v for k, v in sorted(places[i].items())},
                 "finish_rates": {str(p): round(places[i][p] / tables, 4) for p in (1, 2, 3)},
+                "win_rate": round(places[i][1] / tables, 4),
+                "top3_rate": round(sum(places[i][p] for p in (1, 2, 3)) / tables, 4),
+                # Share of hands entered by choice before the flop, and raised before the flop.
+                "vpip": round(activity[i][1] / max(1, activity[i][0]), 4) if activity else None,
+                "pfr": round(activity[i][2] / max(1, activity[i][0]), 4) if activity else None,
+                # Dealt plenty of hands and never once chose to put chips in: not really playing.
+                "inactive": bool(activity and activity[i][0] >= 50 and activity[i][1] == 0),
                 "failed_decisions": failures[i], "failure_notes": notes[i],
                 "decisions": len(times) if latency else None,
                 "latency_us": {"p50": percentile_us(times, 0.5), "p99.9": percentile_us(times, 0.999),
@@ -506,16 +501,142 @@ class Run:
             idx = [i for i, b in enumerate(s["lineup"]) if b == rel]
             per_table = [sum(points[i][t] for i in idx) / len(idx) for t in range(len(points[0]))]
             mean, se = stats(per_table)
+            mine = [entries[i] for i in idx]
             by_bot.append({"bot": rel, "seats": len(idx), "average_points": round(mean, 3),
                            "se": round(se, 3), "vs_par": round(mean - par, 3),
+                           "win_rate": round(sum(e["win_rate"] for e in mine) / len(mine), 4),
+                           "top3_rate": round(sum(e["top3_rate"] for e in mine) / len(mine), 4),
+                           "vpip": round(sum(e["vpip"] for e in mine) / len(mine), 4) if activity else None,
+                           "slowest_us": max(e["latency_us"]["p99.9"] for e in mine) if latency else None,
+                           "inactive": any(e["inactive"] for e in mine),
                            "failed_decisions": sum(failures[i] for i in idx)})  # fmt: skip
         self.points, self.weights = points, weights
+        warnings = []
+        idle = sorted({entry["label"] for entry in entries if entry["inactive"]})
+        if idle:
+            where = "" if s["variant"] in ("holdem", "kit") else f" It probably does not support {s['variant']}."
+            warnings.append(f"{', '.join(idle)} folded or checked every hand, so these results say little "
+                            f"about a real field.{where}")  # fmt: skip
+        if 0 < tables < 100:
+            warnings.append(f"Only {tables} tables: differences under about {round(40 / math.sqrt(tables))} "
+                            "points per table are noise.")  # fmt: skip
         self.results = {"par": round(par, 3), "tables": tables, "entries": entries, "by_bot": by_bot,
+                        "warnings": warnings, "workers": None if kit else WORKERS,
                         "seconds": round(time.time() - self.started, 2), "engine": s["engine"],
                         "se_rough": rough, "chunks": len(weights) if kit else None}  # fmt: skip
         if self.status == "running":
             self.status = "done"
         self.finished = time.time()
+        self.save()
+
+    # ------------------------------------------------------------------ kept on disk
+    def save(self) -> None:
+        """Write the run (without replays) to RUNS_DIR. Failing to save never fails the run."""
+        try:
+            RUNS_DIR.mkdir(exist_ok=True)
+            stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(self.created))
+            self.file = RUNS_DIR / f"run-{stamp}-{self.id:04d}.json"
+            self.file.write_text(json.dumps(self.public() | {"bot_info": self.bot_info}), encoding="utf-8")
+        except OSError:
+            self.file = None
+
+    @classmethod
+    def load(cls, path: Path) -> "Run":
+        data = json.loads(path.read_text(encoding="utf-8"))
+        run = cls(int(data["id"]), data["settings"])
+        run.status, run.error, run.done = data["status"], data.get("error"), data.get("done", 0)
+        run.created, run.started, run.finished = data.get("created"), data.get("started"), data.get("finished")
+        run.results, run.bot_mtimes = data["results"], data.get("bot_mtimes", {})
+        run.bot_info, run.kit_stderr, run.file = data.get("bot_info", {}), data.get("kit_stderr", ""), path
+        if not (run.results and isinstance(run.results.get("entries"), list)):
+            raise ValueError("no results")
+        return run
+
+    # ------------------------------------------------------------------ text log
+    def log_text(self) -> str:
+        """Everything about the run as plain text, to paste into a chat when something looks wrong."""
+        s, r = self.settings, self.results
+        when = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.created))
+        variant = s["variant"]
+        if variant in mini_sim.VARIANTS:
+            variant = f"{variant} ({mini_sim.VARIANTS[variant].title})"
+        payouts = "drawn per table (each a split of 100 over three places)" if s.get("random_payouts") \
+            else "/".join(map(str, s["payouts"]))
+        out = [
+            "POKERBOT PRACTICE RUN LOG",
+            f"run #{self.id}   status: {self.status}   started: {when}",
+            f"engine: {'organizers kit' if s['engine'] == 'kit' else 'mini simulator (unofficial re-implementation)'}"
+            f"   variant: {variant}",
+            f"seed: {s['seed']}   tables: {self.done} played of {s['tables']} asked"
+            + (f"   time: {r['seconds']} s   worker processes: {r.get('workers')}" if r else ""),
+            f"rules: hand cap {s['hand_cap']}, {s['hands_per_level']} hands per blind level, starting stack "
+            f"{s['stack']}, payouts {payouts}" + ("   (rules drawn from the seed)" if s.get("vary") else ""),
+            f"python {platform.python_version()} on {platform.system()} {platform.machine()}",
+            "",
+            "LINE-UP (entry = bot folder # seat index in the line-up; seats are reshuffled every table)",
+        ]  # fmt: skip
+        labels = [f"{Path(rel).name}#{index}" for index, rel in enumerate(s["lineup"])]
+        for label, rel in zip(labels, s["lineup"]):
+            info = self.bot_info.get(rel, {})
+            changed = self.bot_mtimes.get(rel)
+            line = f"  {label:36s} {rel}"
+            if changed:
+                line += f"   agent.py saved {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(changed))}"
+            out.append(line)
+            if info.get("summary"):
+                out.append(f"      about: {info['summary']}")
+            if info.get("variants"):
+                out.append(f"      says it supports: {info['variants']}")
+            for problem in info.get("problems", []):
+                out.append(f"      UPLOAD CHECK PROBLEM: {problem}")
+        if self.error:
+            out += ["", "ERROR", self.error.rstrip()]
+        if r:
+            out += ["", f"RESULTS (par = {r['par']} points per table: what an average seat scores)",
+                    f"  {'entry':36s} {'pts/table':>9s} {'+-se':>6s} {'vs par':>7s} {'1st':>5s} {'top3':>5s} "
+                    f"{'plays':>6s} {'raises':>6s} {'decisions':>9s} {'failed':>6s} {'p50us':>7s} {'p99.9us':>8s} "
+                    f"{'maxus':>8s}  places 1st..last"]  # fmt: skip
+            pct = lambda value: "-" if value is None else f"{100 * value:.0f}%"  # noqa: E731
+            for e in sorted(r["entries"], key=lambda e: -e["average_points"]):
+                lat = e.get("latency_us") or {}
+                places = " ".join(str(e["places"].get(str(k), 0)) for k in range(1, len(labels) + 1))
+                out.append(
+                    f"  {e['label']:36s} {e['average_points']:9.2f} {e['se']:6.2f} {e['vs_par']:+7.2f} "
+                    f"{pct(e.get('win_rate')):>5s} {pct(e.get('top3_rate')):>5s} {pct(e.get('vpip')):>6s} "
+                    f"{pct(e.get('pfr')):>6s} {str(e.get('decisions') if e.get('decisions') is not None else '-'):>9s} "
+                    f"{e['failed_decisions']:6d} {str(lat.get('p50', '-')):>7s} {str(lat.get('p99.9', '-')):>8s} "
+                    f"{str(lat.get('max', '-')):>8s}  {places}" + ("   INACTIVE" if e.get("inactive") else ""))  # fmt: skip
+            out += ["", "WARNINGS"] + ([f"  - {w}" for w in r.get("warnings", [])] or ["  none"])
+            out += ["", "FAILED DECISIONS (first few per entry; each was played as check, else fold)"]
+            noted = False
+            for e in r["entries"]:
+                if e["failed_decisions"]:
+                    noted = True
+                    out.append(f"  {e['label']}: {e['failed_decisions']} failed of {e.get('decisions') or '?'} decisions")
+                    for note in e.get("failure_notes", []):
+                        out.append(f"    table {note['table']} hand {note['hand']}: {note['reason']}")
+                        out += [f"      {line}" for line in str(note["detail"]).rstrip().splitlines()]
+            if not noted:
+                out.append("  none")
+        if self.kit_stderr:
+            out += ["", "OUTPUT FROM THE KIT (stderr, last lines)", self.kit_stderr.rstrip()]
+        out += [
+            "",
+            "HOW TO READ THIS",
+            "  pts/table: average tournament points per table (default 50/30/20 for 1st/2nd/3rd, 0 below;",
+            "    bots alive at the hand cap split the remaining points by ICM). +-se is its standard error:",
+            "    differences smaller than about two of these are noise.",
+            "  plays / raises: share of hands the bot put chips in by choice, and raised, before the flop",
+            "    (VPIP / PFR). 0% means it folds or checks everything; INACTIVE marks that.",
+            "  failed: decisions that raised an exception, timed out (1 ms limit, 100 ms per-table time bank)",
+            "    or returned an illegal action. The real platform rejects an upload when over 10% fail in its",
+            "    test match.",
+            "  p50us / p99.9us / maxus: decision time in microseconds (1000 = the 1 ms limit). Times come from",
+            "    this computer with several tables playing at once, so treat them as rough.",
+            "  The mini simulator is our own re-implementation; variants other than holdem are our reading of",
+            "    zoo/variants/*.md and include guesses.",
+        ]  # fmt: skip
+        return "\n".join(out) + "\n"
 
 
 class Store:
@@ -525,6 +646,17 @@ class Store:
         self.queue: list[Run] = []
         self.wake = threading.Condition(self.lock)
         self.next_id = 1
+        self.finished_runs = 0  # runs that produced results this session, and their tables
+        self.finished_tables = 0
+        for path in sorted(RUNS_DIR.glob("run-*.json"))[-KEEP_RUNS:] if RUNS_DIR.is_dir() else []:
+            try:
+                run = Run.load(path)
+            except (OSError, ValueError, KeyError, TypeError):
+                continue  # an unreadable or half-written file: leave it alone
+            while run.id in self.runs:  # two sessions can both have a run #3
+                run.id += 1000
+            self.runs[run.id] = run
+        self.next_id = max(self.runs, default=0) + 1
         threading.Thread(target=self.worker, daemon=True).start()
 
     def submit(self, settings) -> Run:
@@ -557,6 +689,22 @@ class Store:
             except Exception:  # noqa: BLE001
                 run.status, run.error = "error", traceback.format_exc(limit=-6)
                 run.finished = time.time()
+            if run.results:
+                self.finished_runs += 1
+                self.finished_tables += run.results["tables"]
+
+    def clear(self) -> int:
+        """Forget every finished run and delete its saved file. Returns how many were removed."""
+        with self.lock:
+            gone = [run for run in self.runs.values() if run.status in ("done", "error", "cancelled")]
+            for run in gone:
+                del self.runs[run.id]
+                if run.file:
+                    try:
+                        run.file.unlink()
+                    except OSError:
+                        pass
+        return len(gone)
 
     def get(self, run_id) -> Run:
         run = self.runs.get(run_id)
@@ -565,42 +713,93 @@ class Store:
         return run
 
 
-def compare(a: Run, b: Run) -> dict:
-    if not (a.results and b.results):
-        raise ValueError("Both runs need results.")
-    # Paired = the same deals in the same order: same engine, variant, seed and split into tables/chunks.
-    paired = (a.settings["engine"] == b.settings["engine"] and a.settings["seed"] == b.settings["seed"]
-              and a.settings.get("variant") == b.settings.get("variant")
-              and len(a.points) == len(b.points) and a.weights == b.weights
-              and len(a.points[0]) == len(b.points[0]) and a.status == b.status == "done")  # fmt: skip
-    tables = min(a.results["tables"], b.results["tables"])
-    rough = a.results["se_rough"] or b.results["se_rough"]
-    rows = []
-    for seat in range(max(len(a.points), len(b.points))):
-        ea = a.results["entries"][seat] if seat < len(a.points) else None
-        eb = b.results["entries"][seat] if seat < len(b.points) else None
-        row = {"seat": seat, "a": ea and {k: ea[k] for k in ("label", "bot", "average_points", "se",
-                                                               "failed_decisions")},
-               "b": eb and {k: eb[k] for k in ("label", "bot", "average_points", "se", "failed_decisions")}}  # fmt: skip
-        if ea and eb:
-            if paired and not rough:
-                diffs = [after - before for before, after in zip(a.points[seat], b.points[seat])]
-                mean, se = summarize(diffs, a.weights)
-            else:
-                mean = eb["average_points"] - ea["average_points"]
-                se = math.sqrt(ea["se"] ** 2 + eb["se"] ** 2)
-            row.update(diff=round(mean, 3), se=round(se, 3))
-        rows.append(row)
-    return {"a": a.id, "b": b.id, "paired": paired and not rough, "tables": tables, "rows": rows,
-            "unit": "chunk" if a.settings["engine"] == "kit" else "table",
-            "engines": [a.settings["engine"], b.settings["engine"]],
-            "same_settings": {k: a.settings.get(k) == b.settings.get(k)
-                              for k in ("engine", "seed", "tables", "hand_cap", "hands_per_level", "stack",
-                                        "payouts", "variant")}}  # fmt: skip
+def rankings(runs: list[Run]) -> dict:
+    """Bots ranked across runs. Each run contributes each bot's points per table (averaged
+    over its seats in that run), weighted by the run's tables. Bots are compared on points
+    above par, because par depends on how many seats the table had."""
+    bots: dict[str, dict] = {}
 
+    def blank():
+        return {"runs": 0, "tables": 0, "points": 0.0, "vs_par": 0.0, "var": 0.0, "win": 0.0, "top3": 0.0,
+                "vpip": 0.0, "vpip_tables": 0, "failed": 0, "slowest": None, "inactive_runs": 0}  # fmt: skip
+
+    def add(total, row, tables):
+        total["runs"] += 1
+        total["tables"] += tables
+        total["points"] += tables * row["average_points"]
+        total["vs_par"] += tables * row["vs_par"]
+        total["var"] += (tables * row["se"]) ** 2
+        total["win"] += tables * (row.get("win_rate") or 0)
+        total["top3"] += tables * (row.get("top3_rate") or 0)
+        if row.get("vpip") is not None:
+            total["vpip"] += tables * row["vpip"]
+            total["vpip_tables"] += tables
+        total["failed"] += row["failed_decisions"]
+        if row.get("slowest_us") is not None:
+            total["slowest"] = max(total["slowest"] or 0, row["slowest_us"])
+        total["inactive_runs"] += bool(row.get("inactive"))
+
+    def done(total):
+        tables = max(1, total["tables"])
+        return {"runs": total["runs"], "tables": total["tables"],
+                "average_points": round(total["points"] / tables, 3),
+                "vs_par": round(total["vs_par"] / tables, 3), "se": round(math.sqrt(total["var"]) / tables, 3),
+                "win_rate": round(total["win"] / tables, 4), "top3_rate": round(total["top3"] / tables, 4),
+                "vpip": round(total["vpip"] / total["vpip_tables"], 4) if total["vpip_tables"] else None,
+                "failed_decisions": total["failed"], "slowest_us": total["slowest"],
+                "inactive_runs": total["inactive_runs"]}  # fmt: skip
+
+    used = []
+    for run in sorted(runs, key=lambda run: run.id):
+        results = run.results
+        if not results or not results.get("by_bot") or "win_rate" not in results["by_bot"][0]:
+            continue
+        tables, variant = results["tables"], run.settings["variant"]
+        used.append({"id": run.id, "variant": variant, "tables": tables, "seed": run.settings["seed"],
+                     "seats": len(run.settings["lineup"]), "par": results["par"], "created": run.created})  # fmt: skip
+        for row in results["by_bot"]:
+            bot = bots.setdefault(row["bot"], {"all": blank(), "variants": {}, "series": []})
+            add(bot["all"], row, tables)
+            add(bot["variants"].setdefault(variant, blank()), row, tables)
+            bot["series"].append({"run": run.id, "variant": variant, "tables": tables, "seats": row["seats"],
+                                  "average_points": row["average_points"], "vs_par": row["vs_par"],
+                                  "se": row["se"], "win_rate": row.get("win_rate")})  # fmt: skip
+    ranked = [{"bot": path, "name": Path(path).name, "group": path.split("/")[0] if "/" in path else ""}
+              | done(bot["all"])
+              | {"variants": {name: done(total) for name, total in bot["variants"].items()}, "series": bot["series"]}
+              for path, bot in bots.items()]  # fmt: skip
+    ranked.sort(key=lambda bot: -bot["vs_par"])
+    for place, bot in enumerate(ranked, 1):
+        bot["rank"] = place
+    return {"bots": ranked, "runs": used, "variants": sorted({run["variant"] for run in used}),
+            "tables": sum(run["tables"] for run in used)}  # fmt: skip
+
+
+# ---------------------------------------------------------------------------- worker pool
+WORKERS = mini_sim.default_workers(MAX_TABLES)
+_pool = None
+
+
+def get_pool() -> ProcessPoolExecutor:
+    """Worker processes that play tables, started on the first run and kept for later ones.
+    They are started fresh ("spawn"), not forked from this multi-threaded server."""
+    global _pool
+    if _pool is None:
+        _pool = ProcessPoolExecutor(WORKERS, mp_context=get_context("spawn"))
+    return _pool
+
+
+def reset_pool() -> None:
+    global _pool
+    if _pool is not None:
+        _pool.shutdown(wait=False, cancel_futures=True)
+    _pool = None
+
+
+atexit.register(reset_pool)
 
 # ---------------------------------------------------------------------------- HTTP
-STORE = Store()
+STORE: Store | None = None  # created in main(), so worker processes importing this file do not start one
 ALLOWED_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
 
 
@@ -652,10 +851,30 @@ class Handler(BaseHTTPRequestHandler):
             elif parts == ["api", "bots"]:
                 self.send_json({"bots": discover_bots()})
             elif parts == ["api", "runs"]:
-                self.send_json({"runs": [r.public(full=False) for r in sorted(STORE.runs.values(),
-                                                                                key=lambda r: -r.id)]})  # fmt: skip
+                runs = sorted(STORE.runs.values(), key=lambda r: -r.id)
+                self.send_json({"runs": [r.public(full=False) for r in runs],
+                                # Totals for this server session, including runs no longer kept.
+                                "session": {"runs": STORE.finished_runs, "tables": STORE.finished_tables}})  # fmt: skip
+            elif parts == ["api", "rankings"]:
+                # ?runs=3,5,8 limits it to those runs; ?variant=omaha to one variant. Default: every run.
+                query = parse_qs(url.query)
+                chosen = list(STORE.runs.values())
+                if query.get("runs", [""])[0]:
+                    ids = {int(value) for value in query["runs"][0].split(",") if value.strip()}
+                    chosen = [run for run in chosen if run.id in ids]
+                if query.get("variant", [""])[0]:
+                    chosen = [run for run in chosen if run.settings["variant"] == query["variant"][0]]
+                self.send_json(rankings(chosen))
             elif len(parts) == 3 and parts[:2] == ["api", "runs"]:
                 self.send_json(STORE.get(int(parts[2])).public())
+            elif len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "log":
+                body = STORE.get(int(parts[2])).log_text().encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
             elif len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "replays":
                 run = STORE.get(int(parts[2]))
                 self.send_json({"tables": [{k: v for k, v in r.items() if k != "hands"} | {"hand_count": len(r["hands"])}
@@ -667,9 +886,6 @@ class Handler(BaseHTTPRequestHandler):
                 if not match:
                     raise LookupError("no replay for that table")
                 self.send_json(match[0] | {"settings": run.settings})
-            elif parts == ["api", "compare"]:
-                query = parse_qs(url.query)
-                self.send_json(compare(STORE.get(int(query["a"][0])), STORE.get(int(query["b"][0]))))
             else:
                 self.send_json({"error": "not found"}, 404)
         except LookupError as error:
@@ -694,6 +910,8 @@ class Handler(BaseHTTPRequestHandler):
             if parts == ["api", "runs"]:
                 run = STORE.submit(parse_settings(body))
                 self.send_json({"id": run.id})
+            elif parts == ["api", "runs", "clear"]:
+                self.send_json({"removed": STORE.clear()})
             elif len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "cancel":
                 STORE.get(int(parts[2])).cancel = True
                 self.send_json({"ok": True})
@@ -702,8 +920,6 @@ class Handler(BaseHTTPRequestHandler):
                 if not run.history_file or not run.history_file.is_file():
                     raise ValueError("This run has no saved hand history.")
                 self.send_json({"url": open_viewer(run.history_file)})
-            elif parts == ["api", "clone"]:
-                self.send_json({"path": clone_bot(body.get("source"), body.get("name"))})
             else:
                 self.send_json({"error": "not found"}, 404)
         except LookupError as error:
@@ -713,7 +929,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    global KIT, VIEWER_PORT
+    global KIT, VIEWER_PORT, STORE, WORKERS
     # Stop the kit's viewer too when this server is terminated, not only on Ctrl+C.
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -723,8 +939,12 @@ def main():
                         "and in a starter-kit folder inside or beside this project).")  # fmt: skip
     parser.add_argument("--viewer-port", type=int, default=VIEWER_PORT,
                         help="Port for the kit's hand viewer (default 8766).")  # fmt: skip
+    parser.add_argument("--workers", type=int, default=WORKERS,
+                        help=f"Processes playing tables at once (default {WORKERS}: half the processors).")  # fmt: skip
     options = parser.parse_args()
     VIEWER_PORT = options.viewer_port
+    WORKERS = max(1, options.workers)
+    STORE = Store()
     KIT = find_kit(options.kit)
     if options.kit and KIT is None:
         parser.error(f"--kit {options.kit}: no such file")

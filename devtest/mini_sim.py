@@ -17,14 +17,18 @@ and its rules are a re-implementation. The kit's `poker-agent play` is the autho
 
 import argparse
 import ast
+import gc
 import importlib.util
 import json
 import math
+import os
 import random
 import sys
 import time
 import traceback
+import types
 from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -66,6 +70,10 @@ class CopyPool:
         self.copies = [factory() for _ in range(copies)]
         self.pick = random.Random(0)  # its own generator, so it never disturbs the deals
 
+    def reseed(self, key) -> None:
+        """Called at the start of each table, so a table plays the same whatever ran before it."""
+        self.pick = random.Random(key)
+
     def act(self, state, memory):
         return self.pick.choice(self.copies).act(state, memory)
 
@@ -91,6 +99,11 @@ class Table:
         self.bank = [float(rules.bank_ms)] * self.n
         self.failures = [0] * self.n
         self.decisions = [0] * self.n
+        # How each seat plays: hands dealt in, hands it put chips in by choice before the
+        # flop, and hands it raised before the flop. A bot at 0% is not really playing.
+        self.dealt = [0] * self.n
+        self.vpip = [0] * self.n
+        self.pfr = [0] * self.n
         self.latency: list[list[int]] = [[] for _ in range(self.n)]
         self.log: list[Event] = []
         self.levels = tuple(BlindLevel(small, big) for small, big in BLINDS)
@@ -160,6 +173,8 @@ class Table:
         self.rng.shuffle(deck)
         hole = {seat: tuple(deck.pop() for _ in range(self.variant.hole_cards)) for seat in sorted(alive)}
         dealt_hole = dict(hole)  # for the replay: a variant may shrink `hole` during the hand
+        for seat in alive:
+            self.dealt[seat] += 1
         bet, total, folded = [0] * n, [0] * n, set()
         board: list[str] = []
         if len(alive) == 2:
@@ -179,7 +194,7 @@ class Table:
         # and `dead` chips paid into the pot outside the betting (they go to the main pot).
         context = dict(hand=hand, level=level, blinds=blinds, alive=alive, hole=hole, bet=bet,
                        total=total, folded=folded, board=board, shown={}, marks=marks,
-                       deck=deck, dead=0)  # fmt: skip
+                       deck=deck, dead=0, entered=set(), raised=set())  # fmt: skip
 
         first = self.next_seat(big_seat, alive)
         for street in range(4):
@@ -236,6 +251,10 @@ class Table:
                                                   leftover, []]))  # fmt: skip
         for seat in sorted(alive):
             self.log.append(Event("stack", seat, stacks[seat]))
+        for seat in context["entered"]:
+            self.vpip[seat] += 1
+        for seat in context["raised"]:
+            self.pfr[seat] += 1
         if marks is not None:
             self.record_hand(hand, level, blinds, start, dealt_hole, board, marks)
         # Two bots busting on the same hand: the one that started it with more chips places
@@ -297,6 +316,10 @@ class Table:
                 legal.append(LegalAction("raise", min(high + raise_step, ceiling), ceiling))
             action = self.ask(turn, min(owed, stacks[turn]), tuple(legal), context)
             acted.add(turn)
+            if not context["board"] and action.kind in ("call", "raise"):
+                context["entered"].add(turn)
+                if action.kind == "raise":
+                    context["raised"].add(turn)
             if action.kind == "fold":
                 folded.add(turn)
                 self.log.append(Event("fold", turn))
@@ -407,15 +430,99 @@ class Table:
 
 
 # ---------------------------------------------------------------------- commands
-def load_agent(directory: Path):
-    spec = importlib.util.spec_from_file_location(f"bot_{abs(hash(str(directory)))}", directory / "agent.py")
-    module = importlib.util.module_from_spec(spec)
+_fresh_loads = 0
+
+
+def load_agent(directory: Path, fresh: bool = False):
+    """`fresh=True` compiles agent.py from its source text, so an edit made a moment ago is
+    always picked up (a cached .pyc can be stale when two saves land in the same second)."""
+    global _fresh_loads
+    path = Path(directory) / "agent.py"
     sys.path.insert(0, str(directory))  # a bot may read files shipped next to it
     try:
-        spec.loader.exec_module(module)
+        if fresh:
+            _fresh_loads += 1
+            name = f"bot_fresh_{_fresh_loads}"
+            module = types.ModuleType(name)
+            module.__file__ = str(path)
+            sys.modules[name] = module  # dataclasses and friends look the module up while it runs
+            try:
+                exec(compile(path.read_text(encoding="utf-8"), str(path), "exec"), module.__dict__)  # noqa: S102
+            finally:
+                sys.modules.pop(name, None)
+        else:
+            spec = importlib.util.spec_from_file_location(f"bot_{abs(hash(str(directory)))}", path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
     finally:
         sys.path.remove(str(directory))
     return CopyPool(module.Agent)
+
+
+# ---------------------------------------------------------------------- one table, anywhere
+VARY = {"hand_cap": (150, 200, 250, 300), "hands_per_level": (15, 20, 25), "stack": (1500, 2000, 3000)}
+
+
+def vary_rules(seed) -> dict:
+    """Table settings drawn from the seed, so each seed is a slightly different tournament
+    and the same seed is the same one. Payouts are then drawn per table as well."""
+    draw = random.Random(f"{seed}:rules")
+    return {name: draw.choice(options) for name, options in VARY.items()} | {"random_payouts": True}
+
+
+_worker_bots: dict = {"token": None, "pools": {}}
+
+
+def play_table(spec: dict, number: int) -> dict:
+    """Play table `number` of a match and return plain data. Safe to call in any process, in
+    any order: everything random comes from (seed, number), so results do not depend on
+    which worker played which table.
+
+    spec: bots (folder paths, one per entry), seed, rules (stack, decision_ms, bank_ms,
+    hand_cap, hands_per_level, payouts, variant, random_payouts), replay_tables, fresh,
+    token (changes when the bots must be re-read from disk), notes (failure details kept).
+    """
+    if _worker_bots["token"] != spec["token"]:
+        _worker_bots.update(token=spec["token"], pools={})
+    pools = _worker_bots["pools"]
+    for path in spec["bots"]:
+        if path not in pools:
+            pools[path] = load_agent(Path(path), fresh=spec.get("fresh", False))
+    rules = types.SimpleNamespace(**spec["rules"])
+    seed = spec["seed"]
+    rng = random.Random(f"{seed}:{number}")
+    order = list(range(len(spec["bots"])))
+    rng.shuffle(order)  # seats are reshuffled every table
+    random.seed(f"{seed}:{number}:bots")  # for bots that use the global `random` module
+    for path in set(spec["bots"]):
+        pools[path].reseed(f"{seed}:{number}:copies")
+    notes: list = []
+    keep = spec.get("notes", 0)
+
+    def on_failure(seat, hand, reason, detail):
+        if len(notes) < keep:
+            notes.append({"entry": order[seat], "table": number, "hand": hand, "reason": reason, "detail": detail})
+
+    record = number < spec.get("replay_tables", 0)
+    table = Table([pools[spec["bots"][index]] for index in order], rng, rules, f"mini-{number}",
+                  record=record, on_failure=on_failure)  # fmt: skip
+    # A garbage-collection pause inside a timed decision would look like a slow bot.
+    gc.collect()
+    gc.disable()
+    try:
+        points = table.play()
+    finally:
+        gc.enable()
+    return {"number": number, "order": order, "points": points, "places": table.places(),
+            "failures": table.failures, "decisions": table.decisions, "latency": table.latency,
+            "dealt": table.dealt, "vpip": table.vpip, "pfr": table.pfr, "notes": notes,
+            "payouts": list(table.payouts), "hands": table.hands}  # fmt: skip
+
+
+def default_workers(tables: int) -> int:
+    """Half the logical processors (one per physical core on most machines), so decision
+    times are not inflated by two tables sharing a core."""
+    return max(1, min(tables, (os.cpu_count() or 2) // 2))
 
 
 def draw_payouts(rules, rng) -> tuple[int, ...]:
@@ -468,27 +575,41 @@ def play(arguments) -> None:
         sys.exit("Give 2 to 10 bot directories that each contain agent.py.")
     seed = arguments.seed or f"{random.randrange(16**8):08x}"
     labels = [f"{bot.name}#{index}" for index, bot in enumerate(bots)]
-    loaded = {bot: load_agent(bot) for bot in set(bots)}
+    rules = {name: getattr(arguments, name) for name in
+             ("stack", "decision_ms", "bank_ms", "hand_cap", "hands_per_level", "payouts", "variant",
+              "random_payouts")}  # fmt: skip
+    if arguments.vary:
+        rules.update(vary_rules(seed))
+    spec = {"bots": [str(bot) for bot in bots], "seed": seed, "rules": rules, "token": seed}
+    workers = arguments.workers or default_workers(arguments.tables)
+    if workers > 1:
+        with ProcessPoolExecutor(workers) as pool:
+            played = list(pool.map(play_table, [spec] * arguments.tables, range(arguments.tables),
+                                   chunksize=max(1, arguments.tables // (workers * 4))))  # fmt: skip
+    else:
+        played = [play_table(spec, number) for number in range(arguments.tables)]
     points = {label: [] for label in labels}
     places = {label: Counter() for label in labels}
     failures: Counter = Counter()
     decisions: Counter = Counter()
+    dealt: Counter = Counter()
+    vpip: Counter = Counter()
+    pfr: Counter = Counter()
     latency = {label: [] for label in labels}
-    for number in range(arguments.tables):
-        rng = random.Random(f"{seed}:{number}")
-        order = list(range(len(bots)))
-        rng.shuffle(order)  # seats are reshuffled every table
-        table = Table([loaded[bots[index]] for index in order], rng, arguments, f"mini-{number}")
-        result = table.play()
-        finish = table.places()
-        for seat, index in enumerate(order):
+    for table in played:
+        for seat, index in enumerate(table["order"]):
             label = labels[index]
-            points[label].append(result[seat])
-            places[label][finish[seat]] += 1
-            failures[label] += table.failures[seat]
-            decisions[label] += table.decisions[seat]
-            latency[label].extend(table.latency[seat])
-    summary = {"seed": seed, "tables": arguments.tables, "variant": arguments.variant, "bots": {}}
+            points[label].append(table["points"][seat])
+            places[label][table["places"][seat]] += 1
+            failures[label] += table["failures"][seat]
+            decisions[label] += table["decisions"][seat]
+            dealt[label] += table["dealt"][seat]
+            vpip[label] += table["vpip"][seat]
+            pfr[label] += table["pfr"][seat]
+            latency[label].extend(table["latency"][seat])
+    summary = {"seed": seed, "tables": arguments.tables, "variant": arguments.variant,
+               "rules": {name: rules[name] for name in ("hand_cap", "hands_per_level", "stack", "random_payouts")},
+               "bots": {}}  # fmt: skip
     for label in labels:
         times = sorted(latency[label]) or [0]
         summary["bots"][label] = {
@@ -496,6 +617,9 @@ def play(arguments) -> None:
             "places": dict(sorted(places[label].items())),
             "failed_decisions": failures[label],
             "decisions": decisions[label],
+            # Share of hands the bot entered by choice before the flop, and raised before the flop.
+            "vpip": round(vpip[label] / max(1, dealt[label]), 4),
+            "pfr": round(pfr[label] / max(1, dealt[label]), 4),
             "latency_us": {
                 "p50": round(times[len(times) // 2] / 1000, 1),
                 "p99.9": round(times[min(len(times) - 1, int(len(times) * 0.999))] / 1000, 1),
@@ -522,6 +646,11 @@ def main() -> None:
     play_command.add_argument("--payouts", type=int, nargs="+", default=[50, 30, 20])
     play_command.add_argument("--random-payouts", action="store_true",
                               help="Each table draws its own split of 100 points over three places.")  # fmt: skip
+    play_command.add_argument("--vary", action="store_true",
+                              help="Draw the hand cap, hands per level, stack and per-table payouts "
+                                   "from the seed.")  # fmt: skip
+    play_command.add_argument("--workers", type=int, default=0,
+                              help="Processes playing tables at once (default: half the processors).")  # fmt: skip
     play_command.add_argument("--variant", choices=sorted(VARIANTS), default="holdem",
                               help="Game variant; rulesets are in zoo/variants/.")  # fmt: skip
     play_command.add_argument("--no-history", action="store_true", help="Accepted for compatibility.")
