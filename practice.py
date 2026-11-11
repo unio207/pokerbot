@@ -35,6 +35,23 @@ def lineups(bot: Path) -> dict[str, list[Path]]:
     }
 
 
+def upload_test(runner: list[str], bot: Path) -> None:
+    """Imitate the upload test match: heads-up against check-or-fold, up to 20 hands, 1 ms
+    per decision and NO time bank. An upload is rejected if over 10% of decisions fail.
+    The kit's `play` always gives the 100 ms bank, so only the mini simulator can do this."""
+    result = run(runner, ["play", str(bot), str(SPARRING / "check_or_fold"), "--tables", "300",
+                          "--hand-cap", "20", "--bank-ms", "0", "--payouts", "50", "--seed", "upload"])  # fmt: skip
+    if result.returncode != 0:
+        print(f"upload test: runner failed\n{result.stderr}")
+        return
+    entry = json.loads(result.stdout)["bots"][f"{bot.name}#0"]
+    rate = entry["failed_decisions"] / max(1, entry["decisions"])
+    verdict = "WOULD BE REJECTED (over 10%)" if rate > 0.10 else "passes" if rate == 0 else "passes, but not clean"
+    print(f"upload test (no time bank, 300 short heads-up matches): {entry['failed_decisions']} of "
+          f"{entry['decisions']} decisions failed ({rate:.1%}) -> {verdict}")
+    print(f"  slowest decision {entry['latency_us']['max']:.0f} µs; with no bank, anything over 1000 µs fails\n")
+
+
 def run(runner: list[str], arguments: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run(runner + arguments, capture_output=True, text=True)
 
@@ -65,6 +82,9 @@ def main() -> None:
     if checked.returncode != 0:
         sys.exit(f"upload check FAILED:\n{checked.stdout}{checked.stderr}")
     print("upload check: passed\n")
+
+    if options.mini:
+        upload_test(runner, bot)
 
     worst_failures = 0
     for name, bots in lineups(bot).items():

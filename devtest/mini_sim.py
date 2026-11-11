@@ -63,6 +63,7 @@ class Table:
         self.cursor = [0] * self.n
         self.bank = [float(rules.bank_ms)] * self.n
         self.failures = [0] * self.n
+        self.decisions = [0] * self.n
         self.latency: list[list[int]] = [[] for _ in range(self.n)]
         self.log: list[Event] = []
         self.levels = tuple(BlindLevel(small, big) for small, big in BLINDS)
@@ -293,6 +294,7 @@ class Table:
         )
         self.cursor[seat] = len(self.log)
         fallback = Action.check() if state.can("check") else Action.fold()
+        self.decisions[seat] += 1
         began = time.perf_counter_ns()
         try:
             action, memory = self.agents[seat].act(state, self.memory[seat])
@@ -375,6 +377,7 @@ def play(arguments) -> None:
     points = {label: [] for label in labels}
     places = {label: Counter() for label in labels}
     failures: Counter = Counter()
+    decisions: Counter = Counter()
     latency = {label: [] for label in labels}
     for number in range(arguments.tables):
         rng = random.Random(f"{seed}:{number}")
@@ -388,6 +391,7 @@ def play(arguments) -> None:
             points[label].append(result[seat])
             places[label][finish[seat]] += 1
             failures[label] += table.failures[seat]
+            decisions[label] += table.decisions[seat]
             latency[label].extend(table.latency[seat])
     summary = {"seed": seed, "tables": arguments.tables, "bots": {}}
     for label in labels:
@@ -396,6 +400,7 @@ def play(arguments) -> None:
             "average_points": round(sum(points[label]) / len(points[label]), 3),
             "places": dict(sorted(places[label].items())),
             "failed_decisions": failures[label],
+            "decisions": decisions[label],
             "latency_us": {
                 "p50": round(times[len(times) // 2] / 1000, 1),
                 "p99.9": round(times[min(len(times) - 1, int(len(times) * 0.999))] / 1000, 1),

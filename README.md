@@ -19,10 +19,11 @@ the interface in the organizers' starter kit (`poker_agent_sdk`: `act(state, mem
 
 ## Practising under the real rules
 
-The authority is the organizers' starter kit, which accepted teams download from the
-competition site (the kit's README points to **Getting started**; an entrant describes the
-download as a button on the `/sim` page). Its `poker-agent play` runs real tables with the
-1 ms limit enforced, and uploading on your team page plays a short test match.
+The authority is the organizers' starter kit. According to the competition's Getting
+started page it unlocks at the variant announcement, together with uploads, so it cannot
+be installed beforehand (see [`docs/official-getting-started.md`](docs/official-getting-started.md)).
+Its `poker-agent play` runs real tables with the 1 ms limit enforced, and every upload
+plays a short test match with no time bank.
 
 ```bash
 # inside the kit folder, with Python 3.12
@@ -128,11 +129,11 @@ Not tested: anything against the organizers' kit itself, so run `practice.py` wi
 - **Table settings.** The Bay Area kit's defaults were blinds rising every 20 hands and a
   250-hand cap; the published rules say 25 and 200. The bot reads these from
   `state.config`, so it adapts, but tune against whatever your kit uses.
-- **Payouts.** The kit says a round can give each table its own split of 100 points. The
-  bot reads `state.config.payouts`.
-- **Upload size.** The kit says 50 MB; the published rules say 100 MB.
+- **Payouts.** Rounds may draw payouts per table. The bot reads `state.config.payouts`.
+- **Upload test.** It has no time bank and rejects a bot that fails more than 10% of
+  decisions. `practice.py --mini` imitates it; the kit's `play` always gives the bank.
 - **Speed with more than two hole cards.** The placeholder scoring takes about 250 µs
-  typical with four hole cards and occasionally exceeds 1 ms, which spends the 100 ms
-  per-table time bank. Replace it before using it in such a variant.
+  typical with four hole cards and occasionally exceeds 1 ms. Replace it before using it
+  in such a variant, and time it on the team build box.
 - **Pre-written code.** The published rules do not say whether you may bring code to the
   event. Ask the organizers before planning to upload this.
