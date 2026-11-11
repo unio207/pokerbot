@@ -1,6 +1,10 @@
-"""Source: Codex (this session; not an independently sampled model).
-Profile: A. Survival-first ICM
-Notes: Tight opens, narrow short shoves, payout-aware calls; heads-up removes risk premium.
+"""Survival-first ICM zoo opponent (strategy A).
+
+Source:   Codex (this session; not an independently sampled model).
+Profile:  A. Survival-first ICM
+Variants: holdem
+Notes:    Tight opens, narrow short shoves, payout-aware calls; heads-up removes risk premium.
+
 All ranges/equities are estimates from the supplied strategy chat and repository.
 Exact single-opponent ICM ignores ties/future skill; multiway uses a risk premium.
 No runtime rollouts, persistent globals, cross-bot imports, or mutable instance state.

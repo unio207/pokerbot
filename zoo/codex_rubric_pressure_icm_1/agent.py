@@ -1,10 +1,11 @@
 """Vedaant Seceret Strategies HeHeHe: RubricPressure ICM zoo opponent (strategy F).
 
-Source:  Claude (Fable 5.2), implementing Vedaant's design in zoo/VEDAANT_SECERET_STRATEGIES.md
-Profile: Strong zoo opponent. Scheduled steals plus postflop pressure, tempered by ICM.
-Notes:   Rubric decisions (fixed prior + bounded points, clipped); per-seat fold counters
-         used only after 10 samples; small c-bets, probes and semibluff raises; value and
-         pressure lines combined cautiously near the bubble. Shove/fold under 13 BB.
+Source:   Claude (Fable 5.2), implementing Vedaant's design in zoo/VEDAANT_SECERET_STRATEGIES.md
+Profile:  F. Strong zoo opponent. Scheduled steals plus postflop pressure, tempered by ICM.
+Variants: holdem
+Notes:    Rubric decisions (fixed prior + bounded points, clipped); per-seat fold counters
+          used only after 10 samples; small c-bets, probes and semibluff raises; value and
+          pressure lines combined cautiously near the bubble. Shove/fold under 13 BB.
 
 All numbers are hand-set estimates, not solver output. Standard hold'em only: any other
 decision phase takes the first legal action. No rollouts, no state outside `memory`.

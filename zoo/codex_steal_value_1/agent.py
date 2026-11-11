@@ -1,8 +1,10 @@
 """Small-bet steal and value zoo opponent (strategy C).
 
-Source: Codex, independently delegated implementation in the same session.
-Profile: Exploit overfolders cheaply; value bet calling stations.
-Notes: 2-BB positional opens, bounded opponent memory, selective dry-board c-bets.
+Source:   Codex, independently delegated implementation in the same session.
+Profile:  C. Exploit overfolders cheaply; value bet calling stations.
+Variants: holdem
+Notes:    2-BB positional opens, bounded opponent memory, selective dry-board c-bets.
+
 Ranges and hand-equity proxies are estimates, not Nash/solver outputs. Standard
 hold'em only; other decision phases use their first legal action. No runtime
 rollouts. Opponent response counts are observations, not certainty about code.

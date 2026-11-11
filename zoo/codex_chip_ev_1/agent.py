@@ -1,6 +1,10 @@
-"""Source: Codex (this session; not an independently sampled model).
-Profile: B. Chip-EV push/fold
-Notes: Position-based chip accumulation; short-stack shove/fold; no ICM premium.
+"""Chip-EV push/fold zoo opponent (strategy B).
+
+Source:   Codex (this session; not an independently sampled model).
+Profile:  B. Chip-EV push/fold
+Variants: holdem
+Notes:    Position-based chip accumulation; short-stack shove/fold; no ICM premium.
+
 All ranges/equities are estimates from the supplied strategy chat and repository.
 Exact single-opponent ICM ignores ties/future skill; multiway uses a risk premium.
 No runtime rollouts, persistent globals, cross-bot imports, or mutable instance state.

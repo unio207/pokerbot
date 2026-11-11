@@ -1,22 +1,42 @@
-"""Strategy bots for No Limit (pokerbot sit-and-go). Single file, standard library only.
+"""Strategy bot for the pokerbot sit-and-go, in the zoo template's layout. One file.
 
-This one source holds seven strategies. The line `ACTIVE = "..."` below picks which one
-this file plays; `tools/build.py` stamps one copy per profile into `bots/<name>/agent.py`.
-Change a knob in PROFILES, or switch strategy by editing ACTIVE: nothing else is needed.
+Source:   strategies branch (VedaantK, commit fa9590f); moved into the zoo template layout
+          and given its variant entries by Claude (Fable 5.2)
+Profile:  steal_heavy. B. Wider opens and steals, tighter all-in calls, frequent continuation bets.
+Variants: all, as of 2026-11-11: holdem, discard_reveal, short_deck, omaha, auction
+Notes:    Seven profiles share this source; `ACTIVE` below picks one and tools/build.py
+          stamps a copy per profile into bots/<name>/agent.py. Hold'em play is the tuned
+          original. The other variants' numbers are estimates measured on our own mini
+          simulator (tools/gen_variant_tables.py), not on the organizers' kit.
 
-Layout, top to bottom:
-  1. PROFILES         every tuning knob, one dict per strategy
-  2. act()            crash-proof wrapper: any error or illegal action becomes check/fold
-  3. variant hooks    the ONE place for a variant's extra phases and private-card scoring
-  4. preflop          open charts when deep, push/fold when short, calls priced by pot odds
-  5. postflop         hand category + pot odds ("basic", "minimal" or "bucket")
-  6. ICM              own-equity Malmuth-Harville, used to price large calls
-  7. tracker          per-seat counters kept in the `memory` bytes
-  8. hand evaluator, bucket tables and the 169-class preflop equity table
+How this file is organised (read zoo/_template/README.md before changing it):
+  1. act()      crash-proof wrapper. Never changes between variants.
+  2. VARIANTS   one entry per ruleset in zoo/variants/. Everything that depends on the
+                variant lives in an entry: how to recognise it, how to answer its extra
+                decision phases, and how to score our private cards.
+  3. decide()   the betting strategy, written once. PROFILES holds every tuning knob, one
+                dict per strategy; then preflop, postflop, ICM and the per-seat tracker.
+  4. helpers    legal actions, table reading, hand evaluation and the embedded tables.
 
-Everything about the table (blinds, payouts, hand cap, players) is read from `state`.
-Nothing is kept on `self` or in globals between calls, and nothing here is random:
-the same state and memory always give the same action.
+To change a strategy, edit a knob in PROFILES or switch ACTIVE, then run tools/build.py.
+
+Rules every bot must follow (same as the competition):
+- One file. `class Agent` with `act(state, memory) -> (Action, bytes)`.
+- No state on `self` or in globals between calls: the platform runs several copies and
+  any copy may answer any turn. Use the `memory` bytes (empty at the start of every
+  table, cut at 64 KB, keep it small, parse it defensively).
+- Return within 1 ms. An exception, timeout or illegal action is played as check/fold
+  (in a variant's own phase: the platform's automatic choice).
+- A raise outside [min_amount, max_amount] is illegal; it is NOT clamped for you, and a
+  float amount is rounded down. Use whole numbers and clamp them yourself.
+- Check and call are never both offered, and fold is not offered when checking is free.
+- Imports: standard library, poker_agent_sdk, and only NumPy, SciPy, pandas,
+  scikit-learn, PyTorch (CPU), LightGBM, XGBoost, ONNX Runtime, Numba, eval7.
+  Never poker_engine or pokerkit. No network, files or subprocesses.
+- Read table settings from `state.config` (blinds, payouts, players); payouts can differ
+  per table, so do not assume 50/30/20.
+
+Nothing here is random: the same state and memory always give the same action.
 """
 
 import poker_agent_sdk
@@ -25,7 +45,277 @@ from poker_agent_sdk import Action, GameState
 ACTIVE = "steal_heavy"
 DEBUG_RAISE = False  # tools/fuzz.py sets this so internal errors surface instead of folding
 
-# ----------------------------------------------------------------------------- profiles
+
+# ----------------------------------------------------------------------------- 1. wrapper
+class Agent(poker_agent_sdk.Agent):
+    def act(self, state: GameState, memory: bytes) -> tuple[Action, bytes]:
+        if DEBUG_RAISE:
+            tracker, memory = _track(state, memory)
+            return legal(route(state, tracker), state), memory
+        if type(memory) is not bytes:
+            memory = b""
+        tracker = None
+        try:
+            tracker, memory = _track(state, memory)
+        except Exception:
+            tracker, memory = None, b""  # lose the notes, keep playing
+        try:
+            return legal(route(state, tracker), state), memory
+        except Exception:
+            try:
+                return passive(state), memory
+            except Exception:
+                return Action.check(), memory
+
+
+def route(state: GameState, tracker) -> Action:
+    """Find the variant, then the betting strategy or the variant's handler for this phase."""
+    variant = VARIANTS[variant_of(state)]
+    if state.phase == "betting":
+        return decide(state, variant, tracker)
+    # A decision phase the variant adds. No handler: the automatic choice.
+    handler = variant["phases"].get(state.phase)
+    return handler(state) if handler else automatic(state)
+
+
+# ----------------------------------------------------------------------------- 2. variants
+# Each ruleset in zoo/variants/<name>.md gets one entry in VARIANTS under the same name:
+#   detect    state -> bool. True when this table plays the variant. Checked in order,
+#             after an exact match on state.config.variant; "holdem" is the fallback.
+#   phases    {phase name: handler(state) -> Action} for the variant's extra phases.
+#   strength  state -> float in 0..1, how good our private cards are right now.
+# and two extra fields the strategy reads, which `strength` is built from:
+#   preflop   state -> (equity vs one random hand, percentile where 0.0 is the best hand)
+#   postflop  (state, facing a bet?) -> (strength 0..1 as rough equity, has a strong draw)
+# These functions are the only code that knows how many cards we hold, which ones play
+# and how hands rank. To support a new variant: read its ruleset, write its functions, add
+# its entry. Every function falls back to the hold'em one when the cards are not what its
+# ruleset says, so a wrong guess about the kit costs accuracy, never an exception.
+
+
+def holdem_preflop(state: GameState) -> tuple[float, float]:
+    """Two private cards: the embedded 169-class table. Any other count takes the best
+    two-card combination, which is only a first guess for a variant we have no entry for."""
+    cards = state.cards
+    if len(cards) < 2:
+        return 0.0, 1.0  # nothing to score: the worst hand
+    if len(cards) == 2:
+        key = _class_key(cards[0], cards[1])
+    else:
+        key = max(
+            (_class_key(a, b) for i, a in enumerate(cards) for b in cards[i + 1 :]),
+            key=_EQUITY.__getitem__,
+        )
+    return _EQUITY[key], _PERCENTILE[key]
+
+
+def holdem_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
+    """Best five of two private cards and the board (best two-card combination otherwise)."""
+    cards = state.cards
+    if len(cards) == 2:
+        if P["post"] == "bucket":
+            key, draw = _bucket(cards, state.board)
+            value = (_BUCKET_T if facing else _BUCKET_R).get(key)
+            if value is not None:
+                return value, draw
+        return _made_strength(cards, state.board), _has_draw(cards, state.board)
+    best, draw = 0.0, False
+    for i, a in enumerate(cards):
+        for b in cards[i + 1 :]:
+            best = max(best, _made_strength((a, b), state.board))
+            draw = draw or _has_draw((a, b), state.board)
+    return best, draw
+
+
+def discard_reveal_preflop(state: GameState) -> tuple[float, float]:
+    """zoo/variants/discard_reveal.md: three cards, worth their best two-card combination.
+    Everyone holds three, so the same two cards rank lower than in hold'em."""
+    cards = state.cards
+    if len(cards) != 3:
+        return holdem_preflop(state)
+    score = max(_EQUITY[_class_key(a, b)] for i, a in enumerate(cards) for b in cards[i + 1 :])
+    return _DISCARD_FIT[0] + _DISCARD_FIT[1] * score, _percentile_of(score, _DISCARD_MARKS)
+
+
+def discard_reveal_select(state: GameState) -> Action:
+    """Discard one of three cards and expose one of the two kept: keep the pair that
+    plays best with the board (draws included), expose the lower kept card."""
+    cards = state.cards
+    if len(cards) != 3:
+        return automatic(state)
+    best, keep = -1.0, (0, 1)
+    for pair in ((0, 1), (0, 2), (1, 2)):
+        kept = (cards[pair[0]], cards[pair[1]])
+        score = _made_strength(kept, state.board) if state.board else _preflop_equity(kept)
+        if score > best:
+            best, keep = score, pair
+    discard = 3 - keep[0] - keep[1]
+    reveal = min(keep, key=lambda index: _RANK[cards[index][0]])
+    return Action("select", cards=(discard, reveal))
+
+
+def omaha_preflop(state: GameState) -> tuple[float, float]:
+    """zoo/variants/omaha.md: four cards scored together as the mean of their six
+    two-card combinations, which rewards high cards, pairs and suits that work together."""
+    cards = state.cards
+    if len(cards) != 4:
+        return holdem_preflop(state)
+    score = sum(_EQUITY[_class_key(a, b)] for i, a in enumerate(cards) for b in cards[i + 1 :]) / 6
+    return _OMAHA_FIT[0] + _OMAHA_FIT[1] * score, _percentile_of(score, _OMAHA_MARKS)
+
+
+def omaha_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
+    """Best hand from exactly two private cards and exactly three board cards. Strength
+    is the measured equity of that hand category on this street, far below hold'em's."""
+    if len(state.cards) != 4 or not 3 <= len(state.board) <= 5:
+        return holdem_postflop(state, facing)
+    hole = [(_RANK[card[0]], card[1]) for card in state.cards]
+    board = [(_RANK[card[0]], card[1]) for card in state.board]
+    best = (-1,)
+    for i in range(3):
+        for j in range(i + 1, 4):
+            for a, b, c in _TRIPLES[len(board)]:
+                rank = _five((hole[i], hole[j], board[a], board[b], board[c]))
+                if rank > best:
+                    best = rank
+    left = 5 - len(board)
+    strength = _OMAHA_MADE[len(board) - 3][best[0]]
+    flush_draw = left > 0 and best[0] < 5 and any(
+        sum(card[1] == suit for card in hole) >= 2 and sum(card[1] == suit for card in board) == 2
+        for suit in "cdhs"
+    )
+    return min(strength, 0.97), flush_draw
+
+
+def _five(cards) -> tuple:
+    """Exactly five (rank, suit) cards as a tuple that compares correctly. Full deck."""
+    ranks = sorted((card[0] for card in cards), reverse=True)
+    a, b, c, d, e = ranks
+    if a != b and b != c and c != d and d != e:
+        suit = cards[0][1]
+        flush = cards[1][1] == suit and cards[2][1] == suit and cards[3][1] == suit and cards[4][1] == suit
+        high = a if a - e == 4 else 5 if a == 14 and b == 5 else 0
+        if high:
+            return (8 if flush else 4, high)
+        return (5 if flush else 0, a, b, c, d, e)
+    counts: dict[int, int] = {}
+    for rank in ranks:
+        counts[rank] = counts.get(rank, 0) + 1
+    groups = sorted(counts.items(), key=lambda item: (item[1], item[0]), reverse=True)
+    top = groups[0][1]
+    category = 7 if top == 4 else (6 if len(groups) == 2 else 3) if top == 3 else 2 if len(groups) == 3 else 1
+    return (category, *[rank for rank, _ in groups])
+
+
+_TRIPLES = {n: tuple((a, b, c) for a in range(n) for b in range(a + 1, n) for c in range(b + 1, n))
+            for n in (3, 4, 5)}  # fmt: skip
+
+
+def short_deck_preflop(state: GameState) -> tuple[float, float]:
+    """zoo/variants/short_deck.md: its own table for the 81 classes of a 36-card deck."""
+    cards = state.cards
+    key = _class_key(cards[0], cards[1]) if len(cards) == 2 else None
+    if key not in _SHORT_EQUITY:
+        return holdem_preflop(state)
+    return _SHORT_EQUITY[key], _SHORT_PERCENTILE[key]
+
+
+def short_deck_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
+    """Flush above full house, ace low only in A-6-7-8-9, and strengths corrected for a
+    deck where hands run closer together. The full-deck equity buckets are not used."""
+    cards = state.cards
+    if len(cards) != 2 or any(_RANK[card[0]] < 6 for card in cards + state.board):
+        return holdem_postflop(state, facing)
+    return _made_strength(cards, state.board, True), _has_draw(cards, state.board, True)
+
+
+def auction_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
+    """zoo/variants/auction.md: best five of all our private cards (three after winning
+    the auction) and the board."""
+    cards = state.cards
+    if len(cards) != 3:
+        return holdem_postflop(state, facing)
+    return _made_strength(cards, state.board), _has_draw(cards, state.board)
+
+
+def auction_bid(state: GameState) -> Action:
+    """One sealed bid for an extra private card. It is a second-price auction, so bid what
+    the card is worth: the equity it adds times the pot. A draw gains most, a made hand
+    least. Never more than a tenth of the stack, half that near the bubble with ICM on,
+    and nothing when short."""
+    allowed = state.can("bid")
+    if allowed is None or len(state.cards) < 2 or len(state.board) < 3:
+        return automatic(state)
+    me = _me(state)
+    strength = _made_strength(state.cards, state.board)
+    gain = _AUCTION_GAIN[0] if _has_draw(state.cards, state.board) else _AUCTION_GAIN[2 if strength >= 0.85 else 1]
+    limit = me.stack // 10 if me.stack > 10 * max(1, state.blinds.big_blind) else 0
+    paid = sum(1 for payout in state.config.payouts if payout > 0)
+    if P["icm_scale"] and 2 < state.players_remaining <= paid + 1:
+        limit //= 2
+    bid = min(int(gain * state.pot), limit)
+    return Action("bid", max(allowed.min_amount, min(allowed.max_amount, bid)))
+
+
+def _percentile_of(score: float, marks) -> float:
+    """Share of hands that score higher. `marks` holds the score at each equal step of
+    all hands, best first (tools/gen_variant_tables.py)."""
+    if not marks or score >= marks[0]:
+        return 0.0
+    steps = len(marks) - 1
+    for index in range(1, len(marks)):
+        if score >= marks[index]:
+            span = marks[index - 1] - marks[index]
+            return (index - ((score - marks[index]) / span if span > 0 else 0.0)) / steps
+    return 1.0
+
+
+def _entry(detect, phases: dict, preflop_score, postflop_score) -> dict:
+    def strength(state: GameState) -> float:
+        if state.board:
+            return postflop_score(state, state.to_call > 0)[0]
+        return preflop_score(state)[0]
+
+    return {"detect": detect, "phases": phases, "strength": strength,
+            "preflop": preflop_score, "postflop": postflop_score}  # fmt: skip
+
+
+VARIANTS = {
+    "discard_reveal": _entry(  # after the select phase the two kept cards play as hold'em
+        lambda state: state.phase == "select" or len(state.cards) == 3,
+        {"select": discard_reveal_select}, discard_reveal_preflop, holdem_postflop,
+    ),  # fmt: skip
+    "omaha": _entry(  # exactly two of the four private cards play
+        lambda state: len(state.cards) == 4,
+        {}, omaha_preflop, omaha_postflop,
+    ),  # fmt: skip
+    "auction": _entry(  # two cards, or three for the auction winner: all of them play
+        lambda state: state.phase == "bid",
+        {"bid": auction_bid}, holdem_preflop, auction_postflop,
+    ),  # fmt: skip
+    "short_deck": _entry(  # nothing in the state marks it: recognised by state.config.variant only
+        lambda state: False,
+        {}, short_deck_preflop, short_deck_postflop,
+    ),  # fmt: skip
+    "holdem": _entry(  # keep last: the fallback when nothing else is recognised
+        lambda state: True,
+        {}, holdem_preflop, holdem_postflop,
+    ),  # fmt: skip
+}
+
+
+def variant_of(state: GameState) -> str:
+    """Name of the ruleset this table plays: the kit's name if we know it, else by its signs.
+
+    A known name is not trusted when the table asks for a phase that ruleset does not have.
+    """
+    name = str(getattr(state.config, "variant", "") or "").lower().replace("-", "_")
+    if name in VARIANTS and (state.phase == "betting" or state.phase in VARIANTS[name]["phases"]):
+        return name
+    return next(key for key, variant in VARIANTS.items() if variant["detect"](state))
+
+
+# ----------------------------------------------------------------------------- 3. strategy: profiles
 # Ranges are fractions of the best starting hands (0.12 = top 12%).
 _BASE = dict(
     pf_bb=15,  # effective stack (big blinds) at or below which preflop is shove-or-fold
@@ -61,6 +351,17 @@ _BASE = dict(
     steal_any=0.0,  # range floor when the seats behind fold almost always
     vs_shover="math",  # "doc": never call a habitual shover wider than the top 13%; "math": by its rate
 )
+
+# One line per profile for the file header: tools/build.py writes it into `Profile:`.
+ABOUT = {
+    "chart_nash": "A. Position charts when deep, Nash-style push/fold when short, pot odds postflop.",
+    "steal_heavy": "B. Wider opens and steals, tighter all-in calls, frequent continuation bets.",
+    "icm_survival": "C. Chart-Nash with ICM-priced calls, tighter near the bubble and the hand cap.",
+    "push_fold": "D. Shove-or-fold from 20 big blinds down, almost no postflop play.",
+    "equity_bucket": "E. Chart-Nash preflop, precomputed equity buckets postflop.",
+    "adaptive": "F. Chart-Nash plus per-seat tracking and the exploits it allows.",
+    "final": "A + F + C, the version to lock in: tracking, exploits and full ICM pricing.",
+}
 
 PROFILES = {
     # A. Position charts when deep, Nash-style push/fold short, pot odds postflop.
@@ -143,98 +444,17 @@ def _push_pct(stack_bb: float, behind: int) -> float:
     return column[-1]
 
 
-class Agent(poker_agent_sdk.Agent):
-    def act(self, state: GameState, memory: bytes) -> tuple[Action, bytes]:
-        if DEBUG_RAISE:
-            tracker, memory = _track(state, memory)
-            return _legal(decide(state, tracker), state), memory
-        if type(memory) is not bytes:
-            memory = b""
-        tracker = None
-        try:
-            tracker, memory = _track(state, memory)
-        except Exception:
-            tracker, memory = None, b""  # lose the notes, keep playing
-        try:
-            return _legal(decide(state, tracker), state), memory
-        except Exception:
-            try:
-                return _passive(state), memory
-            except Exception:
-                return Action.check(), memory
-
-
-def decide(state: GameState, tracker) -> Action:
-    if state.phase != "betting":
-        return variant_decision(state)
+# ----------------------------------------------------------------------------- 3. strategy: decide
+def decide(state: GameState, variant: dict, tracker=None) -> Action:
+    """The betting strategy. Everything it knows about our cards comes from `variant`."""
     if not state.board:
-        return preflop(state, tracker)
-    return postflop(state, tracker)
+        return preflop(state, variant, tracker)
+    return postflop(state, variant, tracker)
 
 
-# ----------------------------------------------------------------------------- variant hooks
-def variant_decision(state: GameState) -> Action:
-    """A decision phase the variant adds. RULES.md in your kit says what each one means.
-
-    Default: the first legal action at its minimum, which is the platform's own automatic
-    choice. Add one `if state.phase == ...` branch per phase of your variant.
-    """
-    if state.phase == "select" and len(state.cards) == 3:
-        # Example (Bay Area variant): discard one of three hole cards, expose one of the
-        # two kept. Keep the pair of cards that scores best; expose the lower kept card.
-        best, keep = -1.0, (0, 1)
-        for pair in ((0, 1), (0, 2), (1, 2)):
-            kept = (state.cards[pair[0]], state.cards[pair[1]])
-            score = _made_strength(kept, state.board) if state.board else _preflop_equity(kept)
-            if score > best:
-                best, keep = score, pair
-        discard = 3 - keep[0] - keep[1]
-        reveal = min(keep, key=lambda index: _RANK[state.cards[index][0]])
-        return Action("select", cards=(discard, reveal))
-    first = state.legal_actions[0]
-    return Action(first.kind, first.min_amount)
-
-
-def hole_strength(state: GameState) -> tuple[float, float]:
-    """(equity vs one random hand, percentile where 0.0 is the best hand) for our hole cards.
-
-    Standard hold'em uses the embedded two-card table. With any other number of private
-    cards this takes the best two-card combination, which is only a first guess:
-    rewrite it once you know how many hole cards play at showdown.
-    """
-    cards = state.cards
-    if len(cards) == 2:
-        key = _class_key(cards[0], cards[1])
-    else:
-        key = max(
-            (_class_key(a, b) for i, a in enumerate(cards) for b in cards[i + 1 :]),
-            key=_EQUITY.__getitem__,
-        )
-    return _EQUITY[key], _PERCENTILE[key]
-
-
-def postflop_strength(state: GameState, facing: bool) -> tuple[float, bool]:
-    """(strength 0..1 as rough equity, has a strong draw). `facing` = someone has bet."""
-    cards = state.cards
-    if len(cards) == 2:
-        if P["post"] == "bucket":
-            key, draw = _bucket(cards, state.board)
-            value = (_BUCKET_T if facing else _BUCKET_R).get(key)
-            if value is not None:
-                return value, draw
-        return _made_strength(cards, state.board), _has_draw(cards, state.board)
-    # More than two private cards: best two-card combination (see hole_strength).
-    best, draw = 0.0, False
-    for i, a in enumerate(cards):
-        for b in cards[i + 1 :]:
-            best = max(best, _made_strength((a, b), state.board))
-            draw = draw or _has_draw((a, b), state.board)
-    return best, draw
-
-
-# ----------------------------------------------------------------------------- preflop
-def preflop(state: GameState, tracker) -> Action:
-    equity, pct = hole_strength(state)
+# ----------------------------------------------------------------------------- 3. strategy: preflop
+def preflop(state: GameState, variant: dict, tracker) -> Action:
+    equity, pct = variant["preflop"](state)
     me = _me(state)
     big_blind = max(1, state.blinds.big_blind)
     total = me.stack + me.bet
@@ -286,7 +506,7 @@ def preflop(state: GameState, tracker) -> Action:
         if pct <= three:
             if eff_bb <= P["deep_bb"]:
                 return Action.raise_to(can_raise.max_amount)
-            return _raise(state, int(size * (me.bet + to_call)))
+            return raise_to(state, int(size * (me.bet + to_call)))
         cheap = to_call <= 0.12 * me.stack
         closing = behind == 0 and need < 0.3
         if cheap and (pct <= P["call_raise"] or (closing and pct <= 0.2)):
@@ -344,7 +564,7 @@ def preflop(state: GameState, tracker) -> Action:
     if not limpers:
         limit = max(limit, floor)
     if can_raise and pct <= limit:
-        return _raise(state, int((size + limpers) * big_blind))
+        return raise_to(state, int((size + limpers) * big_blind))
     if to_call == 0:
         return Action.check()
     if need <= 0.2 and pct <= 0.6:
@@ -430,13 +650,13 @@ def _steal(tracker, behind_seats, shove: bool) -> tuple[float, float]:
     return mult, floor
 
 
-# ----------------------------------------------------------------------------- postflop
-def postflop(state: GameState, tracker) -> Action:
+# ----------------------------------------------------------------------------- 3. strategy: postflop
+def postflop(state: GameState, variant: dict, tracker) -> Action:
     me = _me(state)
     pot, to_call = state.pot, state.to_call
     others = [s for s in state.seats if s.seat != state.seat and s.status in ("active", "all_in")]
     opponents = len(others)
-    strength, draw = postflop_strength(state, to_call > 0)
+    strength, draw = variant["postflop"](state, to_call > 0)
     # A hand that beats one random hand 70% of the time beats three of them far less often.
     strength = strength ** (1 + 0.3 * max(0, opponents - 1))
     can_raise = state.can("raise")
@@ -449,18 +669,18 @@ def postflop(state: GameState, tracker) -> Action:
         if not can_raise:
             return Action.check()
         if strength >= value:
-            return _raise(state, me.bet + int(P["value_size"] * bigger * pot))
+            return raise_to(state, me.bet + int(P["value_size"] * bigger * pot))
         if minimal:
             return Action.check()
         if strength >= P["medium_bet"]:
-            return _raise(state, me.bet + int(P["cbet_size"] * bigger * pot))
+            return raise_to(state, me.bet + int(P["cbet_size"] * bigger * pot))
         if station or opponents > 2:
             return Action.check()
         if draw and _coin(state, 1) < P["semi_bluff"]:
-            return _raise(state, me.bet + int(0.5 * pot))
+            return raise_to(state, me.bet + int(0.5 * pot))
         if (P["cbet_air"] and len(state.board) == 3 and _was_aggressor(state)
                 and _dry(state.board) and _coin(state, 2) < P["cbet_air"]):  # fmt: skip
-            return _raise(state, me.bet + int(0.4 * pot))
+            return raise_to(state, me.bet + int(0.4 * pot))
         return Action.check()
 
     pot = max(0, pot - _unwinnable(state, me))
@@ -472,7 +692,7 @@ def postflop(state: GameState, tracker) -> Action:
         bettor = next((e.seat for e in reversed(state.history) if e.kind == "raise"), None)
         edge += P["icm_scale"] * _icm_premium(state, me, _seat(state, bettor))
     if strength >= 0.88 and can_raise:
-        return _raise(state, me.bet + to_call + int(0.75 * (pot + to_call)))
+        return raise_to(state, me.bet + to_call + int(0.75 * (pot + to_call)))
     if to_call > 0.5 * me.stack and strength < 0.75:
         return Action.fold()  # do not call off a stack with a marginal hand
     if strength >= need + edge or (draw and need <= 0.25 and not minimal):
@@ -508,7 +728,7 @@ def _coin(state: GameState, salt: int) -> float:
     return ((x * 2654435761) & 0xFFFFFFFF) / 4294967296.0
 
 
-# ----------------------------------------------------------------------------- ICM
+# ----------------------------------------------------------------------------- 3. strategy: ICM
 def _icm_me(stacks, index: int, payouts) -> float:
     """Our Malmuth-Harville share of the payouts (first three places), others' ignored."""
     mine = stacks[index]
@@ -568,109 +788,7 @@ def _icm_premium(state: GameState, me, villain) -> float:
     return min(0.3, max(0.0, (fold - lose) / (win - lose) - chip_need))
 
 
-# ----------------------------------------------------------------------------- safety
-def _legal(action: Action, state: GameState) -> Action:
-    """Never hand the platform an illegal action: clamp raises, downgrade the rest."""
-    if action.kind == "raise":
-        allowed = state.can("raise")
-        if allowed:
-            return Action.raise_to(max(allowed.min_amount, min(allowed.max_amount, int(action.amount))))
-        action = Action.call()
-    if action.kind == "call" and not state.can("call"):
-        action = Action.check()
-    if state.phase != "betting" or state.can(action.kind):
-        return action
-    return _passive(state)
-
-
-def _passive(state: GameState) -> Action:
-    if state.can("check"):
-        return Action.check()
-    if state.can("fold"):
-        return Action.fold()
-    first = state.legal_actions[0]
-    return Action(first.kind, first.min_amount)
-
-
-def _raise(state: GameState, total: int) -> Action:
-    """Raise to `total` for this betting round; shove when that is most of our stack anyway."""
-    allowed = state.can("raise")
-    if not allowed:
-        return Action.call() if state.can("call") else Action.check()
-    total = max(allowed.min_amount, min(allowed.max_amount, total))
-    if total >= 0.6 * allowed.max_amount:
-        total = allowed.max_amount
-    return Action.raise_to(total)
-
-
-# ----------------------------------------------------------------------------- table reading
-def _me(state: GameState):
-    for seat in state.seats:
-        if seat.seat == state.seat:
-            return seat
-    return state.seats[0]
-
-
-def _seat(state: GameState, number):
-    for seat in state.seats:
-        if seat.seat == number:
-            return seat
-    return None
-
-
-def _big_blind_seat(state: GameState):
-    blinds = [event.seat for event in state.history if event.kind == "blind"]
-    return blinds[-1] if blinds else None
-
-
-def _seats_behind(state: GameState) -> list:
-    """Seats still to act after us preflop if nobody raises (empty = we are the big blind)."""
-    big = _big_blind_seat(state)
-    if big is None or big == state.seat:
-        return []
-    seats = state.seats
-    index = next((i for i, seat in enumerate(seats) if seat.seat == state.seat), 0)
-    behind = []
-    for step in range(1, len(seats)):
-        seat = seats[(index + step) % len(seats)]
-        if seat.status == "active":
-            behind.append(seat.seat)
-        if seat.seat == big:
-            break
-    return behind
-
-
-def _behind_of(state: GameState, number) -> int:
-    """How many seats were due to act after `number` preflop, whatever they did since."""
-    big = _big_blind_seat(state)
-    if big is None:
-        return 3
-    if big == number:
-        return 0
-    seats = state.seats
-    index = next((i for i, seat in enumerate(seats) if seat.seat == number), 0)
-    count = 0
-    for step in range(1, len(seats)):
-        seat = seats[(index + step) % len(seats)]
-        if seat.status != "busted":
-            count += 1
-        if seat.seat == big:
-            break
-    return count
-
-
-def _unwinnable(state: GameState, me) -> int:
-    """Chips in `state.pot` that we cannot win: the part of each bet beyond our all-in."""
-    limit = me.bet + min(state.to_call, me.stack)
-    return sum(max(0, s.bet - limit) for s in state.seats if s.seat != me.seat)
-
-
-def _median_stack(state: GameState) -> int:
-    stacks = sorted(seat.stack + seat.bet for seat in state.seats if seat.status != "busted")
-    return stacks[len(stacks) // 2] if stacks else 0
-
-
-# ----------------------------------------------------------------------------- table memory
+# ----------------------------------------------------------------------------- 3. strategy: table memory
 # Fixed-length bytes: an 8-byte header, then 11 bytes per seat.
 #   header: b"T2", hands (2 bytes), flags (1 = flop dealt, 2 = pot raised), seat count,
 #           mask of seats that have acted preflop this hand (2 bytes)
@@ -768,31 +886,154 @@ def _is_station(tracker, seat) -> bool:
     return stats[7] + stats[8] >= 6 and stats[7] >= 0.7 * (stats[7] + stats[8])
 
 
-# ----------------------------------------------------------------------------- hand evaluation
+# ----------------------------------------------------------------------------- 4. helpers: legal actions
+def automatic(state: GameState) -> Action:
+    """The platform's own choice in any phase: the first legal action at its minimum."""
+    first = state.legal_actions[0]
+    return Action(first.kind, first.min_amount)
+
+
+def passive(state: GameState) -> Action:
+    """Check, else fold; in a phase that offers neither, the automatic choice."""
+    if state.can("check"):
+        return Action.check()
+    if state.can("fold"):
+        return Action.fold()
+    return automatic(state)
+
+
+def legal(action: Action, state: GameState) -> Action:
+    """Last line of defence: never hand the platform an illegal action. A raise or bid is
+    clamped to its range; a raise that is not offered becomes a call; the rest go passive."""
+    if action.kind == "raise" and not state.can("raise"):
+        action = Action.call()
+    if action.kind == "call" and not state.can("call"):
+        action = Action.check()
+    allowed = state.can(action.kind)
+    if allowed is None:
+        return passive(state)
+    if action.kind == "raise" or action.kind == "bid":
+        return Action(action.kind, max(allowed.min_amount, min(allowed.max_amount, int(action.amount))))
+    return action
+
+
+def raise_to(state: GameState, total: int) -> Action:
+    """Raise to `total` for this betting round, clamped to what is legal; shove when that
+    is most of our stack anyway."""
+    allowed = state.can("raise")
+    if not allowed:
+        return Action.call() if state.can("call") else Action.check()
+    total = max(allowed.min_amount, min(allowed.max_amount, total))
+    if total >= 0.6 * allowed.max_amount:
+        total = allowed.max_amount
+    return Action.raise_to(total)
+
+
+def shove(state: GameState) -> Action:
+    allowed = state.can("raise")
+    if allowed:
+        return Action.raise_to(allowed.max_amount)
+    return Action.call() if state.can("call") else passive(state)
+
+
+# ----------------------------------------------------------------------------- 4. helpers: table reading
+def _me(state: GameState):
+    for seat in state.seats:
+        if seat.seat == state.seat:
+            return seat
+    return state.seats[0]
+
+
+def _seat(state: GameState, number):
+    for seat in state.seats:
+        if seat.seat == number:
+            return seat
+    return None
+
+
+def _big_blind_seat(state: GameState):
+    blinds = [event.seat for event in state.history if event.kind == "blind"]
+    return blinds[-1] if blinds else None
+
+
+def _seats_behind(state: GameState) -> list:
+    """Seats still to act after us preflop if nobody raises (empty = we are the big blind)."""
+    big = _big_blind_seat(state)
+    if big is None or big == state.seat:
+        return []
+    seats = state.seats
+    index = next((i for i, seat in enumerate(seats) if seat.seat == state.seat), 0)
+    behind = []
+    for step in range(1, len(seats)):
+        seat = seats[(index + step) % len(seats)]
+        if seat.status == "active":
+            behind.append(seat.seat)
+        if seat.seat == big:
+            break
+    return behind
+
+
+def _behind_of(state: GameState, number) -> int:
+    """How many seats were due to act after `number` preflop, whatever they did since."""
+    big = _big_blind_seat(state)
+    if big is None:
+        return 3
+    if big == number:
+        return 0
+    seats = state.seats
+    index = next((i for i, seat in enumerate(seats) if seat.seat == number), 0)
+    count = 0
+    for step in range(1, len(seats)):
+        seat = seats[(index + step) % len(seats)]
+        if seat.status != "busted":
+            count += 1
+        if seat.seat == big:
+            break
+    return count
+
+
+def _unwinnable(state: GameState, me) -> int:
+    """Chips in `state.pot` that we cannot win: the part of each bet beyond our all-in."""
+    limit = me.bet + min(state.to_call, me.stack)
+    return sum(max(0, s.bet - limit) for s in state.seats if s.seat != me.seat)
+
+
+def _median_stack(state: GameState) -> int:
+    stacks = sorted(seat.stack + seat.bet for seat in state.seats if seat.status != "busted")
+    return stacks[len(stacks) // 2] if stacks else 0
+
+
+# ----------------------------------------------------------------------------- 4. helpers: hand evaluation
 _RANK = {rank: value for value, rank in enumerate("23456789TJQKA", 2)}
 
 
-def _straight_high(ranks) -> int:
+def _straight_high(ranks, low: int = 5) -> int:
+    """Top card of the best straight, or 0. `low` is the top of the straight the ace plays
+    low in: 5 in a full deck (A-2-3-4-5), 9 in a 36-card deck (A-6-7-8-9)."""
     mask = 0
     for rank in ranks:
         mask |= 1 << rank
     if mask & (1 << 14):
-        mask |= 2  # the ace also plays low
+        mask |= 1 << (low - 4)  # the ace also plays low
     for high in range(14, 4, -1):
         if (mask >> (high - 4)) & 31 == 31:
             return high
     return 0
 
 
-def hand_rank(cards) -> tuple:
-    """Best five of the given cards as a tuple that compares correctly (bigger wins)."""
+def hand_rank(cards, short: bool = False) -> tuple:
+    """Best five of the given cards as a tuple that compares correctly (bigger wins).
+
+    `short` is the 36-card ranking: a flush (6) beats a full house (5), ace low in A-6-7-8-9.
+    """
+    low = 9 if short else 5
     ranks = sorted((_RANK[card[0]] for card in cards), reverse=True)
     by_suit: dict[str, list[int]] = {}
     for card in cards:
         by_suit.setdefault(card[1], []).append(_RANK[card[0]])
     flush = next((sorted(v, reverse=True) for v in by_suit.values() if len(v) >= 5), None)
     if flush:
-        high = _straight_high(flush)
+        high = _straight_high(flush, low)
         if high:
             return (8, high)
     counts: dict[int, int] = {}
@@ -804,10 +1045,10 @@ def hand_rank(cards) -> tuple:
     if top_count == 4:
         return (7, top, max((rank for rank in ranks if rank != top), default=0))
     if top_count == 3 and second_count >= 2:
-        return (6, top, second)
+        return (5 if short else 6, top, second)
     if flush:
-        return (5, *flush[:5])
-    high = _straight_high(ranks)
+        return (6 if short else 5, *flush[:5])
+    high = _straight_high(ranks, low)
     if high:
         return (4, high)
     if top_count == 3:
@@ -820,20 +1061,25 @@ def hand_rank(cards) -> tuple:
     return (0, *ranks[:5])
 
 
-def _made_strength(hole, board) -> float:
-    """Rough equity vs one random hand from hand category and how the hole cards contribute."""
-    mine = hand_rank(tuple(hole) + tuple(board))
-    table = hand_rank(board)
+def _made_strength(hole, board, short: bool = False) -> float:
+    """Rough equity vs one random hand from hand category and how the hole cards contribute.
+
+    The numbers are for a full deck; `short` adds the measured correction per category.
+    """
+    mine = hand_rank(tuple(hole) + tuple(board), short)
+    table = hand_rank(board, short)
     hole_ranks = sorted((_RANK[card[0]] for card in hole), reverse=True)
     board_ranks = sorted((_RANK[card[0]] for card in board), reverse=True)
     top_board = board_ranks[0]
     overcards = sum(1 for rank in hole_ranks if rank > top_board)
     nothing = 0.22 + 0.05 * overcards
-    category = mine[0]
+    category, on_table = mine[0], table[0]
+    if short:  # put flush and full house back in full-deck order for the branches below
+        category, on_table = _FULL_DECK_ORDER[category], _FULL_DECK_ORDER[on_table]
     if mine == table:
         strength = 0.30  # playing the board: at best a split
     elif category >= 6:
-        strength = 0.97 if table[0] < 6 else 0.85
+        strength = 0.97 if on_table < 6 else 0.85
     elif category == 5:
         suit = next(s for s in "cdhs" if sum(card[1] == s for card in tuple(hole) + tuple(board)) >= 5)
         ours = max((_RANK[card[0]] for card in hole if card[1] == suit), default=2)
@@ -842,20 +1088,20 @@ def _made_strength(hole, board) -> float:
     elif category == 4:
         strength = 0.86
     elif category == 3:
-        if table[0] == 3:
+        if on_table == 3:
             strength = 0.45  # trips are on the board; only kickers differ
         else:
             strength = 0.90 if hole_ranks[0] == hole_ranks[-1] else 0.84
     elif category == 2:
-        if table[0] == 2:
+        if on_table == 2:
             strength = 0.40
-        elif table[0] == 1:  # the board is paired and we hold one more pair
+        elif on_table == 1:  # the board is paired and we hold one more pair
             ours = mine[1] if mine[1] != table[1] else mine[2]
             strength = 0.64 if ours >= top_board else 0.50
         else:
             strength = 0.80
     elif category == 1:
-        if table[0] == 1:
+        if on_table == 1:
             strength = nothing + 0.05  # the pair is on the board
         elif mine[1] > top_board:
             strength = 0.72 + 0.06 * (mine[1] - 2) / 12  # overpair
@@ -870,12 +1116,17 @@ def _made_strength(hole, board) -> float:
         strength = nothing
     if len(board) < 5 and category < 4:
         left = 5 - len(board)
-        flush_draw, straight_draw = _draws(hole, board)
-        strength += (0.07 * left if flush_draw else 0.0) + 0.025 * left * straight_draw
+        flush_draw, straight_draw = _draws(hole, board, short)
+        if short:  # 5 flush outs instead of 9; straights fill more often
+            strength += (0.04 * left if flush_draw else 0.0) + 0.04 * left * straight_draw
+        else:
+            strength += (0.07 * left if flush_draw else 0.0) + 0.025 * left * straight_draw
+    if short:
+        strength = max(0.02, strength + _SHORT_SHIFT[category])
     return min(strength, 0.97)
 
 
-def _draws(hole, board) -> tuple[bool, int]:
+def _draws(hole, board, short: bool = False) -> tuple[bool, int]:
     """(four to a flush using a hole card, straight draw: 2 open-ended, 1 gutshot, 0 none)."""
     cards = tuple(hole) + tuple(board)
     flush_draw = any(
@@ -886,25 +1137,25 @@ def _draws(hole, board) -> tuple[bool, int]:
     for card in cards:
         mask |= 1 << _RANK[card[0]]
     if mask & (1 << 14):
-        mask |= 2
-    completing = sum(1 for rank in range(2, 15) if _straight_high_mask(mask | 1 << rank))
+        mask |= 32 if short else 2
+    completing = sum(1 for rank in range(6 if short else 2, 15) if _straight_high_mask(mask | 1 << rank, short))
     return flush_draw, 2 if completing >= 2 else completing
 
 
-def _straight_high_mask(mask: int) -> bool:
+def _straight_high_mask(mask: int, short: bool = False) -> bool:
     if mask & (1 << 14):
-        mask |= 2
+        mask |= 32 if short else 2
     return any((mask >> low) & 31 == 31 for low in range(1, 11))
 
 
-def _has_draw(hole, board) -> bool:
+def _has_draw(hole, board, short: bool = False) -> bool:
     if len(board) >= 5:
         return False
-    flush_draw, straight_draw = _draws(hole, board)
+    flush_draw, straight_draw = _draws(hole, board, short)
     return flush_draw or straight_draw == 2
 
 
-# ----------------------------------------------------------------------------- equity buckets
+# ----------------------------------------------------------------------------- 4. helpers: equity buckets
 def _bucket(hole, board) -> tuple[str, bool]:
     """(bucket key, has a strong draw). The key names the street, the made hand, any draw
     and the board texture; tools/calibrate_buckets.py measures the true equity of each key."""
@@ -977,7 +1228,7 @@ _BUCKET_R = _parse(_BUCKET_TABLE)
 _BUCKET_T = _parse(_BUCKET_TIGHT)
 
 
-# ----------------------------------------------------------------------------- preflop table
+# ----------------------------------------------------------------------------- 4. helpers: preflop table
 def _class_key(a: str, b: str) -> str:
     """'AKs', 'T9o', 'QQ': the 169 starting-hand classes."""
     if _RANK[a[0]] < _RANK[b[0]]:
@@ -1008,3 +1259,44 @@ def _percentiles() -> dict[str, float]:
 
 
 _PERCENTILE = _percentiles()
+
+
+# ----------------------------------------------------------------------------- 4. helpers: variant tables
+# Measured by tools/gen_variant_tables.py on the mini simulator's rules for each variant
+# (Monte Carlo against one random hand). Rerun it to refresh them; it rewrites these lines.
+
+# short_deck: equity of each of the 81 starting classes of a 36-card deck.
+_SHORT_TABLE = "AA:728 AKo:595 AKs:618 AQo:588 AQs:600 AJo:584 AJs:596 ATo:564 ATs:580 A9o:546 A9s:562 A8o:532 A8s:544 A7o:501 A7s:531 A6o:481 A6s:503 KK:689 KQo:573 KQs:588 KJo:562 KJs:579 KTo:568 KTs:572 K9o:513 K9s:532 K8o:470 K8s:499 K7o:465 K7s:482 K6o:443 K6s:462 QQ:657 QJo:560 QJs:578 QTo:553 QTs:570 Q9o:511 Q9s:526 Q8o:474 Q8s:498 Q7o:434 Q7s:450 Q6o:420 Q6s:445 JJ:637 JTo:548 JTs:573 J9o:511 J9s:527 J8o:471 J8s:497 J7o:430 J7s:452 J6o:394 J6s:420 TT:610 T9o:513 T9s:523 T8o:475 T8s:494 T7o:436 T7s:463 T6o:399 T6s:418 99:563 98o:475 98s:490 97o:442 97s:461 96o:395 96s:425 88:503 87o:412 87s:439 86o:376 86s:399 77:442 76o:356 76s:385 66:393"
+# short_deck: correction to the full-deck made-hand strength, by full-deck hand category.
+_SHORT_SHIFT = (0.043, -0.051, -0.046, -0.052, -0.025, 0.064, -0.08, 0.008, 0.029)
+# discard_reveal: equity = a + b * (best two-card equity of the three cards); and that
+# score at each 5% step of all three-card hands, best first.
+_DISCARD_FIT = (0.018, 0.85)
+_DISCARD_MARKS = (0.853, 0.775, 0.672, 0.651, 0.635, 0.62, 0.607, 0.599, 0.588, 0.578, 0.568, 0.553, 0.54, 0.53, 0.516, 0.5, 0.48, 0.465, 0.445, 0.414, 0.349)
+# omaha: the same for the mean two-card equity of the four cards.
+_OMAHA_FIT = (0.06, 0.88)
+_OMAHA_MARKS = (0.823, 0.6067, 0.5822, 0.5658, 0.5523, 0.542, 0.5318, 0.5228, 0.5142, 0.5058, 0.4977, 0.4897, 0.4813, 0.4732, 0.4645, 0.4552, 0.4448, 0.4332, 0.4188, 0.4003, 0.348)
+# omaha: equity of the best exactly-two-plus-three hand, by street (flop, turn, river) and category.
+_OMAHA_MADE = (
+    (0.344, 0.469, 0.601, 0.811, 0.807, 0.883, 0.939, 0.996, 0.996),
+    (0.226, 0.378, 0.544, 0.757, 0.807, 0.877, 0.931, 0.999, 0.999),
+    (0.025, 0.198, 0.471, 0.675, 0.806, 0.87, 0.926, 0.999, 1.0),
+)
+# auction: equity an extra private card adds with a draw, an ordinary hand, a made hand (estimates).
+_AUCTION_GAIN = (0.10, 0.06, 0.03)
+
+_FULL_DECK_ORDER = (0, 1, 2, 3, 4, 6, 5, 7, 8)  # short-deck category -> full-deck category
+_SHORT_EQUITY = {key: int(value) / 1000 for key, value in (item.split(":") for item in _SHORT_TABLE.split())}
+
+
+def _short_percentiles() -> dict[str, float]:
+    combos = {key: 6 if len(key) == 2 else 4 if key[2] == "s" else 12 for key in _SHORT_EQUITY}
+    total = sum(combos.values()) or 1
+    result, better = {}, 0
+    for key in sorted(_SHORT_EQUITY, key=_SHORT_EQUITY.__getitem__, reverse=True):
+        result[key] = better / total
+        better += combos[key]
+    return result
+
+
+_SHORT_PERCENTILE = _short_percentiles()
