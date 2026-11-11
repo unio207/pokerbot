@@ -256,3 +256,16 @@ details.failures pre { white-space: pre-wrap; background: var(--panel-2); border
 .felt { inset: 17% 14%; }
 .seat.folded, .seat.out { opacity: 1; }
 .seat.folded > *, .seat.out > * { opacity: .45; }
+
+/* engine: organizers' kit vs mini simulator */
+.unofficial.official { background: color-mix(in srgb, #2f9e6a 14%, transparent); border-color: color-mix(in srgb, #2f9e6a 55%, transparent); }
+.unofficial.official strong { color: #23805a; }
+:root[data-theme="dark"] .unofficial.official strong { color: #6fd3a5; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .unofficial.official strong { color: #6fd3a5; } }
+.grid2 .span2 { grid-column: 1 / -1; }
+.engine-tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; opacity: 0.85; }
+.engine-tag.kit { color: #23805a; font-weight: 600; }
+.kit-replay { padding: 8px 2px; max-width: 70ch; line-height: 1.5; }
+.kit-replay code { word-break: break-all; }
+input:disabled { opacity: 0.5; cursor: not-allowed; }
+[hidden] { display: none !important; }

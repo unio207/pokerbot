@@ -1,20 +1,31 @@
-"""Local web UI for the UNOFFICIAL mini simulator: build line-ups, run matches, compare, replay.
+"""Local web UI for practising bots: build line-ups, run matches, compare, replay.
 
-    python3.12 ui/server.py            # http://127.0.0.1:8765
-    python3.12 ui/server.py --port 9000
+    python ui/server.py                # http://127.0.0.1:8765
+    python ui/server.py --port 9000
+    python ui/server.py --kit /path/to/kit/.venv/bin/poker-agent
+
+Two engines:
+- "kit": every table is played by the organizers' starter kit (`poker-agent play`), so the
+  variant, rules and the 1 ms limit are the real ones. Used by default when `poker-agent`
+  is found (start this server from the kit's activated environment, or pass --kit).
+- "mini": the UNOFFICIAL in-process simulator in devtest/mini_sim.py (standard hold'em).
 
 Standard library only. Bots are re-read from disk on every run, so edit an agent.py and
-click Run again; no restart needed. The organizers' kit (`poker-agent play`) is the authority.
+click Run again; no restart needed.
 """
 
 import argparse
+import atexit
 import gc
 import importlib.util
 import json
 import math
+import os
 import random
 import re
 import shutil
+import socket
+import subprocess
 import sys
 import threading
 import time
@@ -41,6 +52,86 @@ _spec = importlib.util.spec_from_file_location("mini_sim", ROOT / "devtest" / "m
 mini_sim = importlib.util.module_from_spec(_spec)
 sys.modules["mini_sim"] = mini_sim
 _spec.loader.exec_module(mini_sim)
+
+# ---------------------------------------------------------------------------- organizers' kit
+KIT: Path | None = None  # the kit's `poker-agent` executable, when found
+HISTORY_DIR = ROOT / "hand-history"
+KIT_CHUNKS = 9  # a kit run is split into this many `poker-agent play` calls for progress and error bars
+
+
+def find_kit(explicit=None) -> Path | None:
+    """The kit's `poker-agent`: --kit, $POKER_AGENT, next to this Python, or on PATH."""
+    candidates = [explicit, os.environ.get("POKER_AGENT"),
+                  Path(sys.executable).parent / "poker-agent", shutil.which("poker-agent")]  # fmt: skip
+    for candidate in candidates:
+        if candidate and Path(candidate).is_file():
+            return Path(candidate).absolute()
+    return None
+
+
+def find_replay() -> Path | None:
+    """The kit's hand viewer command, installed beside `poker-agent`."""
+    for candidate in (KIT and KIT.parent / "replay", shutil.which("replay")):
+        if candidate and Path(candidate).is_file():
+            return Path(candidate).absolute()
+    return None
+
+
+def kit_chunks(tables: int, replay_tables: int) -> list[tuple[int, bool]]:
+    """(tables, save a hand history) per `poker-agent play` call. Only the first, small call
+    saves a history, so the file stays small; the rest is split evenly."""
+    chunks = []
+    first = min(replay_tables, tables)
+    if first:
+        chunks.append((first, True))
+    rest = tables - first
+    if rest:
+        parts = min(KIT_CHUNKS, max(1, rest // 20))
+        chunks += [(rest // parts + (1 if i < rest % parts else 0), False) for i in range(parts)]
+    return chunks
+
+
+_viewer = {"process": None, "url": None, "file": None}
+
+
+def stop_viewer() -> None:
+    process = _viewer["process"]
+    if process and process.poll() is None:
+        process.kill()
+    _viewer.update(process=None, url=None, file=None)
+
+
+atexit.register(stop_viewer)
+
+
+def open_viewer(history: Path) -> str:
+    """Start the kit's own replay viewer on a hand-history file and return its address."""
+    if _viewer["file"] == history and _viewer["process"] and _viewer["process"].poll() is None:
+        return _viewer["url"]
+    replay = find_replay()
+    if replay is None:
+        raise ValueError(f"The kit's `replay` command was not found. Run it yourself: replay {history}")
+    stop_viewer()
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    process = subprocess.Popen([str(replay), str(history), "--no-open", "--port", str(port)], cwd=ROOT,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)  # fmt: skip
+    deadline = time.time() + 8
+    while time.time() < deadline:
+        if process.poll() is not None:
+            raise ValueError("The kit's viewer stopped: " + (process.stderr.read() or "no message")[-600:])
+        try:
+            socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
+            break
+        except OSError:
+            time.sleep(0.1)
+    else:
+        process.kill()
+        raise ValueError("The kit's viewer did not start within 8 seconds.")
+    _viewer.update(process=process, url=f"http://127.0.0.1:{port}/", file=history)
+    return _viewer["url"]
+
 
 # ---------------------------------------------------------------------------- bots on disk
 _load_counter = 0
@@ -153,9 +244,17 @@ def parse_settings(body) -> dict:
         raise ValueError("Payouts: 1 to (number of seats) values, e.g. 50 30 20.")
     payouts = [_int(p, 0, 10000, "each payout") for p in payouts]
     seed = str(body.get("seed") or "").strip() or f"{random.randrange(16**8):08x}"
-    if len(seed) > 64:
-        raise ValueError("Seed is too long.")
+    if len(seed) > 64 or not re.fullmatch(r"[A-Za-z0-9_.:-]+", seed):
+        raise ValueError("Seed: up to 64 letters, digits, and _ . : - only.")
+    engine = body.get("engine") or ("kit" if KIT else "mini")
+    if engine not in ("kit", "mini"):
+        raise ValueError("Engine must be kit or mini.")
+    if engine == "kit" and KIT is None:
+        raise ValueError("The organizers' kit was not found. Start this server from the kit's activated "
+                         "environment (so `poker-agent` is on PATH) or pass --kit, or switch the engine "
+                         "to the mini simulator.")  # fmt: skip
     return {
+        "engine": engine,
         "lineup": lineup,
         "tables": _int(body.get("tables", 50), 1, MAX_TABLES, "Tables"),
         "seed": seed,
@@ -167,11 +266,16 @@ def parse_settings(body) -> dict:
     }
 
 
-def summarize(values):
+def summarize(values, weights=None):
+    """(mean, standard error). `weights` are tables per value when values are chunk averages."""
     count = len(values)
-    mean = sum(values) / count
-    var = sum((v - mean) ** 2 for v in values) / (count - 1) if count > 1 else 0.0
-    return mean, math.sqrt(var / count) if count > 1 else 0.0
+    weights = weights or [1] * count
+    total = sum(weights)
+    mean = sum(w * v for w, v in zip(weights, values)) / total
+    if count < 2:
+        return mean, 0.0
+    spread = sum((w * (v - mean)) ** 2 for w, v in zip(weights, values))
+    return mean, math.sqrt(spread * count / (count - 1)) / total
 
 
 def percentile_us(times, q):
@@ -191,7 +295,10 @@ class Run:
         self.started = self.finished = None
         self.cancel = False
         self.results = None
-        self.points = None  # per entry: list of points, one per table (for paired comparisons)
+        self.points = None  # per entry: points per table (mini) or per chunk (kit), for comparisons
+        self.weights = None  # kit runs: tables in each chunk
+        self.history_file = None  # kit runs: hand history saved by the kit, for its viewer
+        self.kit_stderr = ""
         self.replays = []  # per recorded table: {table, labels, places, points, hands}
         self.bot_mtimes = {}
 
@@ -199,7 +306,8 @@ class Run:
         out = {"id": self.id, "status": self.status, "error": self.error, "done": self.done,
                "settings": self.settings, "created": self.created, "started": self.started,
                "finished": self.finished, "bot_mtimes": self.bot_mtimes,
-               "replay_tables": len(self.replays)}  # fmt: skip
+               "replay_tables": len(self.replays), "kit_stderr": self.kit_stderr,
+               "history_file": self.history_file and self.history_file.relative_to(ROOT).as_posix()}  # fmt: skip
         if full or self.status != "done":
             out["results"] = self.results
         else:
@@ -215,6 +323,8 @@ class Run:
         self.status, self.started = "running", time.time()
         bots = [resolve_bot(rel) for rel in s["lineup"]]
         labels = [f"{bot.name}#{index}" for index, bot in enumerate(bots)]
+        if s["engine"] == "kit":
+            return self.execute_kit(s, bots, labels)
         try:
             loaded = {}
             for bot, rel in zip(bots, s["lineup"]):
@@ -244,6 +354,64 @@ class Run:
             gc.collect()
             gc.freeze()
         self.finish(s, labels, points, places, failures, notes, latency)
+
+    def execute_kit(self, s, bots, labels):
+        """Play the match with the organizers' `poker-agent play`, in a few calls so there is
+        progress, and so chunk averages give error bars and paired comparisons."""
+        for bot, rel in zip(bots, s["lineup"]):
+            self.bot_mtimes[rel] = (bot / "agent.py").stat().st_mtime
+        n = len(bots)
+        points = [[] for _ in labels]
+        places = [Counter() for _ in labels]
+        failures = [0] * n
+        weights = []
+        for index, (count, keep) in enumerate(kit_chunks(s["tables"], s["replay_tables"])):
+            if self.cancel:
+                break
+            command = [str(KIT), "play", *map(str, bots), "--tables", str(count),
+                       "--seed", f"{s['seed']}-c{index}", "--hand-cap", str(s["hand_cap"])]  # fmt: skip
+            history = None
+            if keep:
+                HISTORY_DIR.mkdir(exist_ok=True)
+                stamp = time.strftime("%Y%m%d-%H%M%S")
+                history = HISTORY_DIR / f"ui-run{self.id}-{stamp}-{random.randrange(16**4):04x}.jsonl.gz"
+                command += ["--history", str(history)]
+            else:
+                command.append("--no-history")
+            process = subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            while True:
+                try:
+                    out, err = process.communicate(timeout=0.25)
+                    break
+                except subprocess.TimeoutExpired:
+                    if self.cancel:
+                        process.kill()
+            if self.cancel:
+                break
+            # Keep what the bots printed; drop the kit's two lines about the saved history.
+            kept = [line for line in err.splitlines() if not line.startswith(("Hand history saved", "Watch with"))]
+            self.kit_stderr = ("\n".join(kept))[-4000:] or self.kit_stderr
+            try:
+                if process.returncode != 0:
+                    raise ValueError(f"exit code {process.returncode}")
+                summary = json.loads(out)["bots"]
+                rows = [summary[label] for label in labels]
+            except (ValueError, KeyError, TypeError) as error:
+                self.status, self.finished = "error", time.time()
+                self.error = f"`poker-agent play` failed ({error}).\n{(err or out)[-3000:]}"
+                return
+            for i, row in enumerate(rows):
+                points[i].append(row["average_points"])
+                failures[i] += row["failed_decisions"]
+                for place, times in row["places"].items():
+                    places[i][int(place)] += times
+            weights.append(count)
+            self.done += count
+            if history and history.is_file():
+                self.history_file = history
+        if self.cancel:
+            self.status = "cancelled"
+        self.finish(s, labels, points, places, failures, [[] for _ in labels], None, weights)
 
     def play_tables(self, s, bots, labels, loaded, points, places, failures, notes, latency):
         rules = Rules(s)
@@ -284,38 +452,51 @@ class Run:
             self.done = number + 1
             gc.collect(1)  # young generations only: cheap, and outside any timed decision
 
-    def finish(self, s, labels, points, places, failures, notes, latency):
+    def finish(self, s, labels, points, places, failures, notes, latency, weights=None):
         n = len(labels)
         tables = self.done
         if tables == 0:
             self.status, self.finished = ("cancelled" if self.cancel else "error"), time.time()
             return
-        par = sum(s["payouts"]) / n
+        kit = weights is not None
+        # With too few chunks there is no spread to measure: fall back to a rule of thumb
+        # (points per table swing between 0 and 50, so about 20 / sqrt(tables)).
+        rough = kit and len(weights) < 4
+
+        def stats(values):
+            mean, se = summarize(values, weights)
+            return mean, (20 / math.sqrt(tables) if rough else se)
+
+        if kit:  # the kit sets the payouts; every table pays out the same total
+            par = sum(summarize(points[i], weights)[0] for i in range(n)) / n
+        else:
+            par = sum(s["payouts"]) / n
         entries = []
         for i, label in enumerate(labels):
-            mean, se = summarize(points[i])
-            times = sorted(latency[i])
+            mean, se = stats(points[i])
+            times = sorted(latency[i]) if latency else []
             entries.append({
                 "label": label, "bot": s["lineup"][i], "tables": tables,
                 "average_points": round(mean, 3), "se": round(se, 3), "vs_par": round(mean - par, 3),
                 "places": {str(k): v for k, v in sorted(places[i].items())},
                 "finish_rates": {str(p): round(places[i][p] / tables, 4) for p in (1, 2, 3)},
                 "failed_decisions": failures[i], "failure_notes": notes[i],
-                "decisions": len(times),
+                "decisions": len(times) if latency else None,
                 "latency_us": {"p50": percentile_us(times, 0.5), "p99.9": percentile_us(times, 0.999),
-                               "max": round(times[-1] / 1000, 1) if times else 0.0},
+                               "max": round(times[-1] / 1000, 1) if times else 0.0} if latency else None,
             })  # fmt: skip
         by_bot = []
         for rel in dict.fromkeys(s["lineup"]):
             idx = [i for i, b in enumerate(s["lineup"]) if b == rel]
-            per_table = [sum(points[i][t] for i in idx) / len(idx) for t in range(tables)]
-            mean, se = summarize(per_table)
+            per_table = [sum(points[i][t] for i in idx) / len(idx) for t in range(len(points[0]))]
+            mean, se = stats(per_table)
             by_bot.append({"bot": rel, "seats": len(idx), "average_points": round(mean, 3),
                            "se": round(se, 3), "vs_par": round(mean - par, 3),
                            "failed_decisions": sum(failures[i] for i in idx)})  # fmt: skip
-        self.points = points
+        self.points, self.weights = points, weights
         self.results = {"par": round(par, 3), "tables": tables, "entries": entries, "by_bot": by_bot,
-                        "seconds": round(time.time() - self.started, 2)}  # fmt: skip
+                        "seconds": round(time.time() - self.started, 2), "engine": s["engine"],
+                        "se_rough": rough, "chunks": len(weights) if kit else None}  # fmt: skip
         if self.status == "running":
             self.status = "done"
         self.finished = time.time()
@@ -371,8 +552,12 @@ class Store:
 def compare(a: Run, b: Run) -> dict:
     if not (a.results and b.results):
         raise ValueError("Both runs need results.")
-    paired = a.settings["seed"] == b.settings["seed"] and len(a.points) == len(b.points)
+    # Paired = the same deals in the same order: same engine, seed and split into tables/chunks.
+    paired = (a.settings["engine"] == b.settings["engine"] and a.settings["seed"] == b.settings["seed"]
+              and len(a.points) == len(b.points) and a.weights == b.weights
+              and len(a.points[0]) == len(b.points[0]) and a.status == b.status == "done")  # fmt: skip
     tables = min(a.results["tables"], b.results["tables"])
+    rough = a.results["se_rough"] or b.results["se_rough"]
     rows = []
     for seat in range(max(len(a.points), len(b.points))):
         ea = a.results["entries"][seat] if seat < len(a.points) else None
@@ -381,17 +566,20 @@ def compare(a: Run, b: Run) -> dict:
                                                                "failed_decisions")},
                "b": eb and {k: eb[k] for k in ("label", "bot", "average_points", "se", "failed_decisions")}}  # fmt: skip
         if ea and eb:
-            if paired:
-                diffs = [b.points[seat][t] - a.points[seat][t] for t in range(tables)]
-                mean, se = summarize(diffs)
+            if paired and not rough:
+                diffs = [after - before for before, after in zip(a.points[seat], b.points[seat])]
+                mean, se = summarize(diffs, a.weights)
             else:
                 mean = eb["average_points"] - ea["average_points"]
                 se = math.sqrt(ea["se"] ** 2 + eb["se"] ** 2)
             row.update(diff=round(mean, 3), se=round(se, 3))
         rows.append(row)
-    return {"a": a.id, "b": b.id, "paired": paired, "tables": tables, "rows": rows,
+    return {"a": a.id, "b": b.id, "paired": paired and not rough, "tables": tables, "rows": rows,
+            "unit": "chunk" if a.settings["engine"] == "kit" else "table",
+            "engines": [a.settings["engine"], b.settings["engine"]],
             "same_settings": {k: a.settings[k] == b.settings[k]
-                              for k in ("seed", "tables", "hand_cap", "hands_per_level", "stack", "payouts")}}  # fmt: skip
+                              for k in ("engine", "seed", "tables", "hand_cap", "hands_per_level", "stack",
+                                        "payouts")}}  # fmt: skip
 
 
 # ---------------------------------------------------------------------------- HTTP
@@ -439,6 +627,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
+            elif parts == ["api", "engine"]:
+                self.send_json({"kit": str(KIT) if KIT else None, "replay": bool(find_replay()),
+                                "default": "kit" if KIT else "mini"})  # fmt: skip
             elif parts == ["api", "bots"]:
                 self.send_json({"bots": discover_bots()})
             elif parts == ["api", "runs"]:
@@ -487,6 +678,11 @@ class Handler(BaseHTTPRequestHandler):
             elif len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "cancel":
                 STORE.get(int(parts[2])).cancel = True
                 self.send_json({"ok": True})
+            elif len(parts) == 4 and parts[:2] == ["api", "runs"] and parts[3] == "viewer":
+                run = STORE.get(int(parts[2]))
+                if not run.history_file or not run.history_file.is_file():
+                    raise ValueError("This run has no saved hand history.")
+                self.send_json({"url": open_viewer(run.history_file)})
             elif parts == ["api", "clone"]:
                 self.send_json({"path": clone_bot(body.get("source"), body.get("name"))})
             else:
@@ -501,10 +697,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--host", default="127.0.0.1", help="Default 127.0.0.1 (this machine only).")
+    parser.add_argument("--kit", help="Path to the kit's poker-agent executable (default: look on PATH).")
     options = parser.parse_args()
+    global KIT
+    KIT = find_kit(options.kit)
+    if options.kit and KIT is None:
+        parser.error(f"--kit {options.kit}: no such file")
     server = ThreadingHTTPServer((options.host, options.port), Handler)
     server.daemon_threads = True
-    print(f"Pokerbot practice UI (UNOFFICIAL simulator): http://{options.host}:{options.port}/")
+    print(f"Pokerbot practice UI: http://{options.host}:{options.port}/")
+    if KIT:
+        print(f"Engine: organizers' kit ({KIT})")
+    else:
+        print("Engine: UNOFFICIAL mini simulator. The kit's `poker-agent` was not found; activate the "
+              "kit's environment before starting this server, or pass --kit, to use the real engine.")  # fmt: skip
     print("Ctrl+C to stop.")
     try:
         server.serve_forever()

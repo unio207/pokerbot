@@ -166,7 +166,7 @@ $("#clone-form").addEventListener("submit", async (e) => {
 });
 
 // ------------------------------------------------------------------ settings & run
-const settingsFields = { tables: "#s-tables", seed: "#s-seed", hand_cap: "#s-handcap", hands_per_level: "#s-hpl", payouts: "#s-payouts", stack: "#s-stack" };
+const settingsFields = { engine: "#s-engine", tables: "#s-tables", seed: "#s-seed", hand_cap: "#s-handcap", hands_per_level: "#s-hpl", payouts: "#s-payouts", stack: "#s-stack" };
 function readSettings() {
   const out = {};
   for (const [k, sel] of Object.entries(settingsFields)) out[k] = $(sel).value.trim();
@@ -176,6 +176,34 @@ function writeSettings(s) {
   for (const [k, sel] of Object.entries(settingsFields)) if (s[k] !== undefined) $(sel).value = Array.isArray(s[k]) ? s[k].join(" ") : s[k];
 }
 writeSettings(store.get("settings", {}));
+
+// ------------------------------------------------------------------ engine (organizers' kit or mini simulator)
+const E = { kit: null, replay: false };
+const KIT_ONLY_OFF = ["#s-hpl", "#s-payouts", "#s-stack"]; // the kit's own rules set these
+function applyEngine() {
+  const sel = $("#s-engine");
+  sel.querySelector('option[value="kit"]').disabled = !E.kit;
+  if (!E.kit && sel.value === "kit") sel.value = "mini";
+  const kit = sel.value === "kit";
+  KIT_ONLY_OFF.forEach((id) => { $(id).disabled = kit; $(id).title = kit ? "Set by the kit's rules" : ""; });
+  const banner = $("#engine-banner");
+  banner.classList.toggle("official", kit);
+  banner.innerHTML = kit
+    ? `<strong>Organizers' kit.</strong> Tables are played by <code>poker-agent play</code> (<code>${esc(E.kit)}</code>): the kit's variant, rules and 1 ms limit. Timing still depends on this computer, so confirm on the team build machine before uploading.`
+    : `<strong>Unofficial simulator.</strong> Standard no-limit hold'em only, rules re-implemented from the kit's docs, bots run in-process so timing is optimistic. ${E.kit
+        ? "Switch the engine to the organizers' kit for the real rules."
+        : "The kit's <code>poker-agent</code> was not found: start this server from the kit's activated environment, or with <code>--kit PATH</code>, to play under the real rules."}`;
+  $("#settings-hint").textContent = kit
+    ? "Same seed = same deals, so A/B runs are paired (by chunk). Hands per level, payouts and stack come from the kit. A hand history of the first 20 tables is saved for the kit's viewer."
+    : "Same seed = same deals and seat draws, so A/B runs are paired. Replays are kept for the first 20 tables.";
+}
+async function loadEngine() {
+  const info = await api("/api/engine");
+  E.kit = info.kit; E.replay = info.replay;
+  if (!store.get("settings", {}).engine) $("#s-engine").value = info.default;
+  applyEngine();
+}
+$("#s-engine").addEventListener("change", applyEngine);
 Object.values(settingsFields).forEach((sel) => $(sel).addEventListener("change", () => store.set("settings", readSettings())));
 $("#seed-random").addEventListener("click", () => { $("#s-seed").value = Math.random().toString(16).slice(2, 10); store.set("settings", readSettings()); });
 
@@ -267,14 +295,15 @@ function renderResult(run) {
   const s = run.settings;
   const meta = `<div class="result-meta"><span>Run <b>#${run.id}</b></span><span>seed <b>${esc(s.seed)}</b></span>
     <span><b>${fmt(run.done)}</b>${run.done !== s.tables ? ` of ${fmt(s.tables)}` : ""} tables</span><span>hand cap <b>${s.hand_cap}</b></span>
-    <span><b>${s.hands_per_level}</b> hands/level</span><span>payouts <b>${s.payouts.join("/")}</b></span><span>stack <b>${fmt(s.stack)}</b></span>
+    ${s.engine === "kit" ? `<span class="engine-tag kit">organizers' kit</span>` : `<span><b>${s.hands_per_level}</b> hands/level</span><span>payouts <b>${s.payouts.join("/")}</b></span><span>stack <b>${fmt(s.stack)}</b></span><span class="engine-tag">mini simulator</span>`}
     ${run.results ? `<span><b>${run.results.seconds}</b> s</span>` : ""}</div>`;
   if (!run.results) {
     view.innerHTML = `<div class="card">${meta}<p class="empty">${run.status === "error" ? `<span class="status-error">Run failed.</span><pre class="error-box">${esc(run.error)}</pre>` : run.status === "cancelled" ? "Cancelled before any table finished." : "Running… results appear when the run finishes."}</p></div>`;
     return;
   }
   const r = run.results;
-  const maxPts = Math.max(...s.payouts, ...r.entries.map((e) => e.average_points + e.se));
+  const kit = s.engine === "kit";
+  const maxPts = Math.max(...(kit ? [50] : s.payouts), ...r.entries.map((e) => e.average_points + e.se));
   const failed = r.entries.filter((e) => e.failed_decisions > 0);
   const totalFailed = failed.reduce((a, e) => a + e.failed_decisions, 0);
   const banner = totalFailed
@@ -290,7 +319,7 @@ function renderResult(run) {
       <td>${meter(e.average_points, e.se, r.par, maxPts)}</td>
       <td class="num">${fx(100 * e.finish_rates["1"], 1)}%</td><td class="num">${fx(100 * e.finish_rates["2"], 1)}%</td><td class="num">${fx(100 * e.finish_rates["3"], 1)}%</td>
       <td class="num ${e.failed_decisions ? "fail" : "zero"}">${fmt(e.failed_decisions)}</td>
-      <td class="num">${fx(p.p50, 0)}</td><td class="num ${p["p99.9"] > 1000 ? "slow" : ""}">${fx(p["p99.9"], 0)}</td><td class="num ${p.max > 1000 ? "slow" : ""}">${fmt(Math.round(p.max))}</td></tr>`;
+      ${p ? `<td class="num">${fx(p.p50, 0)}</td><td class="num ${p["p99.9"] > 1000 ? "slow" : ""}">${fx(p["p99.9"], 0)}</td><td class="num ${p.max > 1000 ? "slow" : ""}">${fmt(Math.round(p.max))}</td>` : ""}</tr>`;
   }).join("");
   const multi = r.by_bot.length < r.entries.length;
   const byBot = `<div class="card by-bot"><h2>By bot${multi ? "" : " (one seat each)"}</h2><div class="table-wrap"><table>
@@ -298,18 +327,22 @@ function renderResult(run) {
       <tbody>${r.by_bot.map((b) => `<tr><td><span class="botname">${esc(botName(b.bot))}</span> <span class="botpath">${esc(b.bot)}</span></td><td class="num">${b.seats}</td>
       <td class="num"><b>${fx(b.average_points)}</b></td><td class="num pm">±${fx(b.se)}</td><td class="num ${b.vs_par > 2 * b.se ? "pos" : b.vs_par < -2 * b.se ? "neg" : ""}">${signed(b.vs_par)}</td>
       <td class="num ${b.failed_decisions ? "fail" : "zero"}">${fmt(b.failed_decisions)}</td></tr>`).join("")}</tbody></table></div></div>`;
-  const notes = failed.length ? `<details class="failures" open><summary>Failure details (first ${5} per entry)</summary>${failed.map((e) =>
-      e.failure_notes.map((n) => `<p><b>${esc(e.label)}</b> · table ${n.table}, hand ${n.hand} · <b>${esc(n.reason)}</b></p><pre>${esc(n.detail)}</pre>`).join("")).join("")}</details>` : "";
+  const notes = (failed.some((e) => e.failure_notes.length) ? `<details class="failures" open><summary>Failure details (first ${5} per entry)</summary>${failed.map((e) =>
+      e.failure_notes.map((n) => `<p><b>${esc(e.label)}</b> · table ${n.table}, hand ${n.hand} · <b>${esc(n.reason)}</b></p><pre>${esc(n.detail)}</pre>`).join("")).join("")}</details>` : "")
+    + (run.kit_stderr ? `<details class="failures" ${totalFailed ? "open" : ""}><summary>What the bots printed to stderr (from the kit)</summary><pre>${esc(run.kit_stderr)}</pre></details>` : "")
+    + (kit && run.history_file ? `<p class="note">Hand history of the first tables: <code>${esc(run.history_file)}</code>. Open it from the <b>Hand replay</b> tab.</p>` : "");
   view.innerHTML = `<div class="card">
       <div class="card-head"><h2>Results</h2><button id="use-lineup" class="ghost small" type="button">Load this line-up &amp; settings</button></div>
       ${meta}${run.status === "cancelled" ? `<p class="warnline">Cancelled: results cover the ${run.done} finished tables.</p>` : ""}${banner}
       <div class="table-wrap"><table>
         <thead><tr><th>Entry</th><th>Bot</th><th class="num">Pts / table</th><th class="num">± SE</th><th class="num">vs par ${fx(r.par, 1)}</th><th></th>
           <th class="num">1st</th><th class="num">2nd</th><th class="num">3rd</th><th class="num">Failed</th>
-          <th class="num" title="decision time, microseconds">p50 µs</th><th class="num">p99.9 µs</th><th class="num">max µs</th></tr></thead>
+          ${kit ? "" : `<th class="num" title="decision time, microseconds">p50 µs</th><th class="num">p99.9 µs</th><th class="num">max µs</th>`}</tr></thead>
         <tbody>${rows}</tbody></table></div>
       ${notes}
-      <p class="note">± is one standard error of the mean. Green/red vs par means more than 2 SE from par. The decision limit is 1,000 µs (100 ms time bank per table); in-process timing here is optimistic.</p>
+      <p class="note">${kit
+        ? `± is one standard error${r.se_rough ? ", <b>a rule-of-thumb estimate</b> (20 ÷ √tables) because this run was too short to measure it" : `, measured across the ${r.chunks} chunks the run was split into`}. Green/red vs par means more than 2 SE from par. The kit enforces the 1 ms limit itself and reports failed decisions, not decision times.`
+        : "± is one standard error of the mean. Green/red vs par means more than 2 SE from par. The decision limit is 1,000 µs (100 ms time bank per table); in-process timing here is optimistic."}</p>
     </div>${byBot}`;
   $("#use-lineup").addEventListener("click", () => {
     S.lineup = s.lineup.slice(); saveLineup(); renderSeats(); renderPresets();
@@ -355,8 +388,9 @@ async function renderCompare() {
       <td class="num ${(A?.failed_decisions || 0) + (B?.failed_decisions || 0) ? "fail" : "zero"}">${A ? A.failed_decisions : "-"} / ${B ? B.failed_decisions : "-"}</td></tr>`;
   }).join("");
   view.innerHTML = `
-    ${c.paired ? `<p class="note">Same seed and table count: differences are <b>paired by table</b> (same deals and seat draws), so the error bars are much tighter than comparing averages.</p>`
-      : `<p class="warnline">Different seed or table count: comparison is unpaired and much noisier. Re-run with the same seed for a fair A/B.</p>`}
+    ${c.engines[0] !== c.engines[1] ? `<p class="warnline">These runs used different engines (${esc(c.engines.join(" vs "))}): the rules differ, so this comparison means little.</p>` : ""}
+    ${c.paired ? `<p class="note">Same seed and table count: differences are <b>paired by ${c.unit}</b> (same deals and seat draws), so the error bars are much tighter than comparing averages.</p>`
+      : `<p class="warnline">Different seed or table count, or a run too short to pair: comparison is unpaired and much noisier. Re-run with the same seed and at least 100 tables for a fair A/B.</p>`}
     ${diffSettings.length ? `<p class="warnline">Settings differ: ${esc(diffSettings.join(", "))}.</p>` : ""}
     <div class="table-wrap"><table>
       <thead><tr><th>Entry</th><th>A bot</th><th class="num">A pts</th><th>B bot</th><th class="num">B pts</th><th class="num">B − A</th><th class="num">± SE</th><th>Verdict</th><th class="num">Failed A / B</th></tr></thead>
@@ -377,11 +411,11 @@ function card(c, cls = "") {
 
 function syncReplayRuns() {
   const sel = $("#rp-run");
-  const runs = S.runs.filter((r) => r.results && r.replay_tables > 0);
+  const runs = S.runs.filter((r) => r.results && (r.replay_tables > 0 || r.history_file));
   const keep = sel.value;
   sel.innerHTML = runs.map((r) => `<option value="${r.id}">${esc(runLabel(r))}</option>`).join("");
   $("#replay-empty").hidden = runs.length > 0;
-  if (!runs.length) { $("#replay-body").hidden = true; return; }
+  if (!runs.length) { $("#replay-body").hidden = true; $("#replay-kit").hidden = true; return; }
   const want = runs.some((r) => String(r.id) === keep) && sel.dataset.touched ? keep
     : runs.some((r) => r.id === S.selected) ? String(S.selected) : String(runs[0].id);
   sel.value = want;
@@ -392,6 +426,27 @@ $("#rp-run").addEventListener("change", (e) => { e.target.dataset.touched = "1";
 async function loadReplayRun(id) {
   stopPlay();
   R.run = id;
+  const run = S.runs.find((r) => r.id === id);
+  const kit = Boolean(run && run.history_file);
+  $("#replay-kit").hidden = !kit;
+  for (const sel of ["#rp-table", "#rp-hand", "#rp-notable"]) $(sel).closest("label").hidden = kit;
+  if (kit) {
+    $("#replay-body").hidden = true;
+    $("#replay-kit").innerHTML = `<p>This run was played by the organizers' kit, so its hands open in the kit's own viewer.
+        It shows what a player sees: the cards of the bot in <b>seat #0</b> of the line-up, and other bots' cards only when shown.</p>
+      <p><button id="kit-viewer" class="primary" type="button">Open in the kit's viewer</button> <span id="kit-viewer-msg" class="hint"></span></p>
+      <p class="hint">File: <code>${esc(run.history_file)}</code> · or run <code>replay ${esc(run.history_file)}</code> yourself.</p>`;
+    $("#kit-viewer").addEventListener("click", async () => {
+      const msg = $("#kit-viewer-msg");
+      msg.textContent = "Starting the viewer…";
+      try {
+        const res = await api(`/api/runs/${id}/viewer`, {});
+        msg.innerHTML = `Viewer running at <a href="${esc(res.url)}" target="_blank" rel="noopener">${esc(res.url)}</a>`;
+        window.open(res.url, "_blank", "noopener");
+      } catch (err) { msg.textContent = err.message; }
+    });
+    return;
+  }
   const data = await api(`/api/runs/${id}/replays`);
   R.tables = data.tables;
   $("#rp-table").innerHTML = R.tables.map((t) => {
@@ -603,6 +658,7 @@ document.addEventListener("keydown", (e) => {
 // ------------------------------------------------------------------ start
 (async function init() {
   try {
+    await loadEngine();
     await loadBots();
     await refreshHistory();
     const running = S.runs.find((r) => r.status === "running" || r.status === "queued");

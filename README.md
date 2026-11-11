@@ -12,7 +12,7 @@ the interface in the organizers' starter kit (`poker_agent_sdk`: `act(state, mem
 | `sparring/*/agent.py` | Opponents: `check_or_fold`, `min_raiser`, `calling_station`, `shover`, `nit`. |
 | `practice.py` | Upload check, then five line-ups, reporting points per table and failed decisions. |
 | `tools/gen_preflop.py` | Regenerates the preflop equity table embedded in a bot. |
-| `ui/` | Local web page for building line-ups, running matches, comparing runs and replaying hands. |
+| `ui/` | Local web page for building line-ups, running matches, comparing runs and replaying hands. Uses the organizers' kit when it is installed. |
 | `zoo/` | Opponent bots to tune against, with a template and instructions for adding one (`zoo/README.md`). |
 | `docs/` | Competition research, baseline strategies, edge plan, bot-zoo guide and a strategy research prompt. |
 | `devtest/` | Unofficial mini simulator and SDK stand-in, for when the kit is not installed. |
@@ -57,14 +57,39 @@ actions; not a substitute for the kit.
 ## Web interface
 
 ```bash
-python3.12 ui/server.py
+python ui/server.py
 ```
 
-Then open http://127.0.0.1:8765/. Pick a bot for each seat, run a match, compare two runs
-on the same seed, and step through recorded hands with every bot's cards visible. Bots
-are re-read from disk on every run, so edit an `agent.py` and click Run again. The Clone
-button copies a bot folder to a new name for the next version. It runs on the unofficial
-mini simulator, not the kit.
+Then open http://127.0.0.1:8765/. Pick a bot for each seat, run a match, and compare two
+runs on the same seed. Bots are re-read from disk on every run, so edit an `agent.py` and
+click Run again. The Clone button copies a bot folder to a new name for the next version.
+
+The page has two engines, chosen under **Match settings**:
+
+- **Organizers' kit** (the default when it is found). Every table is played by the kit's
+  `poker-agent play`, so the variant, the rules and the 1 ms limit are the real ones.
+  Start the server from the kit's activated environment so `poker-agent` is on the PATH,
+  or point at it:
+
+  ```bash
+  python ui/server.py --kit /path/to/kit/.venv/bin/poker-agent
+  ```
+
+  Hands per level, payouts and starting stack come from the kit. The kit reports failed
+  decisions but not decision times. A hand history of the first 20 tables is saved under
+  `hand-history/`, and the **Hand replay** tab opens it in the kit's own viewer, which
+  shows the cards of the bot in seat #0 and other bots' cards only when shown.
+- **Mini simulator** (the fallback). Unofficial, standard hold'em only. It adds decision
+  times, per-table failure details and a built-in replay with every bot's cards visible.
+
+A kit run is split into about ten `poker-agent play` calls so the page can show progress
+and error bars. Each call gets its own seed derived from yours, so a seed in the page
+does not give the same deals as the same seed on the command line.
+
+The kit engine was tested here only against a stand-in for `poker-agent` and `replay`
+(the real kit could not be run in the session that wrote it). The first run against the
+real kit is the real test: if `poker-agent play` rejects an option, the page shows the
+kit's error message.
 
 ![Hand replay](ui/screenshots/replay.png)
 

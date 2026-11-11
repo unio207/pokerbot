@@ -15,12 +15,7 @@
   <button id="theme" class="ghost small" type="button" title="Switch light / dark / system theme">Theme: system</button>
 </header>
 
-<div class="unofficial" role="note">
-  <strong>Unofficial simulator.</strong>
-  Standard no-limit hold'em only, rules re-implemented from the kit's docs, bots run in-process so
-  timing here is optimistic. The organizers' kit (<code>poker-agent play</code>) is the authority:
-  confirm anything important there before uploading.
-</div>
+<div class="unofficial" role="note" id="engine-banner">Checking for the organizers' kit…</div>
 
 <div class="layout">
   <!-- ======================================================= sidebar -->
@@ -49,6 +44,12 @@
     <section class="card">
       <h2>Match settings</h2>
       <div class="grid2">
+        <label class="span2">Engine
+          <select id="s-engine">
+            <option value="kit">Organizers' kit (real rules)</option>
+            <option value="mini">Mini simulator (unofficial)</option>
+          </select>
+        </label>
         <label>Tables <input id="s-tables" type="number" min="1" max="5000" value="200"></label>
         <label>Seed
           <span class="with-btn"><input id="s-seed" type="text" value="practice" spellcheck="false">
@@ -59,7 +60,7 @@
         <label>Payouts <input id="s-payouts" type="text" value="50 30 20" spellcheck="false"></label>
         <label>Starting stack <input id="s-stack" type="number" min="20" value="2000"></label>
       </div>
-      <p class="hint">Same seed = same deals and seat draws, so A/B runs are paired. Replays are kept for the first 20 tables.</p>
+      <p class="hint" id="settings-hint"></p>
       <div class="run-row">
         <button id="run" class="primary" type="button">Run match</button>
         <button id="cancel" class="ghost" type="button" hidden>Cancel</button>
@@ -137,6 +138,7 @@
           <label class="inline check"><input type="checkbox" id="rp-notable"> showdowns, all-ins &amp; busts only</label>
         </div>
         <div id="replay-empty" class="empty">Run a match to get replays.</div>
+        <div id="replay-kit" class="kit-replay" hidden></div>
         <div id="replay-body" class="replay" hidden>
           <div class="felt-col">
             <div class="felt-wrap">
