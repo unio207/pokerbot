@@ -73,8 +73,28 @@ standard library and NumPy, SciPy, pandas, scikit-learn, PyTorch (CPU), LightGBM
 XGBoost, ONNX Runtime, Numba and eval7, nothing else. No network, no files, no state
 across tables.
 
+Variant rules: <PASTE zoo/variants/<name>.md HERE, OR DELETE THIS LINE FOR STANDARD HOLD'EM>
+
 Team profile: <ONE OF THE PROFILES BELOW>
 ```
+
+## Variants
+
+The prompt above produces a standard hold'em bot unless a ruleset is pasted into its
+"Variant rules" line. Rulesets live in [`zoo/variants/`](../zoo/variants/README.md), one
+file per variant, with the steps for adding a new one.
+
+An assistant that can read the repository does not need the prompt above. Point it at the
+template folder instead and name a profile and the variants:
+
+```text
+Read zoo/_template/README.md and make a zoo bot from the template.
+Profile: <ONE OF THE PROFILES BELOW>
+Variants: <all, or one or more names from zoo/variants/README.md>
+```
+
+A bot built that way keeps its strategy in one place and has one `VARIANTS` entry per
+ruleset, so adding a variant later means adding one entry.
 
 ## Team profiles
 
@@ -97,7 +117,11 @@ the field looks like.
 - The real field has no always-failing bots: the upload test screens them out, and a
   team with no accepted upload scores zero without being seated. Expect weak and passive
   bots, not dead seats, apart from bots that break only at a full table or mid-round.
-- These bots are written for standard hold'em. When the variant is announced, most of the
-  real field will be converting in a hurry, so expect more broken bots than the zoo has.
+- Most of these bots are written for standard hold'em. When the variant is announced,
+  most of the real field will be converting in a hurry, so expect more broken bots than
+  the zoo has.
+- The mini simulator plays the variants that have a class in `devtest/sim_variants.py`
+  (`--variant <name>`). Its versions of them are our own, built from the rulesets, with
+  guesses where a ruleset says "unknown"; the kit's version may differ.
 - Zoo results come from the unofficial mini simulator unless run through the kit's
   `poker-agent play`.
