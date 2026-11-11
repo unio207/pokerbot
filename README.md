@@ -13,6 +13,7 @@ the interface in the organizers' starter kit (`poker_agent_sdk`: `act(state, mem
 | `practice.py` | Upload check, then five line-ups, reporting points per table and failed decisions. |
 | `tools/gen_preflop.py` | Regenerates the preflop equity table embedded in a bot. |
 | `ui/` | Local web page for building line-ups, running matches, comparing runs and replaying hands. |
+| `zoo/` | Opponent bots to tune against, with a template and instructions for adding one (`zoo/README.md`). |
 | `docs/` | Competition research, baseline strategies, edge plan, bot-zoo guide and a strategy research prompt. |
 | `devtest/` | Unofficial mini simulator and SDK stand-in, for when the kit is not installed. |
 
