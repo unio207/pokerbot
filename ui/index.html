@@ -9,15 +9,16 @@
 <body>
 <header class="top">
   <h1>Pokerbot practice</h1>
-  <span id="engine-note" class="engine-note term-q" tabindex="0"></span>
+  <span id="engine-note" class="engine-note" tabindex="0"></span>
+  <span id="session" class="session" data-term="session" tabindex="0"></span>
   <!-- Page version: raise it by one with every change to the page, so it is clear which one is open. -->
-  <span class="version" title="Version of this practice page">v1</span>
+  <span class="version" title="Version of this practice page">v2</span>
 </header>
 
 <div class="layout">
   <!-- ======================================================= sidebar -->
   <aside class="side">
-    <section class="card" id="match-card">
+    <section class="side-sec" id="match-card">
       <h2>Match</h2>
       <div class="grid2">
         <label class="span2" id="engine-label" data-term="engine" hidden><span class="term">Engine</span>
@@ -30,22 +31,22 @@
           <select id="s-variant"><option value="holdem">Standard hold'em</option></select>
         </label>
         <label data-term="tables"><span class="term">Tables</span> <input id="s-tables" type="number" min="1" max="5000" value="200"></label>
-        <label data-term="seed"><span class="term">Seed</span> <input id="s-seed" type="text" value="" placeholder="picked per run" spellcheck="false" autocomplete="off"></label>
+        <label data-term="seed"><span class="term">Seed</span> <input id="s-seed" type="text" value="" placeholder="new each run" spellcheck="false" autocomplete="off"></label>
       </div>
       <label class="check" data-term="newseed"><input type="checkbox" id="s-newseed" checked> <span class="term">New seed every run</span></label>
-      <label class="check" data-term="vary"><input type="checkbox" id="s-vary" checked> <span class="term">Vary rules by seed</span> <span class="dim small">cap, levels, stack, payouts</span></label>
+      <label class="check" data-term="vary"><input type="checkbox" id="s-vary" checked> <span class="term">Vary rules by seed</span></label>
       <details id="advanced" class="advanced" hidden>
-        <summary>Advanced: fixed rules</summary>
+        <summary>Fixed rules</summary>
         <div class="grid2">
           <label data-term="handcap"><span class="term">Hand cap</span> <input id="s-handcap" type="number" min="1" max="2000" value="250"></label>
-          <label data-term="hpl"><span class="term">Hands / level</span> <input id="s-hpl" type="number" min="1" max="1000" value="20"></label>
+          <label data-term="hpl"><span class="term">Hands per level</span> <input id="s-hpl" type="number" min="1" max="1000" value="20"></label>
           <label data-term="payouts"><span class="term">Payouts</span> <input id="s-payouts" type="text" value="50 30 20" spellcheck="false"></label>
-          <label data-term="stack"><span class="term">Starting stack</span> <input id="s-stack" type="number" min="20" value="2000"></label>
+          <label data-term="stack"><span class="term">Stack</span> <input id="s-stack" type="number" min="20" value="2000"></label>
         </div>
       </details>
       <div class="run-row">
         <button id="run" class="primary" type="button" title="Ctrl+Enter">Run match</button>
-        <button id="cancel" class="ghost" type="button" hidden>Cancel</button>
+        <button id="cancel" type="button" hidden>Cancel</button>
       </div>
       <div id="progress" class="progress" hidden>
         <div class="bar"><span id="progress-fill"></span></div>
@@ -54,26 +55,24 @@
       <div id="run-error" class="error-box" role="alert" hidden></div>
     </section>
 
-    <section class="card">
-      <div class="card-head">
+    <section class="side-sec">
+      <div class="sec-head">
         <h2><span class="term" data-term="lineup" tabindex="0">Line-up</span></h2>
-        <div class="row gap">
-          <span class="stepper" data-term="seats">
-            <button type="button" id="seat-minus" aria-label="Remove a seat">&minus;</button>
-            <output id="seat-count">8</output>
-            <button type="button" id="seat-plus" aria-label="Add a seat">+</button>
-          </span>
-          <button id="clear-seats" class="ghost small" type="button">Clear</button>
-        </div>
+        <span class="stepper" data-term="seats">
+          <button type="button" id="seat-minus" aria-label="Remove a seat">&minus;</button>
+          <output id="seat-count">8</output>
+          <button type="button" id="seat-plus" aria-label="Add a seat">+</button>
+        </span>
+        <button id="clear-seats" class="ghost small" type="button">Clear</button>
       </div>
       <ol id="seats" class="seats"></ol>
+    </section>
 
-      <div class="card-head bots-head">
-        <h3>Bots: click to add</h3>
-        <div class="row gap">
-          <input id="bot-filter" type="text" placeholder="filter" aria-label="Filter bots" spellcheck="false" autocomplete="off">
-          <button id="refresh-bots" class="ghost small" type="button" title="Re-scan folders for agent.py (also happens when this window regains focus)">&#x21bb;</button>
-        </div>
+    <section class="side-sec">
+      <div class="sec-head">
+        <h2>Bots</h2>
+        <input id="bot-filter" type="search" placeholder="Filter" aria-label="Filter bots" spellcheck="false" autocomplete="off">
+        <button id="refresh-bots" class="ghost small icon" type="button" title="Re-scan folders for agent.py (also happens when this window regains focus)" aria-label="Re-scan bot folders">&#x21bb;</button>
       </div>
       <div id="bot-info" class="bot-info" hidden></div>
       <div id="bot-list" class="bot-list"></div>
@@ -92,7 +91,7 @@
     <section id="tab-results" class="tab" role="tabpanel">
       <div id="result-view"><div class="card"><p class="empty">No runs yet. Pick bots and press Run match.</p></div></div>
       <div class="card" id="history-card" hidden>
-        <h3>Past runs</h3>
+        <h3 class="card-title">Past runs</h3>
         <div class="table-wrap">
           <table class="history">
             <thead><tr><th>Run</th><th>Variant</th><th class="num">Tables</th><th class="term" data-term="seed" tabindex="0">Seed</th><th class="term" data-term="topbot" tabindex="0">Top bot</th><th class="num term" data-term="pts" tabindex="0">Pts / table</th><th class="num term" data-term="failed_total" tabindex="0">Failed</th><th class="term" data-term="copylog" tabindex="0">Log</th></tr></thead>
@@ -105,11 +104,11 @@
     <!-- ---------------- replay -->
     <section id="tab-replay" class="tab" role="tabpanel" hidden>
       <div class="card">
-        <div class="row gap wrap replay-pickers">
+        <div class="replay-pickers">
           <label class="inline">Run <select id="rp-run"></select></label>
           <label class="inline" data-term="rp_table"><span class="term">Table</span> <select id="rp-table"></select></label>
           <label class="inline" data-term="rp_hand"><span class="term">Hand</span> <select id="rp-hand"></select></label>
-          <label class="inline check" data-term="notable"><input type="checkbox" id="rp-notable"> <span class="term">showdowns, all-ins &amp; busts only</span></label>
+          <label class="inline check" data-term="notable"><input type="checkbox" id="rp-notable"> <span class="term">Showdowns &amp; all-ins only</span></label>
         </div>
         <div id="replay-empty" class="empty">Run a match to get replays.</div>
         <div id="replay-kit" class="kit-replay" hidden></div>
@@ -127,20 +126,18 @@
               <div id="rp-seats"></div>
             </div>
             <div class="controls">
-              <button type="button" id="rp-prev-hand" class="ghost" title="Previous hand (PgUp)">&#x23EE; Hand</button>
-              <button type="button" id="rp-prev" class="ghost" title="Previous action (&larr;)">&#x25C0; Prev</button>
-              <button type="button" id="rp-play" class="primary" title="Play / pause (space)">&#x25B6; Play</button>
-              <button type="button" id="rp-next" class="ghost" title="Next action (&rarr;)">Next &#x25B6;</button>
-              <button type="button" id="rp-next-hand" class="ghost" title="Next hand (PgDn)">Hand &#x23ED;</button>
-              <label class="inline">Speed
-                <select id="rp-speed"><option value="1200">slow</option><option value="650" selected>normal</option><option value="250">fast</option></select>
-              </label>
+              <button type="button" id="rp-prev-hand" title="Previous hand (PgUp)">&laquo; Hand</button>
+              <button type="button" id="rp-prev" title="Previous action (&larr;)">&lsaquo; Prev</button>
+              <button type="button" id="rp-play" class="primary" title="Play / pause (space)">Play</button>
+              <button type="button" id="rp-next" title="Next action (&rarr;)">Next &rsaquo;</button>
+              <button type="button" id="rp-next-hand" title="Next hand (PgDn)">Hand &raquo;</button>
+              <select id="rp-speed" aria-label="Speed"><option value="1200">Slow</option><option value="650" selected>Normal</option><option value="250">Fast</option></select>
               <span id="rp-step" class="hint"></span>
+              <span id="rp-chips" class="hint chips-check" data-term="chips"></span>
             </div>
-            <div id="rp-chips" class="hint chips-check" data-term="chips"></div>
           </div>
           <div class="log-col">
-            <h3>Action log</h3>
+            <h3 class="card-title">Action</h3>
             <ol id="rp-log" class="log"></ol>
           </div>
         </div>
@@ -149,18 +146,20 @@
 
     <!-- ---------------- rankings -->
     <section id="tab-rankings" class="tab" role="tabpanel" hidden>
-      <div class="card rk-filters" id="rk-filters">
-        <div class="row gap wrap">
-          <label class="inline" data-term="rk_variant"><span class="term">Variant</span> <select id="rk-variant"></select></label>
-          <span id="rk-summary" class="rk-summary" data-term="rk_data"></span>
-          <button id="rk-clear" class="ghost small danger" type="button">Clear all runs</button>
-        </div>
-        <div class="rk-runs-head">
-          <span class="term" data-term="rk_runs" tabindex="0">Runs included</span>
-          <button id="rk-all" class="ghost small" type="button">all</button>
-          <button id="rk-none" class="ghost small" type="button">none</button>
-        </div>
-        <div id="rk-runs" class="rk-runs"></div>
+      <div class="rk-filters" id="rk-filters">
+        <label class="inline" data-term="rk_variant"><span class="term">Variant</span> <select id="rk-variant"></select></label>
+        <details class="rk-runs-box" id="rk-runs-box">
+          <summary data-term="rk_runs"><span id="rk-runs-label">Runs</span></summary>
+          <div class="rk-pop">
+            <div class="rk-runs-head">
+              <button id="rk-all" class="ghost small" type="button">Select all</button>
+              <button id="rk-none" class="ghost small" type="button">Select none</button>
+            </div>
+            <div id="rk-runs" class="rk-runs"></div>
+          </div>
+        </details>
+        <span id="rk-summary" class="rk-summary" data-term="rk_data"></span>
+        <button id="rk-clear" class="ghost small danger" type="button">Clear all runs</button>
       </div>
       <div id="rk-view"></div>
     </section>

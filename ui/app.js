@@ -55,8 +55,8 @@ const VARIANT_TEXT = {
 };
 const TERMS = {
   // ---- header and match settings
-  mini: { label: "Mini simulator", text: "Our own quick imitation of the tournament, used when the organizers' kit is not installed. Its rules are our best guess, and its time checks are kinder than the real ones, so a bot that is just fast enough here may be too slow there." },
-  kit: { label: "Organizers' kit", text: "Matches are played by the organizers' own program, so the rules are the real ones." },
+  mini: { label: "Mini simulator (unofficial)", text: "Unofficial rules and optimistic timing: our own quick imitation of the tournament, used when the organizers' kit is not installed. A bot that is just fast enough here may be too slow in the real one." },
+  kit: { label: "Organizers' kit", text: () => `The official rules: matches are played by the organizers' own program${E.kit ? ` (${E.kit})` : ""}.` },
   engine: { text: "Which program plays the matches. The organizers' kit has the real tournament rules. The mini simulator is our own unofficial imitation; only it offers the variants, varied rules and the built-in hand replay." },
   variant: { text: (el) => `Which version of poker is played. The real one is only announced on the day. ${VARIANT_TEXT[el.dataset.variant || $("#s-variant").value] || ""}` },
   tables: { text: () => {
@@ -66,10 +66,10 @@ const TERMS = {
   run_tables: { text: "Tables finished in this run. Each table is one whole game between all the bots in the line-up." },
   seed: { text: "A name for one particular set of shuffles. The same seed with the same settings deals the same cards and seating again, so a match can be repeated exactly. A different seed gives different deals." },
   newseed: { text: "Picks a fresh random seed each time you press Run, so every run gets new deals. Untick it to replay the same deals, for example to compare two versions of a bot fairly." },
-  vary: { label: "Varied rules", text: "Each seed becomes a slightly different tournament: it picks the hand cap (150 to 300), the hands per level (15 to 25) and the starting stack (1,500 to 3,000), and every table draws its own payouts. This catches bots that assume 2,000 chips and 50/30/20 instead of reading the rules they are handed." },
+  vary: { label: "Vary rules by seed", text: "Each seed becomes a slightly different tournament: it picks the hand cap (150 to 300), the hands per level (15 to 25) and the starting stack (1,500 to 3,000), and every table draws its own payouts. This catches bots that assume 2,000 chips and 50/30/20 instead of reading the rules they are handed." },
   handcap: { label: "Hand cap", text: "The most hands one table may play. If several bots still have chips then, the points not yet awarded are shared between them by chip count (a formula called ICM). The official value is 250." },
-  hpl: { label: "Hands per level", text: "The blinds (forced bets) go up after this many hands, so waiting gets more and more expensive. They start at 10 and 20. The official value is 20 hands." },
-  payouts: { label: "Payouts", text: "Points a table awards for finishing 1st, 2nd, 3rd and so on (in the settings, type them with spaces between). Places not listed score 0. The official default is 50, 30, 20." },
+  hpl: { label: "Hands per level", text: "How many hands are played before the blinds (the forced bets) go up one step, so waiting gets more and more expensive. They start at 10 and 20. The official value is 20 hands." },
+  payouts: { label: "Payouts", text: "Points a table awards for finishing 1st, 2nd, 3rd and so on (type them with spaces between). Places not listed score 0. If bots still have chips at the hand cap, the unawarded points are split between them by chip count (ICM). The official default is 50, 30, 20." },
   payouts_drawn: { label: "Payouts drawn per table", text: "Every table picks its own points for 1st, 2nd and 3rd place. They always add up to 100, with 40 to 60 for first. The Hand replay tab shows each table's payouts." },
   stack: { label: "Starting stack", text: "Chips each bot starts every table with. The official value is 2,000, which is 100 times the first big blind of 20." },
   // ---- line-up
@@ -79,35 +79,38 @@ const TERMS = {
   fill: { text: (el) => `Puts a randomly chosen bot from “${groupTitle(el.dataset.fill)}” in every empty seat.` },
   bot_warn: { text: "This bot fails the upload check, for example because it imports something the tournament machines do not have. Click the bot to read the problem." },
   // ---- results
-  session: { text: () => `Totals since this server was started: ${fmt(S.session.runs)} finished run${S.session.runs === 1 ? "" : "s"} and ${fmt(S.session.tables)} tables played. Restarting the server sets them back to 0.` },
+  session: { label: "This session", text: () => `Since this server was started: ${fmt(S.session.runs)} finished run${S.session.runs === 1 ? "" : "s"} and ${fmt(S.session.tables)} tables played. Restarting the server sets them back to 0.` },
   entry: { text: "One seat in the line-up: the bot's folder name plus its entry number (#0, #1, …). Two copies of the same bot show up as two entries." },
-  pts: { label: "Points per table", text: "The score: points earned per table, averaged over all tables of the run. The tournament ranks bots by this. The gray ± number is how uncertain it is: the true value is probably within about twice that number either way, and more tables make it smaller. Green or red means clearly better or worse than an average bot, not just luck." },
+  pts: { label: "Pts / table (points per table)", text: "The score: tournament points earned per table, averaged over all tables of the run. The tournament ranks bots by this. The gray ± is the standard error: the true value is probably within about twice that either way, and more tables make it smaller. Green or red means clearly above or below par, not just luck." },
   pts_cell: { text: (el) => {
     const mean = Number(el.dataset.mean), se = Number(el.dataset.se), par = shownRun().results?.par;
     const verdict = par == null ? "" : mean - par > 2 * se ? "clearly better than an average bot" : mean - par < -2 * se ? "clearly worse than an average bot" : "not clearly different from an average bot: the gap could be luck";
     return `Scored ${fx(mean, 1)} points per table. Allowing for luck, the true value is probably between ${fx(mean - 2 * se, 1)} and ${fx(mean + 2 * se, 1)} (twice the ± number either way).${verdict ? ` Par is ${fx(par, 1)}, so this is ${verdict}.` : ""}`;
   } },
-  par: { label: "Versus par", text: () => {
+  par: { label: "vs par", text: () => {
     const run = shownRun(), r = run.results, n = seatsIn(run);
     if (!r) return "Par is what an average bot scores: the points a table awards, split evenly between the seats.";
     const how = run.settings.engine === "kit" ? `the average of all ${n} entries` : `${fmt(Math.round(r.par * n))} points per table split between ${n} seats`;
     return `Par is what an average bot scores here: ${fx(r.par, 1)} points, which is ${how}. The tick marks par. The bar runs right in green when the bot beats par and left in red when it falls short. The thin line at the bar's end is the ± uncertainty: if it reaches back across the tick, the difference could be luck.`;
   } },
-  win: { label: "Win", text: () => `Share of tables this bot finished in 1st place. With ${seatsIn(shownRun())} seats an average bot manages about ${share(100 / seatsIn(shownRun()))}.` },
-  top3: { label: "Top 3", text: () => `Share of tables this bot finished 1st, 2nd or 3rd, usually the places that score points. With ${seatsIn(shownRun())} seats an average bot manages about ${share(Math.min(100, 300 / seatsIn(shownRun())))}.` },
-  vpip: { label: "Plays", text: "How often this bot chooses to put chips in before the first three shared cards (forced bets do not count). Poker players call this VPIP. Around 15–30% is normal; 0% means it folds everything. Hover a number to see how often it raised." },
-  vpip_cell: { text: (el) => `Before the first three shared cards, this bot chose to put chips in on ${pct(Number(el.dataset.vpip))} of the hands it was dealt (poker name: VPIP) and raised on ${pct(Number(el.dataset.pfr))} of all those hands (PFR). A raise counts in both numbers.` },
-  slow: { label: "Slowest µs", text: "Nearly the slowest decision this bot made, in millionths of a second: only 1 decision in 1,000 took longer. The limit is 1,000 (one millisecond). Going over uses up a reserve of 100 milliseconds per table; once that is empty the bot loses its turn. Highlighted at 1,000 or more." },
+  win: { label: "Win %", text: () => `How often it won the whole table: the share of tables it finished 1st. With ${seatsIn(shownRun())} seats an average bot wins about ${share(100 / seatsIn(shownRun()))}.` },
+  itm: { label: "ITM (in the money)", text: () => {
+    const run = shownRun(), n = seatsIn(run), paid = run.settings && !run.settings.random_payouts && run.settings.engine !== "kit" ? run.settings.payouts.filter((v) => v > 0).length : 3;
+    return `How often it finished in a paid place: the share of tables it ended 1st, 2nd or 3rd (bots still in at the hand cap are placed by chips). With ${n} seats an average bot manages about ${share(Math.min(100, 300 / n))}.${paid !== 3 ? ` Note: this run pays ${paid} place${paid === 1 ? "" : "s"}, but ITM here still counts the top 3.` : ""}`;
+  } },
+  vpip: { label: "VPIP / PFR", text: "How loose and how aggressive it plays before the flop (the first three shared cards). VPIP: share of hands it chose to put chips in, by calling or raising; forced blinds do not count. PFR: share of hands it raised. Typical: VPIP 15–30%, PFR a little lower. 0 / 0 means it folds everything." },
+  vpip_cell: { text: (el) => `Called or raised before the flop on ${pct(Number(el.dataset.vpip))} of the hands it was dealt (VPIP), and raised on ${pct(Number(el.dataset.pfr))} (PFR). A raise counts in both numbers.` },
+  slow: { label: "p99.9 latency (µs)", text: "Its slowest decisions, in millionths of a second: only 1 decision in 1,000 took longer than this. The limit is 1,000 µs (one millisecond). Going over uses up a reserve of 100 milliseconds per table; once that is empty the bot loses its turn. Highlighted at 1,000 or more." },
   failed: { label: "Failed decisions", text: "Turns where the bot crashed, ran out of time, or answered with a move that is not allowed. The platform then checks if checking is free and folds otherwise. This should be 0. Click a red number for details." },
   failed_total: { text: "Failed decisions of all bots in the run added up: turns where a bot crashed, ran out of time or made a move that is not allowed. Should be 0." },
-  inactive: { label: "Inactive", text: "This bot was dealt at least 50 hands and never once chose to put chips in: it only checked or folded. It probably does not support this variant, or it is broken." },
+  inactive: { label: "Inactive", text: "Folds everything: it was dealt at least 50 hands and never once chose to put chips in, only checked or folded. It probably does not support this variant, or it is broken." },
   topbot: { text: "The entry with the most points per table in that run." },
   copylog: { label: "Run log", text: "The whole run as plain text: settings, line-up, every bot's numbers, warnings and the error details of failed decisions. Copy it and paste it into an AI chat to ask what went wrong." },
   // ---- rankings
-  rk_variant: { text: "Only count runs of this variant. All mixes every variant: good for the overall order, but a bot that is great at one game and poor at another averages out. The By variant grid below shows them apart." },
-  rk_runs: { text: "Tick the saved runs the ranking should use, for example to leave out runs made before you fixed a bot. New runs are ticked automatically." },
+  rk_variant: { text: "Only count runs of this variant. All variants mixes them: good for the overall order, but a bot that is great at one game and poor at another averages out. The By variant grid below shows them apart." },
+  rk_runs: { text: "Choose which saved runs the ranking uses, for example to leave out runs made before you fixed a bot. New runs are included automatically." },
   rk_data: { text: "How much play the ranking rests on. More tables means less luck: with only a few hundred tables, gaps of a few points per table are often just noise." },
-  rk_vspar: { label: "Points above par", text: "Points per table above (+) or below (−) par. Par is what an average seat scores in that run: the points a table awards, split evenly between the seats. Comparing with par makes runs with different numbers of seats fair to compare. Runs are combined weighted by their tables. The gray ± number is how uncertain it is." },
+  rk_vspar: { label: "vs par (points above par)", text: "Points per table above (+) or below (−) an average seat. Par is what an average seat scores in that run: the points a table awards, split evenly between the seats, which makes runs with different numbers of seats fair to compare. Runs are combined weighted by their tables. The gray ± is the standard error." },
   rk_cell: { text: (el) => {
     const v = Number(el.dataset.v), se = Number(el.dataset.se), lo = v - 2 * se, hi = v + 2 * se;
     const verdict = lo > 0 ? "clearly better than an average bot" : hi < 0 ? "clearly worse than an average bot" : "not clearly different from an average bot: the gap could be luck";
@@ -117,8 +120,8 @@ const TERMS = {
   rk_close: { label: "Too close to call", text: "This bot's whisker overlaps the one of the bot ranked just above it, so their order could be luck. Play more tables to separate them." },
   rk_prov: { label: "Provisional", text: `Fewer than ${PROVISIONAL} tables so far, so this bot's place can still move a lot. Run more matches with it before trusting the ranking.` },
   rk_inactive: { label: "Inactive in some runs", text: (el) => `In ${el.dataset.n} of its ${el.dataset.runs} runs this bot never once chose to put chips in: it only checked or folded. It probably does not support that variant. Its score in those runs says little; see the By variant grid.` },
-  rk_win: { label: "Win", text: "Share of tables this bot finished in 1st place, over all included runs. What an average bot gets depends on the number of seats (1 in 8 is about 13%)." },
-  rk_top3: { label: "Top 3", text: "Share of tables this bot finished 1st, 2nd or 3rd, usually the places that score points. With 8 seats an average bot gets about 38%." },
+  rk_win: { label: "Win %", text: "How often it won the whole table: the share of tables it finished 1st, over all included runs. An average bot gets 1 in the number of seats (1 in 8 is about 13%)." },
+  rk_itm: { label: "ITM (in the money)", text: "How often it finished in a paid place: the share of tables it ended 1st, 2nd or 3rd, over all included runs. With 8 seats an average bot gets about 38%." },
   rk_tables: { text: "Tables this bot played in the included runs. A table counts once even if the bot had several seats at it." },
   rk_failed: { label: "Failed decisions", text: "Turns where the bot crashed, ran out of time or made a move that is not allowed, added up over all included runs. This should be 0. Open the run in Results (or copy its log) to see the details." },
   rk_heat: { label: "By variant", text: `Each cell is the bot's points per table above par in one variant, with its ± uncertainty. Green means above par and red below; the stronger the colour, the bigger the gap. A dash means the bot never played that variant. A dashed outline means fewer than ${PROVISIONAL} tables, so the number is provisional. A striped cell marked INACTIVE means the bot folded everything in at least one run of that variant, so its score there means little.` },
@@ -132,9 +135,9 @@ const TERMS = {
     return `Run #${d.run}, ${variantTitle(d.variant)}, ${fmt(Number(d.tables))} tables, ${d.seats} seat${d.seats === "1" ? "" : "s"} for this bot: ${signed(Number(d.v))} ± ${fx(Number(d.se), 1)} points per table compared with par.`;
   } },
   // ---- hand replay
-  notable: { text: "Lists only the hands where something big happened: cards were turned over at the end (a showdown), a bot bet all its chips (all-in), or a bot lost its last chips (a bust)." },
+  notable: { label: "Showdowns & all-ins", text: "Lists only the hands where something big happened: cards were turned over at the end (a showdown), a bot bet all its chips (all-in), or a bot lost its last chips (busted)." },
   rp_table: { text: "Only the first tables of a run (20 unless set otherwise) are recorded hand by hand. Each line shows who finished 1st and how many hands the table took." },
-  rp_hand: { text: "Each line shows: hand number · the two blinds (forced bets) · chips won · who won them." },
+  rp_hand: { text: "Each line shows: hand number · the blinds (small/big forced bets) · the pot · who won it." },
   rp_payouts: { text: "Points this table awards for 1st, 2nd and 3rd place." },
   rp_places: { text: "How this table ended: the bots that finished 1st, 2nd and 3rd." },
   level: { label: "Level and blinds", text: () => {
@@ -143,21 +146,21 @@ const TERMS = {
   } },
   pot: { label: "Pot", text: "All the chips bet in this hand so far. Whoever wins the hand takes them." },
   board: { label: "Shared cards", text: "Face up for everyone to use: three at once (the flop), then a fourth (the turn) and a fifth (the river), with a round of betting after each." },
-  seat_stack: { text: "Chips this bot has left right now, not counting what it has already bet in this hand." },
+  seat_stack: { label: "Stack", text: "Chips this bot has left right now, not counting what it has already bet in this hand." },
   hole: { text: "This bot's private cards. At a real table the other bots cannot see them; the replay shows everyone's." },
-  discarded: { label: "Discard", text: "The private card this bot threw away (discard and reveal variant). The other bots never see it." },
-  revealed: { label: "Reveal", text: "The private card this bot had to turn face up (discard and reveal variant). Every other bot can see it." },
+  discarded: { label: "Discard", text: "The private card this bot threw away face down (discard and reveal variant). The other bots never see it." },
+  revealed: { label: "Reveal", text: "The private card this bot had to turn face up for every other bot to see (discard and reveal variant)." },
   extra: { label: "Auction card", text: "The extra private card this bot got by winning the auction." },
-  btn: { label: "Button", text: "Marks the dealer's seat, which moves on one seat every hand. The two seats after it pay the blinds, and once shared cards are out the button acts last in each betting round, which is an advantage." },
-  sb: { label: "Small blind", text: "A forced bet, half the big blind, that this seat must put in before seeing its cards." },
-  bb: { label: "Big blind", text: "The larger forced bet, paid by the seat after the small blind. It is the price the others must match to stay in the hand. Stack sizes are often counted in big blinds (BB)." },
-  out: { label: "Out", text: "This bot lost all its chips in an earlier hand and no longer plays at this table." },
-  folded: { label: "Fold", text: "Gives up this hand: the bot loses the chips it already put in and waits for the next hand." },
+  btn: { label: "BTN (button)", text: "The dealer's seat, which moves on one seat every hand. The two seats after it pay the blinds, and once shared cards are out the button acts last in each betting round, which is an advantage." },
+  sb: { label: "SB (small blind)", text: "A forced bet, half the big blind, that this seat must put in before seeing its cards." },
+  bb: { label: "BB (big blind)", text: "The larger forced bet, paid by the seat after the small blind. It is the price the others must match to stay in the hand. Stack sizes are often counted in big blinds (BB)." },
+  out: { label: "Out", text: "Knocked out: this bot lost all its chips in an earlier hand and no longer plays at this table." },
+  folded: { label: "Fold", text: "Gives up the hand: the bot loses the chips it already put in and waits for the next hand." },
   allin: { label: "All-in", text: "The bot has bet every chip it has. It cannot act again in this hand, and it can win from each opponent no more than it put in itself." },
-  busted: { label: "Busted", text: "Lost its last chips in this hand and is out of this table. The longer a bot lasts, the higher its finishing place." },
+  busted: { label: "Busted", text: "Knocked out: it lost its last chips in this hand and leaves this table. The longer a bot lasts, the higher its finishing place." },
   won: { label: "Won", text: "Chips this bot collected from the pot in this hand." },
   bet_chip: { text: "Chips this bot has put in during the current betting round. They move into the pot when the round ends." },
-  chips: { label: "Chip check", text: () => `A self-check of the replay. Chips are never created or destroyed, so all stacks, bets and the pot must always add up to the same total (${fmt(R.meta[R.handIdx].total)} on this table). If this line turns red, the simulator or the replay has a bug, not your bot.` },
+  chips: { label: "Chip check", text: () => `A self-check of the replay: chips are never created or destroyed, so all stacks, bets and the pot must always add up to the same total (${fmt(R.meta[R.handIdx].total)} on this table). If it turns red, the simulator or the replay has a bug, not your bot.` },
   check: { label: "Check", text: "Passes the turn without betting. Only possible when nobody has bet in this round." },
   call: { label: "Call", text: "Matches the highest bet so far to stay in the hand." },
   bet: { label: "Bet", text: "Puts chips in when nobody else has bet in this round. The others must match it, raise it or fold." },
@@ -165,6 +168,9 @@ const TERMS = {
   uncalled: { label: "Uncalled bet returned", text: "Nobody matched the last part of this bet, so that part goes straight back to the bot that made it. It was never at risk." },
   leftover: { label: "Left over", text: "Chips put in by a bot that folded, beyond what any bot still in the hand had matched. No one can win them in the normal split, so they go to the best hand." },
   shows: { label: "Showdown", text: "The betting is over and more than one bot is still in, so they turn their cards over and the best five-card hand wins." },
+  flop: { label: "Flop", text: "The first three shared cards, dealt face up together, followed by a round of betting." },
+  turn: { label: "Turn", text: "The fourth shared card, followed by a round of betting." },
+  river: { label: "River", text: "The fifth and last shared card, followed by the last round of betting." },
   bid: { label: "Bid", text: "Auction variant: after the first three shared cards each bot secretly offers chips for an extra private card. All bids are made public afterwards." },
   auction: { label: "Wins the auction", text: "This bot bid the most, so it gets the extra card. It pays the second-highest bid, not its own, into the pot. If the top bids tie, each of those bots pays its own bid and gets a card." },
   // ---- poker words inside bot descriptions (see GLOSS)
@@ -288,7 +294,7 @@ function renderSeats() {
     if (!path) return `<li class="empty-seat"><span class="seat-no" data-term="seat_no">${i}</span><span class="seat-bot">empty</span></li>`;
     const bot = findBot(path);
     return `<li class="${bot ? "" : "missing"}"><span class="seat-no" data-term="seat_no">${i}</span>
-      <button type="button" class="seat-bot" data-info="${esc(path)}" title="${esc(path)}: show description">${esc(botName(path))}${bot ? (bot.group ? ` <small>${esc(bot.group)}</small>` : "") : " <small>folder missing</small>"}</button>
+      <button type="button" class="seat-bot" data-info="${esc(path)}" title="${esc(path)}: show description">${esc(botName(path))}${bot ? "" : " <small>folder missing</small>"}</button>
       <button type="button" class="seat-x" data-remove="${i}" aria-label="Remove ${esc(botName(path))} from seat ${i}" title="Remove">&times;</button></li>`;
   }).join("");
   $("#seat-count").textContent = S.lineup.length;
@@ -331,6 +337,8 @@ function botTitle(b) {
   return [`${b.path}/agent.py`, h.profile && `Profile: ${h.profile}`, h.variants && `Variants: ${h.variants}`, h.notes && `Notes: ${h.notes}`,
     h.source && `Source: ${h.source}`, ...b.problems.map((p) => `Problem: ${p}`)].filter(Boolean).join("\n");
 }
+// Which bot groups are expanded in the list (remembered per browser).
+S.openGroups = new Set(store.get("groups", []));
 function renderBotList() {
   const q = $("#bot-filter").value.trim().toLowerCase();
   const counts = {};
@@ -339,15 +347,23 @@ function renderBotList() {
   const html = groups.map((g) => {
     const bots = S.bots.filter((b) => b.group === g && (!q || `${b.path} ${Object.values(b.header).join(" ")}`.toLowerCase().includes(q)));
     if (!bots.length) return "";
-    return `<div class="bot-group"><div class="group-head"><span>${esc(groupTitle(g))} <small>${bots.length}</small></span>
-        <button type="button" class="ghost small" data-fill="${esc(g)}" data-term="fill">Fill empty seats</button></div>
-      ${bots.map((b) => `<button type="button" class="bot${b.path === S.info ? " shown" : ""}" data-add="${esc(b.path)}" title="${esc(botTitle(b))}">
+    const seated = bots.reduce((a, b) => a + (counts[b.path] || 0), 0);
+    return `<details class="bot-group" data-group="${esc(g)}"${q || S.openGroups.has(g) ? " open" : ""}>
+      <summary><span class="gname">${esc(groupTitle(g))}</span><span class="gcount">${bots.length}</span>${seated ? `<span class="gsel" title="Seats taken by bots of this group">${seated} seated</span>` : ""}
+        <button type="button" class="ghost small" data-fill="${esc(g)}" data-term="fill">Fill</button></summary>
+      <div class="bots">${bots.map((b) => `<button type="button" class="bot${b.path === S.info ? " shown" : ""}" data-add="${esc(b.path)}" title="${esc(botTitle(b))}">
         <span class="bn">${esc(b.name)}</span>${b.problems.length ? `<span class="bwarn" data-term="bot_warn" title="" aria-label="has problems">&#9888;</span>` : ""}
-        <span class="bs">${esc([b.header.variants && `variants: ${b.header.variants}`, botSummary(b)].filter(Boolean).join(" · "))}</span>
-        ${counts[b.path] ? `<span class="cnt">&times;${counts[b.path]}</span>` : `<span class="plus">+</span>`}</button>`).join("")}</div>`;
+        ${counts[b.path] ? `<span class="cnt">&times;${counts[b.path]}</span>` : `<span class="plus" aria-hidden="true">+</span>`}</button>`).join("")}</div></details>`;
   }).join("");
   $("#bot-list").innerHTML = html || `<p class="empty">${S.bots.length ? "No bot matches the filter." : "No bot folders found (a folder needs an agent.py)."}</p>`;
 }
+// toggle does not bubble, so listen in the capture phase; a filtered list opens every group and is not remembered.
+$("#bot-list").addEventListener("toggle", (e) => {
+  const g = e.target.dataset?.group;
+  if (g === undefined || $("#bot-filter").value.trim()) return;
+  if (e.target.open) S.openGroups.add(g); else S.openGroups.delete(g);
+  store.set("groups", [...S.openGroups]);
+}, true);
 function renderBotInfo() {
   const box = $("#bot-info");
   const b = S.info && findBot(S.info);
@@ -363,7 +379,7 @@ function renderBotInfo() {
 $("#bot-list").addEventListener("click", (e) => {
   const add = e.target.closest("[data-add]"), fill = e.target.closest("[data-fill]");
   if (add) { S.info = add.dataset.add; addBot(add.dataset.add); renderBotInfo(); }
-  else if (fill) fillFrom(fill.dataset.fill);
+  else if (fill) { e.preventDefault(); fillFrom(fill.dataset.fill); } // the button sits in the group's <summary>
 });
 $("#bot-filter").addEventListener("input", renderBotList);
 function flash(btn, text) { const old = btn.textContent; btn.textContent = text; setTimeout(() => { btn.textContent = old; }, 700); }
@@ -403,7 +419,7 @@ function applySettings() {
   const note = $("#engine-note");
   note.classList.toggle("official", kit);
   note.dataset.term = kit ? "kit" : "mini";
-  note.textContent = kit ? `Organizers' kit in use: ${E.kit}` : "Mini simulator: unofficial rules, optimistic timing.";
+  note.textContent = kit ? "Official kit" : "Unofficial sim";
 }
 async function loadEngine() {
   const info = await api("/api/engine");
@@ -481,19 +497,20 @@ async function refreshHistory() {
   const data = await api("/api/runs");
   S.runs = data.runs;
   S.session = data.session || S.session;
+  $("#session").innerHTML = `<b>${fmt(S.session.runs)}</b> run${S.session.runs === 1 ? "" : "s"} · <b>${fmt(S.session.tables)}</b> tables this session`;
   $("#history-card").hidden = S.runs.length === 0;
   $("#history").innerHTML = S.runs.map((r) => {
     const entries = r.results?.entries || [];
     const top = entries.reduce((a, e) => (!a || e.average_points > a.average_points ? e : a), null);
     const failed = entries.reduce((a, e) => a + e.failed_decisions, 0);
     return `<tr class="clickable${r.id === S.selected ? " selected" : ""}" data-run="${r.id}">
-      <td><b>#${r.id}</b></td><td>${esc(variantTitle(r.settings.variant))}${r.settings.vary ? ` <span class="dim term" data-term="vary">varied</span>` : ""}</td>
+      <td><b>#${r.id}</b></td><td><span class="term" data-term="variant" data-variant="${esc(r.settings.variant)}">${esc(variantShort(r.settings.variant))}</span>${r.settings.vary ? `<span class="tagv term" data-term="vary">varied</span>` : ""}</td>
       <td class="num">${fmt(r.done)}${r.done !== r.settings.tables ? ` / ${fmt(r.settings.tables)}` : ""}</td>
       <td><code>${esc(r.settings.seed)}</code></td>
       <td class="topbot">${top ? esc(top.label) : `<span class="status-${esc(r.status)}">${esc(r.status)}</span>`}</td>
       <td class="num">${top ? `<b>${fx(top.average_points, 1)}</b> <span class="pm">±${fx(top.se, 1)}</span>` : ""}</td>
       <td class="num">${failed ? `<span class="failn">${fmt(failed)}</span>` : entries.length ? `<span class="dim">0</span>` : ""}</td>
-      <td class="logcell">${r.status === "running" || r.status === "queued" ? "" : `<button type="button" class="ghost small" data-copylog="${r.id}" title="Copy the full log of run #${r.id}">Copy</button>`}</td></tr>`;
+      <td class="logcell">${r.status === "running" || r.status === "queued" ? "" : `<button type="button" class="small" data-copylog="${r.id}" title="Copy the full log of run #${r.id}">Copy</button>`}</td></tr>`;
   }).join("");
 }
 $("#history").addEventListener("click", async (e) => {
@@ -532,22 +549,26 @@ function meter(mean, se, par, span) {
 function runHead(run) {
   const s = run.settings, r = run.results, kit = s.engine === "kit";
   const rules = kit
-    ? `${term("kit", "organizers' kit rules", TAB)} · ${term("handcap", "hand cap", TAB)} <b>${fmt(s.hand_cap)}</b>`
-    : `${term("handcap", "hand cap", TAB)} <b>${fmt(s.hand_cap)}</b> · <b>${fmt(s.hands_per_level)}</b> ${term("hpl", "hands/level", TAB)} · ${term("stack", "stack", TAB)} <b>${fmt(s.stack)}</b> · ${term("payouts", "payouts", TAB)} <b>${s.random_payouts ? term("payouts_drawn", "drawn per table", TAB) : esc(s.payouts.join(" / "))}</b>${s.vary ? ` <span class="term dim" data-term="vary"${TAB}>(picked by the seed)</span>` : ""}`;
+    ? [term("kit", "Kit rules", TAB), `${term("handcap", "Hand cap", TAB)} <b>${fmt(s.hand_cap)}</b>`]
+    : [`${term("handcap", "Hand cap", TAB)} <b>${fmt(s.hand_cap)}</b>`, `${term("hpl", "Hands per level", TAB)} <b>${fmt(s.hands_per_level)}</b>`,
+      `${term("stack", "Stack", TAB)} <b>${fmt(s.stack)}</b>`,
+      `${term("payouts", "Payouts", TAB)} <b>${s.random_payouts ? term("payouts_drawn", "drawn per table", TAB) : esc(s.payouts.join(" / "))}</b>`,
+      ...(s.vary ? [term("vary", "varied by seed", TAB)] : [])];
   return `<div class="run-head">
       <span class="run-no">Run #${run.id}</span>
-      <span><b>${fmt(run.done)}</b>${run.done !== s.tables ? ` of ${fmt(s.tables)}` : ""} ${term("run_tables", "tables", TAB)}</span>
-      ${r ? `<span><b>${fx(r.seconds, 1)}</b> s</span>` : ""}
-      <span><b class="term" data-term="variant" data-variant="${esc(s.variant)}"${TAB}>${esc(variantTitle(s.variant))}</b></span>
-      <span>${term("seed", "seed", TAB)} <code>${esc(s.seed)}</code></span>
-      <span class="session">${term("session", "Session", TAB)}: <b>${fmt(S.session.runs)}</b> run${S.session.runs === 1 ? "" : "s"} · <b>${fmt(S.session.tables)}</b> tables</span>
+      <span class="run-variant term" data-term="variant" data-variant="${esc(s.variant)}"${TAB}>${esc(variantShort(s.variant))}</span>
+      <div class="log-tools">
+        <span class="log-msg" role="status"></span>
+        <button type="button" class="small" data-copylog="${run.id}" data-term="copylog">Copy log</button>
+        <button type="button" class="small" data-showlog="${run.id}" aria-expanded="false">Show log</button>
+      </div>
     </div>
-    <div class="rules-line">Rules: ${rules}</div>
-    <div class="log-tools">
-      <button type="button" class="small" data-copylog="${run.id}">Copy log</button>
-      <button type="button" class="ghost small" data-showlog="${run.id}" aria-expanded="false">Show log</button>
-      <span class="log-msg" role="status"></span>
-      <span class="hint term" data-term="copylog"${TAB}>the whole run as text, to paste into an AI chat</span>
+    <div class="run-meta">
+      <span><b>${fmt(run.done)}</b>${run.done !== s.tables ? ` of ${fmt(s.tables)}` : ""} ${term("run_tables", "tables", TAB)}</span>
+      <span>${term("seed", "Seed", TAB)} <code>${esc(s.seed)}</code></span>
+      ${r ? `<span><b>${fx(r.seconds, 1)}</b> s</span>` : ""}
+      <span class="sep" aria-hidden="true"></span>
+      ${rules.map((x) => `<span>${x}</span>`).join("")}
     </div>
     <textarea class="runlog" readonly wrap="off" spellcheck="false" aria-label="Run log" hidden></textarea>`;
 }
@@ -657,14 +678,14 @@ function renderResult(run) {
       : `<p>No details were recorded for ${esc(e.label)}.</p>`}</td></tr>` : "";
     return `<tr class="${e.failed_decisions ? "has-fail" : ""}${e.inactive ? " idle" : ""}">
       <td class="rank">${i + 1}</td>
-      <td class="bot"><div class="botcell"><span class="botname" title="${esc(e.bot)}">${esc(e.label)}</span>${e.inactive ? `<span class="badge-idle" data-term="inactive">INACTIVE</span>` : ""}</div></td>
+      <td class="bot"><div class="botcell"><span class="botname" title="${esc(e.bot)}">${esc(e.label)}</span>${e.inactive ? `<span class="badge-idle" data-term="inactive"${TAB}>INACTIVE</span>` : ""}</div></td>
       <td class="num pts ${tone}" data-term="pts_cell" data-mean="${e.average_points}" data-se="${e.se}">${fx(e.average_points, 1)}<span class="pm"> ±${fx(e.se, 1)}</span></td>
       <td class="meter-cell">${meter(e.average_points, e.se, r.par, span)}</td>
-      <td class="num big">${pct(e.win_rate)}</td>
-      <td class="num big">${pct(e.top3_rate)}</td>
-      <td class="num big${e.inactive ? " warn" : ""}"${e.vpip == null ? "" : ` data-term="vpip_cell" data-vpip="${e.vpip}" data-pfr="${e.pfr}"`}>${pct(e.vpip)}</td>
-      <td class="num big${slow != null && slow >= 1000 ? " slow" : ""}">${slow == null ? "–" : fmt(Math.round(slow))}</td>
-      <td class="num big">${e.failed_decisions ? `<button type="button" class="failn" data-toggle="${i}" title="Show details">${fmt(e.failed_decisions)}</button>` : `<span class="dim">0</span>`}</td></tr>${notes}`;
+      <td class="num">${pct(e.win_rate)}</td>
+      <td class="num">${pct(e.top3_rate)}</td>
+      <td class="num vp${e.inactive ? " warn" : ""}"${e.vpip == null ? "" : ` data-term="vpip_cell" data-vpip="${e.vpip}" data-pfr="${e.pfr}"`}>${e.vpip == null ? "–" : `${Math.round(100 * e.vpip)}<span class="sl">/</span>${Math.round(100 * (e.pfr || 0))}`}</td>
+      <td class="num${slow != null && slow >= 1000 ? " slow" : ""}">${slow == null ? "–" : fmt(Math.round(slow))}</td>
+      <td class="num">${e.failed_decisions ? `<button type="button" class="failn" data-toggle="${i}" title="Show details">${fmt(e.failed_decisions)}</button>` : `<span class="dim">0</span>`}</td></tr>${notes}`;
   }).join("");
   view.innerHTML = `<div class="card">
       ${runHead(run)}${notices}${failBanner}
@@ -672,10 +693,10 @@ function renderResult(run) {
         <thead><tr><th></th><th class="term" data-term="entry"${TAB}>Entry</th>
           <th class="num term" data-term="pts"${TAB}>Pts / table</th>
           <th class="term" data-term="par"${TAB}>vs par ${fx(r.par, 1)}</th>
-          <th class="num term" data-term="win"${TAB}>Win</th>
-          <th class="num term" data-term="top3"${TAB}>Top 3</th>
-          <th class="num term" data-term="vpip"${TAB}>Plays</th>
-          <th class="num term" data-term="slow"${TAB}>Slowest µs</th>
+          <th class="num term" data-term="win"${TAB}>Win %</th>
+          <th class="num term" data-term="itm"${TAB}>ITM</th>
+          <th class="num term" data-term="vpip"${TAB}>VPIP / PFR</th>
+          <th class="num term" data-term="slow"${TAB}><span class="unit">p99.9 µs</span></th>
           <th class="num term" data-term="failed"${TAB}>Failed</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
       ${run.kit_stderr ? `<details class="failures"><summary>What the bots printed to stderr (from the kit)</summary><pre>${esc(run.kit_stderr)}</pre></details>` : ""}
@@ -760,8 +781,8 @@ async function loadReplayTable(tableNo) {
   const order = t.places.map((place, seat) => [place, seat]).sort((x, y) => x[0] - y[0]).slice(0, 3);
   const variant = t.hands[0]?.variant || t.settings?.variant;
   $("#rp-head").innerHTML = `<span>Table <b>${esc(t.table)}</b></span>${variant ? `<span><b class="term" data-term="variant" data-variant="${esc(variant)}"${TAB}>${esc(variantTitle(variant))}</b></span>` : ""}
-    <span>${term("rp_payouts", "payouts", TAB)} <b>${Array.isArray(t.payouts) ? esc(t.payouts.join(" / ")) : "–"}</b></span>
-    <span data-term="rp_places">${order.map(([place, seat]) => `${place}. <b>${esc(t.seats[seat].label)}</b>`).join(" &nbsp; ")}</span>`;
+    <span>${term("rp_payouts", "Payouts", TAB)} <b>${Array.isArray(t.payouts) ? esc(t.payouts.join(" / ")) : "–"}</b></span>
+    <span data-term="rp_places">${order.map(([place, seat]) => `${["1st", "2nd", "3rd"][place - 1] || `${place}th`} <b>${esc(t.seats[seat].label)}</b>`).join(" &nbsp; ")}</span>`;
   $("#replay-body").hidden = false;
   buildHandList();
   selectHand(0);
@@ -775,7 +796,7 @@ function buildSteps(h, t) {
   const total = h.start.reduce((a, b) => a + b, 0);
   const st = { stack: h.start.slice(), bet: Array(n).fill(0), pot: 0, board: [], folded: Array(n).fill(false), shown: Array(n).fill(false), act: Array(n).fill(""), won: Array(n).fill(0), acting: null, newCards: 0, discarded: Array(n).fill(null), revealed: Array(n).fill(null), extra: Array(n).fill(null) };
   const snap = (text, kind) => ({ ...st, stack: st.stack.slice(), bet: st.bet.slice(), board: st.board.slice(), folded: st.folded.slice(), shown: st.shown.slice(), act: st.act.slice(), won: st.won.slice(), discarded: st.discarded.slice(), revealed: st.revealed.slice(), extra: st.extra.slice(), text, kind, chips: st.stack.reduce((a, b) => a + b, 0) + st.bet.reduce((a, b) => a + b, 0) + st.pot });
-  const steps = [snap(`Hand ${h.hand} dealt · ${term("btn", "button")} ${esc(seatName(h.button))}`, "hand")];
+  const steps = [snap(`Hand ${h.hand} · ${term("btn", "BTN")} ${esc(seatName(h.button))}`, "hand")];
   let blinds = 0, allin = false, showdown = false, ok = true;
   const collect = () => { st.pot += st.bet.reduce((a, b) => a + b, 0); st.bet.fill(0); };
   const names = ["Flop", "Turn", "River"];
@@ -791,7 +812,7 @@ function buildSteps(h, t) {
       st.stack[seat] -= amount; st.bet[seat] += amount;
       const which = blinds++ === 0 ? "small blind" : "big blind";
       st.act[seat] = `${which === "small blind" ? "SB" : "BB"} ${fmt(amount)}`;
-      text = `${nm} posts ${term(which === "small blind" ? "sb" : "bb", which)} ${fmt(amount)}${allIn()}`;
+      text = `${nm} posts ${term(which === "small blind" ? "sb" : "bb", which === "small blind" ? "SB" : "BB")} ${fmt(amount)}${allIn()}`;
     } else if (kind === "fold") {
       st.folded[seat] = true; st.act[seat] = "fold"; text = `${nm} ${term("folded", "folds")}`;
     } else if (kind === "check") {
@@ -806,21 +827,22 @@ function buildSteps(h, t) {
       st.act[seat] = `${verb === "bets" ? "bet" : "raise to"} ${fmt(amount)}`;
       text = `${nm} ${term(verb === "bets" ? "bet" : "raise", verb)} ${fmt(amount)}${allIn()}`;
     } else if (kind === "return") {
-      st.stack[seat] += amount; st.bet[seat] -= amount; text = `${term("uncalled", "Uncalled")} ${fmt(amount)} returned to ${nm}`;
+      st.stack[seat] += amount; st.bet[seat] -= amount; text = `${term("uncalled", "Uncalled bet")} of ${fmt(amount)} returned to ${nm}`;
     } else if (kind === "board") {
       collect(); st.board.push(...cards); st.newCards = cards.length; st.act.fill(""); st.acting = null;
-      text = `${term("board", names[Math.min(2, st.board.length - 3)])}: ${cards.map((c) => card(c)).join(" ")}`;
+      const street = names[Math.min(2, st.board.length - 3)];
+      text = `${term(street.toLowerCase(), street)}: ${cards.map((c) => card(c)).join(" ")}`;
     } else if (kind === "discard") {
       st.discarded[seat] = cards[0]; st.act[seat] = "discard"; text = `${nm} ${term("discarded", "discards")} ${card(cards[0])} face down`;
     } else if (kind === "reveal") {
-      st.revealed[seat] = cards[0]; st.act[seat] = "reveal"; text = `${nm} ${term("revealed", "turns")} ${card(cards[0])} ${term("revealed", "face up")}`;
+      st.revealed[seat] = cards[0]; st.act[seat] = "reveal"; text = `${nm} ${term("revealed", "reveals")} ${card(cards[0])}`;
     } else if (kind === "bid") {
       st.act[seat] = `bid ${fmt(amount)}`; text = `${nm} ${term("bid", "bid")} ${fmt(amount)}`;
     } else if (kind === "auction") {
       st.stack[seat] -= amount; st.pot += amount; st.act[seat] = `won auction`;
       text = `${nm} ${term("auction", "wins the auction")} and pays ${fmt(amount)} into the pot${allIn()}`;
     } else if (kind === "extra") {
-      st.extra[seat] = cards[0]; text = `${nm} ${term("extra", "receives")} ${card(cards[0])}`;
+      st.extra[seat] = cards[0]; text = `${nm} receives ${term("extra", "auction card")} ${card(cards[0])}`;
     } else if (kind === "show") {
       st.shown[seat] = true; showdown = true; text = `${nm} ${term("shows", "shows")} ${cards.map((c) => card(c)).join(" ")}`;
     } else if (kind === "win" || kind === "leftover") {
@@ -851,7 +873,7 @@ function buildHandList() {
   $("#rp-hand").innerHTML = R.list.map((i, k) => {
     const h = R.hands[i], m = R.meta[i];
     const w = m.winners.map(([s]) => seatName(s)).join(" & ");
-    const flags = [m.showdown ? "showdown" : "", m.busts.length ? "bust: " + m.busts.map(seatName).join(", ") : ""].filter(Boolean).join(" · ");
+    const flags = [m.showdown ? "showdown" : "", m.busts.length ? "busted: " + m.busts.map(seatName).join(", ") : ""].filter(Boolean).join(" · ");
     return `<option value="${k}">Hand ${h.hand} · ${h.blinds[0]}/${h.blinds[1]} · pot ${fmt(m.pot)} · ${esc(w)}${flags ? " · " + esc(flags) : ""}</option>`;
   }).join("");
 }
@@ -920,13 +942,13 @@ function renderStep() {
   $("#rp-board").innerHTML = board;
   $("#rp-pot").textContent = `Pot ${fmt(sp.pot + sp.bet.reduce((a, b) => a + b, 0))}`;
   $("#rp-level").innerHTML = `Hand ${h.hand} · ${term("level", `Level ${h.level + 1} · Blinds ${fmt(h.blinds[0])}/${fmt(h.blinds[1])}`, TAB)}`;
-  $("#rp-step").textContent = `step ${R.step} / ${R.steps.length - 1} · hand ${R.pos + 1} of ${R.list.length}`;
+  $("#rp-step").textContent = `Step ${R.step}/${R.steps.length - 1} · Hand ${R.pos + 1} of ${R.list.length}`;
   const chip = $("#rp-chips");
   chip.dataset.ok = String(R.tableChipsOk);
   chip.className = "hint chips-check" + (sp.chips === m.total && R.tableChipsOk ? "" : " bad");
   chip.textContent = sp.chips === m.total
-    ? `Chips in play: ${fmt(sp.chips)} (constant). ${R.tableChipsOk ? `All ${R.hands.length} hands on this table conserve chips.` : "WARNING: some hand on this table does not conserve chips."}`
-    : `CHIP MISMATCH: ${fmt(sp.chips)} in play, expected ${fmt(m.total)}`;
+    ? (R.tableChipsOk ? `Chips ${fmt(sp.chips)} ✓` : `Chips ${fmt(sp.chips)}: some hand on this table does not add up`)
+    : `Chip mismatch: ${fmt(sp.chips)} in play, expected ${fmt(m.total)}`;
   document.querySelectorAll("#rp-log li").forEach((li, k) => {
     li.classList.toggle("current", k === R.step);
     li.classList.toggle("future", k > R.step);
@@ -947,7 +969,7 @@ function stepBy(d) {
   if (next >= R.steps.length) { if (R.pos < R.list.length - 1) { selectHand(R.pos + 1); return true; } return false; }
   R.step = next; renderStep(); return true;
 }
-function stopPlay() { clearTimeout(R.timer); R.timer = null; $("#rp-play").innerHTML = "▶ Play"; }
+function stopPlay() { clearTimeout(R.timer); R.timer = null; $("#rp-play").textContent = "Play"; }
 function tick() {
   const atEnd = R.step === R.steps.length - 1;
   if (!stepBy(1)) { stopPlay(); return; }
@@ -956,7 +978,7 @@ function tick() {
 }
 $("#rp-play").addEventListener("click", () => {
   if (R.timer) { stopPlay(); return; }
-  $("#rp-play").innerHTML = "⏸ Pause";
+  $("#rp-play").textContent = "Pause";
   R.timer = setTimeout(tick, 150);
 });
 $("#rp-prev").addEventListener("click", () => { stopPlay(); stepBy(-1); });
@@ -995,6 +1017,8 @@ function renderRkFilters() {
       <b>#${r.id}</b> ${esc(variantShort(r.settings.variant))} <span class="dim">· ${fmt(r.done)} tables · ${r.settings.lineup.length} seats</span>${skipped ? ` <span class="dim" title="Made before rankings existed, so it lacks the numbers needed">(not usable)</span>` : ""}</label>`;
   }).join("");
   $("#rk-filters").hidden = all.length === 0;
+  const on = shown.filter((r) => !RK.excluded.has(r.id)).length;
+  $("#rk-runs-label").textContent = `Runs: ${on === shown.length ? `all ${shown.length}` : `${on} of ${shown.length}`}`;
   return shown;
 }
 
@@ -1011,7 +1035,7 @@ async function loadRankings() {
   if (!ids.length) {
     RK.data = null;
     $("#rk-summary").textContent = "No runs selected.";
-    view.innerHTML = `<div class="card"><p class="empty">No runs are ticked. Tick at least one run above.</p></div>`;
+    view.innerHTML = `<div class="card"><p class="empty">No runs selected. Choose some in the Runs menu above.</p></div>`;
     return;
   }
   const q = new URLSearchParams();
@@ -1058,22 +1082,19 @@ function renderRankings(data, ids) {
         ${b.inactive_runs ? `<span class="badge-idle" data-term="rk_inactive" data-n="${b.inactive_runs}" data-runs="${b.runs}">INACTIVE ×${b.inactive_runs}</span>` : ""}</div></td>
       <td class="num pts ${tone}" data-term="rk_cell" data-v="${b.vs_par}" data-se="${b.se}">${signed(b.vs_par)}<span class="pm"> ±${fx(b.se, 1)}</span></td>
       <td class="meter-cell">${rkBar(b.vs_par, b.se, span)}</td>
-      <td class="num big">${pct(b.win_rate)}</td>
-      <td class="num big">${pct(b.top3_rate)}</td>
+      <td class="num">${pct(b.win_rate)}</td>
+      <td class="num">${pct(b.top3_rate)}</td>
       <td class="num">${fmt(b.tables)} <span class="dim">in ${b.runs}</span></td>
-      <td class="num big">${b.failed_decisions ? `<span class="failn">${fmt(b.failed_decisions)}</span>` : `<span class="dim">0</span>`}</td></tr>`;
+      <td class="num">${b.failed_decisions ? `<span class="failn">${fmt(b.failed_decisions)}</span>` : `<span class="dim">0</span>`}</td></tr>`;
   }).join("");
   const tick = span >= 10 ? Math.round(span / 1.05) : fx(span / 1.05, 1);
   view.innerHTML = `<div class="card">
-      <p class="rk-read">Best first, by ${term("rk_vspar", "points per table above par", TAB)} (0 = an average seat).
-        The ${term("rk_bar", "whisker", TAB)} is the likely range: where whiskers overlap, the order could be luck (marked ${term("rk_close", "≈", TAB)}).
-        Fewer than ${PROVISIONAL} tables: ${term("rk_prov", "provisional", TAB)}. Click a bot to see it run by run.</p>
       <div class="table-wrap"><table class="results rk">
         <thead><tr><th></th><th>Bot</th>
           <th class="num term" data-term="rk_vspar"${TAB}>vs par</th>
-          <th class="rk-scale" data-term="rk_bar"><div><span>−${tick}</span><span>0 = par</span><span>+${tick}</span></div></th>
-          <th class="num term" data-term="rk_win"${TAB}>Win</th>
-          <th class="num term" data-term="rk_top3"${TAB}>Top 3</th>
+          <th class="rk-scale" data-term="rk_bar"><div><span>−${tick}</span><span>par</span><span>+${tick}</span></div></th>
+          <th class="num term" data-term="rk_win"${TAB}>Win %</th>
+          <th class="num term" data-term="rk_itm"${TAB}>ITM</th>
           <th class="num term" data-term="rk_tables"${TAB}>Tables</th>
           <th class="num term" data-term="rk_failed"${TAB}>Failed</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
@@ -1083,9 +1104,9 @@ function renderRankings(data, ids) {
 }
 
 function rkDetail(b) {
-  if (!b) return `<p class="hint">Click a bot above to see its score run by run.</p>`;
+  if (!b) return `<p class="hint">Select a bot to see its score run by run.</p>`;
   const variants = [...new Set(b.series.map((p) => p.variant))];
-  return `<h3><span class="term" data-term="rk_series"${TAB}>Run by run</span>: <span class="nocase">${esc(b.name)}</span>${b.group ? ` <span class="dim nocase">${esc(b.group)}</span>` : ""}</h3>
+  return `<h3 class="card-title"><span class="term" data-term="rk_series"${TAB}>Run by run</span> · <span class="nocase">${esc(b.name)}</span>${b.group ? ` <span class="dim nocase">${esc(b.group)}</span>` : ""}</h3>
     ${seriesChart(b)}
     <div class="rk-keys">${variants.map((v) => `<span class="rk-key"><i style="background:${vHue(v)}"></i>${esc(variantShort(v))}</span>`).join("")}
       <span class="rk-key"><i class="avg"></i>overall ${signed(b.vs_par)}</span></div>`;
@@ -1129,14 +1150,12 @@ function rkHeatmap(data) {
         const attrs = `data-term="rk_heat_cell" data-bot="${esc(b.name)}" data-variant="${esc(v)}" data-v="${c.vs_par}" data-se="${c.se}" data-tables="${c.tables}" data-runs="${c.runs}" data-idle="${c.inactive_runs}"`;
         const val = `<b>${signed(c.vs_par)}</b><span class="pm"> ±${fx(c.se, 1)}</span>`;
         const few = c.tables < PROVISIONAL ? " few" : "";
-        if (c.inactive_runs) return `<td class="heat idle${few}" ${attrs}>${val} <span class="badge-idle">INACTIVE</span></td>`;
+        if (c.inactive_runs) return `<td class="heat idle${few}" ${attrs}>${val}<span class="badge-idle">INACTIVE</span></td>`;
         const strength = Math.round(10 + 50 * Math.min(1, Math.abs(c.vs_par) / max));
         return `<td class="heat${few}" ${attrs} style="background:color-mix(in srgb, var(${c.vs_par >= 0 ? "--good" : "--bad"}) ${strength}%, transparent)">${val}</td>`;
       }).join("")}</tr>`).join("");
   return `<div class="card">
-      <h3><span class="term" data-term="rk_heat"${TAB}>By variant</span></h3>
-      <p class="rk-read">Points per table above par in each variant: <span class="heat-key up">green above par</span> <span class="heat-key down">red below</span>, stronger for bigger gaps;
-        – no data; <span class="heat-key few">dashed</span> fewer than ${PROVISIONAL} tables; <span class="badge-idle">INACTIVE</span> folded everything there.</p>
+      <h3 class="card-title"><span class="term" data-term="rk_heat"${TAB}>By variant</span></h3>
       <div class="table-wrap"><table class="rk-heat">
         <thead><tr><th>Bot</th>${variants.map((v) => `<th class="term" data-term="variant" data-variant="${esc(v)}"${TAB}>${esc(variantShort(v))}</th>`).join("")}</tr></thead>
         <tbody>${rows}</tbody></table></div>
@@ -1159,6 +1178,9 @@ $("#rk-runs").addEventListener("change", (e) => {
   if (box.checked) RK.excluded.delete(id); else RK.excluded.add(id);
   loadRankings();
 });
+// The runs menu closes on a click anywhere else, or Escape.
+document.addEventListener("click", (e) => { const box = $("#rk-runs-box"); if (box.open && !box.contains(e.target)) box.open = false; });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#rk-runs-box").open = false; });
 $("#rk-all").addEventListener("click", () => { RK.excluded.clear(); loadRankings(); });
 $("#rk-none").addEventListener("click", () => { rkRuns().forEach((r) => RK.excluded.add(r.id)); loadRankings(); });
 $("#rk-clear").addEventListener("click", async () => {
