@@ -150,7 +150,7 @@ td.lineup { max-width: 360px; overflow: hidden; text-overflow: ellipsis; color: 
 .fail-banner { background: var(--bad); color: #fff; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-weight: 600; font-size: 15px; }
 .fail-banner small { display: block; font-weight: 400; font-size: 13px; opacity: .95; }
 .ok-banner { color: var(--good); font-weight: 600; margin-bottom: 10px; }
-td.fail { background: var(--bad); color: #fff; font-weight: 700; text-align: right; }
+td.fail, tr.selected td.fail, tr.clickable:hover td.fail { background: var(--bad); color: #fff; font-weight: 700; text-align: right; }
 tr.has-fail td:first-child { box-shadow: inset 4px 0 0 var(--bad); }
 td.zero { color: var(--muted); }
 .pos { color: var(--good); font-weight: 600; }
@@ -243,3 +243,16 @@ details.failures pre { white-space: pre-wrap; background: var(--panel-2); border
 .log li .k { min-width: 46px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .log .pc { width: 20px; height: 26px; font-size: 11px; border-radius: 3px; }
 .log .pc .s { font-size: 11px; }
+
+/* layout fixes: keep settings inputs inside the card, keep the results table within the panel */
+.grid2 label, .grid2 input { min-width: 0; width: 100%; }
+.with-btn input { width: 0; }
+.meter { width: 110px; }
+.botpath { display: none; }
+.by-bot .botpath { display: inline; }
+
+/* replay: room for seats above/below the felt; folded/out seats stay opaque, only contents dim */
+.felt-wrap { aspect-ratio: 16 / 11; margin: 34px 0 40px; }
+.felt { inset: 17% 14%; }
+.seat.folded, .seat.out { opacity: 1; }
+.seat.folded > *, .seat.out > * { opacity: .45; }

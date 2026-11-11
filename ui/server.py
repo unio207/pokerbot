@@ -8,6 +8,7 @@ click Run again; no restart needed. The organizers' kit (`poker-agent play`) is 
 """
 
 import argparse
+import gc
 import importlib.util
 import json
 import math
@@ -224,13 +225,29 @@ class Run:
             self.status, self.error = "error", "Could not load a bot:\n" + traceback.format_exc(limit=-4)
             self.finished = time.time()
             return
-        rules = Rules(s)
         n = len(bots)
         points = [[] for _ in labels]
         places = [Counter() for _ in labels]
         failures = [0] * n
         notes = [[] for _ in labels]
         latency = [[] for _ in labels]
+        # The server keeps old runs' replays in memory, and a full cyclic-GC pass over them takes
+        # ~100 ms. If one landed inside a timed decision it would count as a false timeout, so the
+        # collector is paused while tables play and run between tables instead.
+        gc.collect()
+        gc.freeze()
+        gc.disable()
+        try:
+            self.play_tables(s, bots, labels, loaded, points, places, failures, notes, latency)
+        finally:
+            gc.enable()
+            gc.collect()
+            gc.freeze()
+        self.finish(s, labels, points, places, failures, notes, latency)
+
+    def play_tables(self, s, bots, labels, loaded, points, places, failures, notes, latency):
+        rules = Rules(s)
+        n = len(bots)
         for number in range(s["tables"]):
             if self.cancel:
                 self.status = "cancelled"
@@ -265,6 +282,10 @@ class Run:
                     "failures": table.failures[:], "hands": table.hands,
                 })  # fmt: skip
             self.done = number + 1
+            gc.collect(1)  # young generations only: cheap, and outside any timed decision
+
+    def finish(self, s, labels, points, places, failures, notes, latency):
+        n = len(labels)
         tables = self.done
         if tables == 0:
             self.status, self.finished = ("cancelled" if self.cancel else "error"), time.time()

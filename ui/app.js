@@ -158,9 +158,9 @@ $("#clone-form").addEventListener("submit", async (e) => {
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(name)) { msg.className = "msg err"; msg.textContent = "Use only letters, digits, underscore and hyphen."; return; }
   try {
     const res = await api("/api/clone", { source: $("#clone-source").value, name });
+    await loadBots();
     msg.className = "msg ok";
     msg.innerHTML = `Created <code>${esc(res.path)}/</code>. Edit <code>${esc(res.path)}/agent.py</code> in your editor; it is now in every seat's dropdown.`;
-    await loadBots();
     $("#clone-name").value = ""; suggestCloneName();
   } catch (err) { msg.className = "msg err"; msg.textContent = err.message; }
 });
@@ -284,7 +284,7 @@ function renderResult(run) {
   const rows = r.entries.map((e, i) => {
     const p = e.latency_us;
     return `<tr class="${e.failed_decisions ? "has-fail" : ""}">
-      <td>#${i}</td><td><span class="botname">${esc(botName(e.bot))}</span> <span class="botpath">${esc(e.bot)}</span></td>
+      <td>#${i}</td><td><span class="botname" title="${esc(e.bot)}">${esc(botName(e.bot))}</span> <span class="botpath">${esc(e.bot)}</span></td>
       <td class="num"><b>${fx(e.average_points)}</b></td><td class="num pm">±${fx(e.se)}</td>
       <td class="num ${e.vs_par > 2 * e.se ? "pos" : e.vs_par < -2 * e.se ? "neg" : ""}">${signed(e.vs_par)}</td>
       <td>${meter(e.average_points, e.se, r.par, maxPts)}</td>
@@ -293,7 +293,7 @@ function renderResult(run) {
       <td class="num">${fx(p.p50, 0)}</td><td class="num ${p["p99.9"] > 1000 ? "slow" : ""}">${fx(p["p99.9"], 0)}</td><td class="num ${p.max > 1000 ? "slow" : ""}">${fmt(Math.round(p.max))}</td></tr>`;
   }).join("");
   const multi = r.by_bot.length < r.entries.length;
-  const byBot = `<div class="card"><h2>By bot${multi ? "" : " (one seat each)"}</h2><div class="table-wrap"><table>
+  const byBot = `<div class="card by-bot"><h2>By bot${multi ? "" : " (one seat each)"}</h2><div class="table-wrap"><table>
       <thead><tr><th>Bot</th><th class="num">Seats</th><th class="num">Points / table (avg of its seats)</th><th class="num">± SE</th><th class="num">vs par</th><th class="num">Failed</th></tr></thead>
       <tbody>${r.by_bot.map((b) => `<tr><td><span class="botname">${esc(botName(b.bot))}</span> <span class="botpath">${esc(b.bot)}</span></td><td class="num">${b.seats}</td>
       <td class="num"><b>${fx(b.average_points)}</b></td><td class="num pm">±${fx(b.se)}</td><td class="num ${b.vs_par > 2 * b.se ? "pos" : b.vs_par < -2 * b.se ? "neg" : ""}">${signed(b.vs_par)}</td>
@@ -424,14 +424,14 @@ function buildSteps(h, t) {
   const total = h.start.reduce((a, b) => a + b, 0);
   const st = { stack: h.start.slice(), bet: Array(n).fill(0), pot: 0, board: [], folded: Array(n).fill(false), shown: Array(n).fill(false), act: Array(n).fill(""), won: Array(n).fill(0), acting: null, newCards: 0 };
   const snap = (text, kind) => ({ ...st, stack: st.stack.slice(), bet: st.bet.slice(), board: st.board.slice(), folded: st.folded.slice(), shown: st.shown.slice(), act: st.act.slice(), won: st.won.slice(), text, kind, chips: st.stack.reduce((a, b) => a + b, 0) + st.bet.reduce((a, b) => a + b, 0) + st.pot });
-  const steps = [snap(`Hand ${h.hand} dealt · button ${seatName(h.button)}`, "hand")];
+  const steps = [snap(`Hand ${h.hand} dealt · button ${esc(seatName(h.button))}`, "hand")];
   let blinds = 0, allin = false, showdown = false, ok = true;
   const collect = () => { st.pot += st.bet.reduce((a, b) => a + b, 0); st.bet.fill(0); };
   const names = ["Flop", "Turn", "River"];
   for (const [kind, seat, amount, cards] of h.events) {
     st.acting = seat; st.newCards = 0;
     let text = null;
-    const nm = seat == null ? "" : seatName(seat);
+    const nm = seat == null ? "" : esc(seatName(seat));
     if (kind === "hand" || kind === "stack") {
       if (kind === "stack" && st.stack[seat] !== amount) ok = false;
       continue;
@@ -517,7 +517,7 @@ function renderStep() {
   const bbSeat = h.events.filter((e) => e[0] === "blind")[1]?.[1];
   let html = "";
   for (let i = 0; i < n; i++) {
-    const [x, y] = seatPos(i, n, 41, 40);
+    const [x, y] = seatPos(i, n, 41, 38);
     const out = h.start[i] === 0;
     const cards = h.hole[String(i)] || [];
     const tags = [];
@@ -537,7 +537,7 @@ function renderStep() {
       <div class="tags">${tags.join("")}</div>
       <div class="act">${esc(sp.act[i])}</div></div>`;
     if (sp.bet[i]) {
-      const [bx, by] = seatPos(i, n, 25, 21);
+      const [bx, by] = seatPos(i, n, 25, 20);
       html += `<div class="bet" style="left:${bx}%;top:${by}%">${fmt(sp.bet[i])}</div>`;
     }
   }
