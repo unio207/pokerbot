@@ -33,9 +33,20 @@ const S = {
   selected: null,    // run id shown in Results
   active: null,      // run id being polled
 };
+// ------------------------------------------------------------------ page version
+// Newest first. With EVERY change to the practice page (ui/index.html, ui/app.js, ui/style.css,
+// or server behaviour the page shows) add an entry at the top: the next number, the exact
+// time with its UTC offset (run `date -Iminutes`), and one line saying what changed.
+const VERSIONS = [
+  { v: "v3", when: "2026-11-11T02:13-05:00", note: "Irish in the variant names, hovers and replay; version history on the version pill." },
+  { v: "v2", when: "2026-11-11T01:40-05:00", note: "Poker terms with plain hovers; a cleaner, simpler layout." },
+  { v: "v1", when: "2026-11-11T01:09-05:00", note: "Simplified page, hover explanations, run log, rankings, first design pass." },
+];
+const versionTime = (when) => new Date(when).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+
 const E = { kit: null, variants: {} };
 const variantTitle = (v) => (v === "kit" ? "organizers' kit" : E.variants[v] || v);
-const VARIANT_SHORT = { holdem: "Hold'em", discard_reveal: "Discard & reveal", short_deck: "Short deck", omaha: "Omaha", auction: "Auction", kit: "Kit" };
+const VARIANT_SHORT = { holdem: "Hold'em", discard_reveal: "Discard & reveal", short_deck: "Short deck", omaha: "Omaha", auction: "Auction", irish: "Irish", kit: "Kit" };
 const variantShort = (v) => VARIANT_SHORT[v] || variantTitle(v);
 
 // ------------------------------------------------------------------ glossary
@@ -51,9 +62,11 @@ const VARIANT_TEXT = {
   short_deck: "Short deck: the 2s to 5s are taken out, leaving 36 cards. A flush beats a full house, and the ace counts as a low card only in A-6-7-8-9.",
   omaha: "Omaha: each bot gets 4 private cards and must use exactly 2 of them with exactly 3 of the shared cards.",
   auction: "Auction: after the first three shared cards every bot secretly bids chips for an extra private card. The highest bidder gets it and pays the second-highest bid into the pot.",
+  irish: "Irish: each bot gets 4 private cards. After the first three shared cards it throws two away face down and plays on with the other two, as in hold'em.",
   kit: "The variant built into the organizers' kit.",
 };
 const TERMS = {
+  version: { label: "Page version", text: () => `${VERSIONS[0].v}, updated ${versionTime(VERSIONS[0].when)}. ${VERSIONS[0].note} Click to see earlier versions.` },
   // ---- header and match settings
   mini: { label: "Mini simulator (unofficial)", text: "Unofficial rules and optimistic timing: our own quick imitation of the tournament, used when the organizers' kit is not installed. A bot that is just fast enough here may be too slow in the real one." },
   kit: { label: "Organizers' kit", text: () => `The official rules: matches are played by the organizers' own program${E.kit ? ` (${E.kit})` : ""}.` },
@@ -148,7 +161,7 @@ const TERMS = {
   board: { label: "Shared cards", text: "Face up for everyone to use: three at once (the flop), then a fourth (the turn) and a fifth (the river), with a round of betting after each." },
   seat_stack: { label: "Stack", text: "Chips this bot has left right now, not counting what it has already bet in this hand." },
   hole: { text: "This bot's private cards. At a real table the other bots cannot see them; the replay shows everyone's." },
-  discarded: { label: "Discard", text: "The private card this bot threw away face down (discard and reveal variant). The other bots never see it." },
+  discarded: { label: "Discard", text: "A private card this bot threw away face down (one card in discard and reveal, two in Irish). The other bots never see it." },
   revealed: { label: "Reveal", text: "The private card this bot had to turn face up for every other bot to see (discard and reveal variant)." },
   extra: { label: "Auction card", text: "The extra private card this bot got by winning the auction." },
   btn: { label: "BTN (button)", text: "The dealer's seat, which moves on one seat every hand. The two seats after it pay the blinds, and once shared cards are out the button acts last in each betting round, which is an advantage." },
@@ -833,7 +846,8 @@ function buildSteps(h, t) {
       const street = names[Math.min(2, st.board.length - 3)];
       text = `${term(street.toLowerCase(), street)}: ${cards.map((c) => card(c)).join(" ")}`;
     } else if (kind === "discard") {
-      st.discarded[seat] = cards[0]; st.act[seat] = "discard"; text = `${nm} ${term("discarded", "discards")} ${card(cards[0])} face down`;
+      st.discarded[seat] = (st.discarded[seat] || []).concat(cards); st.act[seat] = "discard";
+      text = `${nm} ${term("discarded", "discards")} ${cards.map((c) => card(c)).join(" ")} face down`;
     } else if (kind === "reveal") {
       st.revealed[seat] = cards[0]; st.act[seat] = "reveal"; text = `${nm} ${term("revealed", "reveals")} ${card(cards[0])}`;
     } else if (kind === "bid") {
@@ -932,7 +946,7 @@ function renderStep() {
     html += `<div class="${cls}" style="left:${x}%;top:${y}%" data-seat="${i}">
       <div class="nm" title="${esc(t.seats[i].label)} (${esc(t.seats[i].bot)})">${esc(t.seats[i].label)}</div>
       <div class="stk"${out ? "" : ` data-term="seat_stack"`}>${out ? "—" : fmt(sp.stack[i])}</div>
-      <div class="hole">${out ? "" : cards.map((c) => (c === sp.discarded[i] ? card(c, "discarded", "discarded") : c === sp.revealed[i] ? card(c, "revealed", "revealed") : card(c, "", "hole"))).join("")}${!out && sp.extra[i] ? card(sp.extra[i], "extra", "extra") : ""}</div>
+      <div class="hole">${out ? "" : cards.map((c) => (sp.discarded[i]?.includes(c) ? card(c, "discarded", "discarded") : c === sp.revealed[i] ? card(c, "revealed", "revealed") : card(c, "", "hole"))).join("")}${!out && sp.extra[i] ? card(sp.extra[i], "extra", "extra") : ""}</div>
       <div class="tags">${tags.join("")}</div>
       <div class="act"${ACT_TERM[sp.act[i].split(" ")[0]] ? ` data-term="${ACT_TERM[sp.act[i].split(" ")[0]]}"` : ""}>${esc(sp.act[i])}</div></div>`;
     if (sp.bet[i]) html += `<div class="bet" data-term="bet_chip" style="left:${bx}%;top:${by}%">${fmt(sp.bet[i])}</div>`;
@@ -999,7 +1013,7 @@ document.addEventListener("keydown", (e) => {
 // Bots ranked over many runs by points above par (server: /api/rankings). Filters: one variant
 // or all, and which runs count (RK.excluded holds the unticked ones, so new runs count by default).
 const RK = { data: null, variant: "", excluded: new Set(), bot: null, seq: 0 };
-const VARIANT_HUE = { holdem: 1, discard_reveal: 2, short_deck: 3, omaha: 4, auction: 5 }; // --v1 … --v5 in style.css
+const VARIANT_HUE = { holdem: 1, discard_reveal: 2, short_deck: 3, omaha: 4, auction: 5, irish: 7 }; // --v1 … --v7 in style.css; unknown variants get --v6
 const vHue = (v) => `var(--v${VARIANT_HUE[v] || 6})`;
 const rkRuns = () => S.runs.filter((r) => r.results && r.status !== "running" && r.status !== "queued");
 
@@ -1179,8 +1193,14 @@ $("#rk-runs").addEventListener("change", (e) => {
   loadRankings();
 });
 // The runs menu closes on a click anywhere else, or Escape.
-document.addEventListener("click", (e) => { const box = $("#rk-runs-box"); if (box.open && !box.contains(e.target)) box.open = false; });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#rk-runs-box").open = false; });
+document.addEventListener("click", (e) => { for (const id of ["#rk-runs-box", "#version-box"]) { const box = $(id); if (box.open && !box.contains(e.target)) box.open = false; } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { $("#rk-runs-box").open = false; $("#version-box").open = false; } });
+
+// The version pill: the current version, with every version and when it was made in its menu.
+$("#version").textContent = VERSIONS[0].v;
+$("#version-list").innerHTML = `<div class="version-head">Versions of this page</div>` + VERSIONS.map((entry, index) =>
+  `<div class="version-row${index ? "" : " current"}"><b>${esc(entry.v)}</b><time datetime="${esc(entry.when)}">${esc(versionTime(entry.when))}</time>` +
+  `<span>${esc(entry.note)}${index ? "" : " (this one)"}</span></div>`).join("");
 $("#rk-all").addEventListener("click", () => { RK.excluded.clear(); loadRankings(); });
 $("#rk-none").addEventListener("click", () => { rkRuns().forEach((r) => RK.excluded.add(r.id)); loadRankings(); });
 $("#rk-clear").addEventListener("click", async () => {

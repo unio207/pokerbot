@@ -29,7 +29,7 @@
   --card-red: #c8102e;
   --highlight: #eaf0fd;
   /* variant colours in the rankings' run-by-run chart (not green/red, which mean above/below par) */
-  --v1: #2a78d6; --v2: #e0692f; --v3: #6250d6; --v4: #c08000; --v5: #d55181; --v6: #8a8f98;
+  --v1: #2a78d6; --v2: #e0692f; --v3: #6250d6; --v4: #c08000; --v5: #d55181; --v6: #8a8f98; --v7: #1f9d8f;
   /* type, spacing and radius scales */
   --fs-label: 11px; --fs-sm: 12.5px; --fs-base: 13.5px; --fs-md: 15px; --fs-lg: 18px; --fs-xl: 21px;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px;
@@ -45,7 +45,7 @@
     --good: #4cc38a; --bad: #f07070; --bad-solid: #b93434; --bad-bg: #331b1d;
     --warn: #e9b052; --warn-bg: #2c2414; --warn-line: #7a5a1e;
     --felt: #1a5a3e; --felt-rail: #0a0c0f; --seat-bg: #1d2128; --highlight: #1d2740;
-    --v1: #3987e5; --v2: #e0703f; --v3: #9085e9; --v4: #d9a21c; --v5: #e06a96; --v6: #8a8f98;
+    --v1: #3987e5; --v2: #e0703f; --v3: #9085e9; --v4: #d9a21c; --v5: #e06a96; --v6: #8a8f98; --v7: #1f9d8f;
     color-scheme: dark;
   }
 }
@@ -112,6 +112,17 @@ button.danger:hover:not(:disabled) { color: var(--bad); background: var(--bad-bg
 .engine-note.official { color: var(--good); border-color: currentColor; }
 .session { margin-left: auto; color: var(--muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; cursor: help; }
 .session b { color: var(--text); font-weight: 600; }
+.version-box { position: relative; }
+.version-box > summary { list-style: none; cursor: pointer; }
+.version-box > summary::-webkit-details-marker { display: none; }
+.version-box > summary:hover, .version-box[open] > summary { color: var(--text); border-color: var(--faint); }
+.version-pop { position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; width: min(440px, calc(100vw - 32px));
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--r-lg); padding: var(--sp-2) var(--sp-3);
+  box-shadow: 0 6px 20px rgba(16, 24, 40, .12); font-size: var(--fs-sm); }
+.version-head { color: var(--muted); font-size: var(--fs-label); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 2px 0 6px; }
+.version-row { display: grid; grid-template-columns: 28px 132px 1fr; gap: var(--sp-2); padding: 6px 0; border-top: 1px solid var(--line); color: var(--muted); }
+.version-row b, .version-row.current span { color: var(--text); }
+.version-row time { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .version { padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: var(--r-pill);
   color: var(--muted); font-size: var(--fs-label); font-weight: 600; font-variant-numeric: tabular-nums; }
 
