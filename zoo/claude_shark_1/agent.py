@@ -3,10 +3,12 @@
 Source:   Claude Code
 Profile:  The Shark: wants to exploit weak bots by tracking and adapting
 Variants: all, as of 2026-11-11: holdem, discard_reveal, short_deck, omaha, auction
-Notes:    TAG baseline as percentile thresholds per variant; per-seat VPIP/PFR/fold-to-open/
-          fold-to-cbet/fold-to-bet/fold-to-3bet/aggression/showdown stats (prior-blended, capped
-          at 15 pp) drive steals, bluffs, thin value, light 3-bets and call-downs. All five
-          variants ran on the mini simulator; its discard_reveal and auction rules are guesses.
+Notes:    TAG baseline as percentile thresholds per variant; ranges follow the players left
+          (heads-up opens wide), push/fold below 12 bb, all-in calls priced by real ICM against
+          the shover's estimated range. Per-seat VPIP/PFR/fold-to-open/cbet/bet/3bet, aggression
+          and showdown stats (prior-blended, capped at 15 pp) drive steals, bluffs, thin value,
+          light 3-bets and call-downs. All five variants ran on the mini simulator; its
+          discard_reveal and auction rules are guesses.
 
 Layout as in zoo/_template: act() wrapper, VARIANTS table, decide() written once, helpers.
 Memory is compact JSON: an event marker (idempotent), this hand's tracking, per-seat stats,
@@ -29,14 +31,16 @@ MIN_SAMPLE = 5          # chances to show a habit (bets faced, showdowns...) bef
 PRIOR_W = 10            # weight of the prior in (observed + w * prior) / (n + w)
 CAP = 0.15              # largest adjustment any one read can make
 NO_READ_TIGHT = 0.92    # open-frequency multiplier while the table is unread
-OPEN_FREQ = {0: 0.30, 1: 0.30, 2: 0.32, 3: 0.22, 4: 0.17, 5: 0.14, 6: 0.12, 7: 0.10}  # by players behind
-THREEBET, CALL_OPEN, FOURBET, SHOVE_CALL = 0.035, 0.08, 0.015, 0.06  # preflop frequencies
-PUSH_BB, PUSH_FREQ = 12, 0.22   # push/fold below this many big blinds
+OPEN_FREQ = {0: 0.32, 1: 0.32, 2: 0.32, 3: 0.21, 4: 0.16, 5: 0.13, 6: 0.11, 7: 0.10}  # by players behind
+HU_OPEN = 0.80                  # heads-up the button opens most hands
+THREEBET, CALL_OPEN, FOURBET = 0.25, 0.30, 0.015  # 3-bet and flat as shares of the opener's range
+PUSH_BB, PUSH_K = 12, 6.0       # push/fold below this depth; push share ~ PUSH_K / (depth * behind^0.6)
+CALL_EDGE = 0.32                # calling an all-in: share of the shover's range = 2^((CALL_EDGE - need) / 0.1)
+ICM_MIN = 0.05                  # risks below this share of our stack are priced by chip odds
 VALUE_T, RAISE_T = 0.62, 0.84   # postflop strength to bet for value / raise for value
 CBET, STAB, SEMI_BLUFF, RIVER_BLUFF = 0.55, 0.10, 0.30, 0.12
 MULTIWAY = 0.05                 # strength discount per extra opponent
 MANIAC_CALL = 0.33              # lighter call-downs only for bets below this share of our stack
-ICM_P = 0.06                    # extra equity needed to call near and in the money
 SIZE, SIZE_SHOWN, SIZE_STATION = 0.66, 0.5, 1.0  # bet share of pot: normal, table sees a strong card, station
 NEAR = 0.03                     # discard_reveal: keeps this close in strength count as equal
 COVER_BB, AUCTION_CAP = 1.0, 0.2  # auction: cheap cover bid; never bid more than this share of stack
@@ -253,7 +257,7 @@ def auction_bid(state: GameState, mem: dict) -> Action:
     made = postflop(state.cards, state.board, dict(variant, draw=(0.0, 0.0)))
     gain = 0.05 + 0.6 * (now - made) + (0.08 if 0.3 < made < 0.7 else 0.02)
     live = sum(s.status in ("active", "all_in") for s in state.seats) - 1
-    worth = gain * state.pot * (1.5 + 0.5 * live) * (1 - 4 * icm_pressure(state))
+    worth = gain * state.pot * (1.5 + 0.5 * live) * max(0.2, 1 - 4 * push_premium(state))
     worth = min(max(worth, COVER_BB * bb if state.pot >= 4 * bb else 0), AUCTION_CAP * my_stack(state))
     step = max(1, bb // 2)
     return Action("bid", max(allowed.min_amount, min(allowed.max_amount, int(worth / step) * step)))
@@ -419,9 +423,9 @@ def decide(state: GameState, variant: dict, mem: dict) -> Action:
     mine = (mem["h"]["dc"],) if mem["h"].get("dc") and mem["h"]["n"] == state.hand_number else ()
     s = variant["strength"](state, seen_cards(state) + mine)
     opps = [x.seat for x in state.seats if x.seat != state.seat and x.status in ("active", "all_in")]
-    icm, r = icm_pressure(state), mix(state)
+    r = mix(state)
     if not state.board:
-        return preflop_decide(state, variant, mem, info, s, icm, r)
+        return preflop_decide(state, variant, mem, info, s, r)
     pot, owed = state.pot, state.to_call
     s -= MULTIWAY * (len(opps) - 1)
     folds = min((shift(mem, o, "ftb") for o in opps), default=0.0)  # the stickiest opponent decides
@@ -452,59 +456,89 @@ def decide(state: GameState, variant: dict, mem: dict) -> Action:
     e = s + clamp(read) - variant["credit"](state, bettor, mem)
     if e >= RAISE_T:
         return raise_to(state, my_bet(state) + owed + max(pot, 2 * owed))
-    return Action.call() if e >= odds + icm else passive(state)
+    return Action.call() if e >= icm_need(state, bettor, pot, min(owed, my_stack(state)), 0) else passive(state)
 
-def preflop_decide(state, variant, mem, info, p, icm, r) -> Action:
-    """`p` is the share of this variant's starting hands we beat, so thresholds are frequencies."""
+def preflop_decide(state, variant, mem, info, p, r) -> Action:
+    """`p` is the share of this variant's starting hands we beat, so thresholds are frequencies.
+    Ranges follow the players left to act and the table size; calls of all-ins use ICM."""
     bb, stack, owed, scale = state.blinds.big_blind, my_stack(state), state.to_call, variant["vpip_scale"]
-    depth = (stack + my_bet(state)) / max(1, bb)
+    depth, hu = (stack + my_bet(state)) / max(1, bb), info["alive"] == 2
     if info["nr"] == 0:
         behind = info["behind"]
-        freq = OPEN_FREQ.get(len(behind), 0.10) * scale
+        freq = open_width(len(behind), hu) * scale
         if ADAPT and max((row[H] for row in mem["s"].values()), default=0) < MIN_HANDS:
             freq *= NO_READ_TIGHT  # no read yet: fewer hands
         elif behind:  # steal wider when the players left to act fold to opens
             freq += clamp(sum(shift(mem, b, "fof") for b in behind) / len(behind))
-        freq = max(0.05, freq - icm)
-        if depth <= PUSH_BB:
-            return shove(state) if p >= 1 - min(0.7, freq + PUSH_FREQ * (1 - depth / PUSH_BB)) else passive(state)
-        return raise_to(state, int((2.5 + info["limpers"]) * bb)) if p >= 1 - freq else passive(state)
-    raiser, odds = info["pa"], owed / (state.pot + owed)
-    if owed >= 0.35 * stack:  # all-in or nearly: a tournament call, kept tight
-        freq = SHOVE_CALL * scale + (0.05 if odds > 0.4 else 0) - icm
-        return Action.call() if p >= 1 - freq else passive(state)
+        if depth <= PUSH_BB:  # push or fold, tighter when being called costs us in ICM
+            width = push_width(depth, len(behind), hu) * max(0.4, 1 - 3 * push_premium(state, behind))
+            return shove(state) if p >= 1 - min(1.0, max(freq, width)) else passive(state)
+        return raise_to(state, int((2.5 + info["limpers"]) * bb)) if p >= 1 - min(1.0, freq) else passive(state)
+    raiser = info["pa"]
+    width = info["width"] * (min(1.8, max(0.6, stat(mem, raiser, "pfr") / PRIOR["pfr"])) if ADAPT else 1.0)
+    need = icm_need(state, raiser, state.pot, min(owed, stack), 0)
+    odds = owed / (state.pot + owed)
+    if owed >= 0.35 * stack or info["shove"]:  # an all-in: call the share of its range we beat often enough
+        return Action.call() if p >= 1 - min(1.0, width * 2 ** ((CALL_EDGE - need) / 0.1)) else passive(state)
     if info["nr"] >= 2:
         if p >= 1 - FOURBET * scale:
             return raise_to(state, int(2.3 * (my_bet(state) + owed)))
         return Action.call() if p >= 1 - 2.5 * FOURBET * scale and owed < 0.25 * stack else passive(state)
-    wide = shift(mem, raiser, "pfr")
-    callf = CALL_OPEN * scale + min(0.0, wide) + (0.08 if odds < 0.3 else 0.0) - icm  # a tight opener means it
+    value3 = max(0.03, THREEBET * width)
+    callf = CALL_OPEN * width + (0.08 if odds < 0.3 else 0.0) - 2 * (need - odds)  # ICM premium tightens flats
+    if depth <= 1.5 * PUSH_BB:  # too short to flat: re-shove or fold
+        return shove(state) if p >= 1 - min(1.0, width * 2 ** ((CALL_EDGE - need) / 0.1) * 0.5) else passive(state)
     three = int(3 * (my_bet(state) + owed) + (bb if info["behind"] else 0))
-    if p >= 1 - THREEBET * scale:
+    if p >= 1 - value3:
         return raise_to(state, three)
     folder = shift(mem, raiser, "f3b")
-    if folder > 0 and wide > 0 and p >= 1 - (callf + 0.12) and r < 3 * folder:  # light 3-bet, same size
+    if folder > 0 and shift(mem, raiser, "pfr") > 0 and p >= 1 - (callf + 0.12) and r < 3 * folder:  # light 3-bet
         return raise_to(state, three)
     return Action.call() if p >= 1 - callf else passive(state)
 
+def open_width(behind: int, hu: bool) -> float:
+    return HU_OPEN if hu else OPEN_FREQ.get(behind, 0.13)
+
+def push_width(depth: float, behind: int, hu: bool) -> float:
+    """Share of hands to move all in first in with `depth` big blinds (push/fold charts' shape)."""
+    return min(1.0, PUSH_K / (max(1.0, depth) * max(1, 1 if hu else behind) ** 0.6))
+
 def hand_info(state: GameState) -> dict:
-    """From this hand's history: preflop raises, last preflop raiser, limpers, the seat whose
-    bet we face, and the active seats still to act after us this street."""
-    info, blinds, street = {"nr": 0, "pa": -1, "limpers": 0, "bettor": -1}, [], 0
+    """From this hand's history: preflop raises, last preflop raiser and the width of its range
+    (from its seat, depth and whether it shoved), limpers, the seat whose bet we face, and the
+    active seats still to act after us this street."""
+    info = {"nr": 0, "pa": -1, "limpers": 0, "bettor": -1, "width": 1.0, "shove": False}
+    seats = {s.seat: s for s in state.seats}
+    alive = [s.seat for s in state.seats if s.status != "busted"]
+    n, bb = max(state.config.players, max(seats) + 1), max(1, state.blinds.big_blind)
+    info["alive"], hu = len(alive), len(alive) == 2
+    blinds, street, folded = [], 0, set()
     for event in state.history:
         if event.kind == "board":
             street, info["bettor"] = street + 1, -1
         elif event.kind == "blind":
             blinds.append(event.seat)
+        elif event.kind == "fold" and not street:
+            folded.add(event.seat)
         elif event.kind == "raise":
             info["bettor"] = event.seat
-            info["nr"], info["pa"] = (info["nr"] + 1, event.seat) if not street else (info["nr"], info["pa"])
+            if not street:
+                info["nr"], info["pa"] = info["nr"] + 1, event.seat
+                last = blinds[-1] if blinds else state.button
+                after = lambda seat: (seat - last - 1) % n  # noqa: E731
+                behind = sum(1 for x in alive if x not in folded and after(x) > after(event.seat))
+                raiser = seats.get(event.seat)
+                depth = (raiser.stack + raiser.bet) / bb if raiser else 50.0
+                info["shove"] = bool(raiser and raiser.stack == 0)
+                if info["shove"] and depth <= 2 * PUSH_BB:
+                    info["width"] = max(push_width(depth, behind, hu), 0.3 * info["width"] if info["nr"] > 1 else 0)
+                else:  # a deep shove is a narrow range; a raise the usual one for its seat
+                    info["width"] = (0.2 if info["shove"] else 1.0) * (open_width(behind, hu) if info["nr"] == 1 else 0.3 * info["width"])
         elif event.kind == "call" and not street and not info["nr"]:
             info["limpers"] += 1
     if info["bettor"] == -1 and not street and blinds:
         info["bettor"] = blinds[-1]
     last = blinds[-1] if not street and blinds else state.button  # who acts last this street
-    n = max(state.config.players, max(s.seat for s in state.seats) + 1)
     after = lambda seat: (seat - last - 1) % n  # noqa: E731
     info["behind"] = [s.seat for s in state.seats if s.status == "active" and after(s.seat) > after(state.seat)]
     return info
@@ -521,12 +555,47 @@ def my_shown(state: GameState) -> tuple:
     mine = next((s.shown_cards for s in state.seats if s.seat == state.seat), ())
     return tuple(mine) or tuple(c for e in state.history if e.kind == "reveal" and e.seat == state.seat for c in e.cards)
 
-def icm_pressure(state: GameState) -> float:
-    """Extra equity to demand on the bubble and in the money; half as much with a big stack."""
-    if state.players_remaining > sum(1 for p in state.config.payouts if p > 0) + 1:
+def icm_equity(stacks: dict, me: int, payouts) -> float:
+    """Our share of the prize points by ICM (Malmuth-Harville), first three places."""
+    mine, pays = stacks.get(me, 0), [p for p in payouts if p > 0][:3] + [0, 0]
+    others = [v for k, v in stacks.items() if v > 0 and k != me]
+    if mine <= 0 or not pays[0]:
         return 0.0
-    average = state.config.starting_stack * state.config.players / max(1, state.players_remaining)
-    return ICM_P * (0.5 if my_stack(state) >= 1.5 * average else 1.0)
+    total = mine + sum(others)
+    eq = pays[0] * mine / total
+    for j, sj in enumerate(others):
+        rest = total - sj
+        third = sum(sk / (rest - sk) for k, sk in enumerate(others) if k != j) if pays[2] else 0.0
+        eq += sj / total * mine / rest * (pays[1] + pays[2] * third)
+    return eq
+
+def icm_need(state: GameState, villain: int, pot: int, mine: int, theirs: int) -> float:
+    """Equity we need to get all-in against `villain`: we risk `mine`, they add `theirs` to
+    `pot`. Equals the chip odds when ICM is linear (heads-up); higher on the bubble."""
+    stacks = {s.seat: s.stack for s in state.seats if s.status != "busted"}
+    me = state.seat
+    if villain not in stacks or villain == me or mine < ICM_MIN * stacks.get(me, 0):
+        return mine / max(1, pot + mine + theirs)  # small risks: chip odds are close enough
+    pays = state.config.payouts
+    fold = dict(stacks)
+    fold[villain] += pot
+    win, lose = dict(stacks), dict(stacks)
+    win[me], win[villain] = win[me] + pot + theirs, max(0, win[villain] - theirs)
+    lose[me], lose[villain] = lose[me] - mine, lose[villain] + pot + mine
+    ef, ew, el = icm_equity(fold, me, pays), icm_equity(win, me, pays), icm_equity(lose, me, pays)
+    return (ef - el) / (ew - el) if ew > el else 1.0
+
+def push_premium(state: GameState, behind=None) -> float:
+    """How much more than chip odds we would need if the biggest stack behind called our shove."""
+    others = [s for s in state.seats if s.seat != state.seat and s.status != "busted"
+              and (behind is None or s.seat in behind)]
+    if not others:
+        return 0.0
+    big = max(others, key=lambda s: s.stack + s.bet)
+    risk, pot = min(my_stack(state), big.stack), state.pot
+    if risk <= 0:
+        return 0.0
+    return max(0.0, icm_need(state, big.seat, pot, risk, risk) - risk / (pot + 2 * risk))
 
 def mix(state: GameState) -> float:
     """A deterministic 0..1 draw per decision: mixed strategies without global state."""
