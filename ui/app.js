@@ -166,7 +166,7 @@ $("#clone-form").addEventListener("submit", async (e) => {
 });
 
 // ------------------------------------------------------------------ settings & run
-const settingsFields = { engine: "#s-engine", tables: "#s-tables", seed: "#s-seed", hand_cap: "#s-handcap", hands_per_level: "#s-hpl", payouts: "#s-payouts", stack: "#s-stack" };
+const settingsFields = { engine: "#s-engine", variant: "#s-variant", tables: "#s-tables", seed: "#s-seed", hand_cap: "#s-handcap", hands_per_level: "#s-hpl", payouts: "#s-payouts", stack: "#s-stack" };
 function readSettings() {
   const out = {};
   for (const [k, sel] of Object.entries(settingsFields)) out[k] = $(sel).value.trim();
@@ -178,7 +178,7 @@ function writeSettings(s) {
 writeSettings(store.get("settings", {}));
 
 // ------------------------------------------------------------------ engine (organizers' kit or mini simulator)
-const E = { kit: null, replay: false };
+const E = { kit: null, replay: false, variants: {} };
 const KIT_ONLY_OFF = ["#s-hpl", "#s-payouts", "#s-stack"]; // the kit's own rules set these
 function applyEngine() {
   const sel = $("#s-engine");
@@ -186,11 +186,12 @@ function applyEngine() {
   if (!E.kit && sel.value === "kit") sel.value = "mini";
   const kit = sel.value === "kit";
   KIT_ONLY_OFF.forEach((id) => { $(id).disabled = kit; $(id).title = kit ? "Set by the kit's rules" : ""; });
+  $("#s-variant").disabled = kit; $("#s-variant").title = kit ? "The kit plays its own variant" : "Rulesets are in zoo/variants/";
   const banner = $("#engine-banner");
   banner.classList.toggle("official", kit);
   banner.innerHTML = kit
     ? `<strong>Organizers' kit.</strong> Tables are played by <code>poker-agent play</code> (<code>${esc(E.kit)}</code>): the kit's variant, rules and 1 ms limit. Timing still depends on this computer, so confirm on the team build machine before uploading.`
-    : `<strong>Unofficial simulator.</strong> Standard no-limit hold'em only, rules re-implemented from the kit's docs, bots run in-process so timing is optimistic. ${E.kit
+    : `<strong>Unofficial simulator.</strong> Hold'em and our own versions of the variants in <code>zoo/variants/</code>, rules re-implemented from the kit's docs and entrants' reports, bots run in-process so timing is optimistic. ${E.kit
         ? "Switch the engine to the organizers' kit for the real rules."
         : "The kit's <code>poker-agent</code> was not found: start this server from the kit's activated environment, or with <code>--kit PATH</code>, to play under the real rules."}`;
   $("#settings-hint").textContent = kit
@@ -200,6 +201,10 @@ function applyEngine() {
 async function loadEngine() {
   const info = await api("/api/engine");
   E.kit = info.kit; E.replay = info.replay;
+  E.variants = Object.fromEntries((info.variants || []).map((v) => [v.name, v.title]));
+  const saved = store.get("settings", {}).variant;
+  $("#s-variant").innerHTML = (info.variants || []).map((v) => `<option value="${esc(v.name)}">${esc(v.title)}</option>`).join("");
+  if (saved && E.variants[saved]) $("#s-variant").value = saved;
   if (!store.get("settings", {}).engine) $("#s-engine").value = info.default;
   applyEngine();
 }
@@ -295,7 +300,7 @@ function renderResult(run) {
   const s = run.settings;
   const meta = `<div class="result-meta"><span>Run <b>#${run.id}</b></span><span>seed <b>${esc(s.seed)}</b></span>
     <span><b>${fmt(run.done)}</b>${run.done !== s.tables ? ` of ${fmt(s.tables)}` : ""} tables</span><span>hand cap <b>${s.hand_cap}</b></span>
-    ${s.engine === "kit" ? `<span class="engine-tag kit">organizers' kit</span>` : `<span><b>${s.hands_per_level}</b> hands/level</span><span>payouts <b>${s.payouts.join("/")}</b></span><span>stack <b>${fmt(s.stack)}</b></span><span class="engine-tag">mini simulator</span>`}
+    ${s.engine === "kit" ? `<span class="engine-tag kit">organizers' kit</span>` : `<span><b>${s.hands_per_level}</b> hands/level</span><span>payouts <b>${s.payouts.join("/")}</b></span><span>stack <b>${fmt(s.stack)}</b></span><span class="engine-tag">mini simulator</span>${s.variant && s.variant !== "holdem" ? `<span class="engine-tag variant">${esc(E.variants[s.variant] || s.variant)}</span>` : ""}`}
     ${run.results ? `<span><b>${run.results.seconds}</b> s</span>` : ""}</div>`;
   if (!run.results) {
     view.innerHTML = `<div class="card">${meta}<p class="empty">${run.status === "error" ? `<span class="status-error">Run failed.</span><pre class="error-box">${esc(run.error)}</pre>` : run.status === "cancelled" ? "Cancelled before any table finished." : "Running… results appear when the run finishes."}</p></div>`;
@@ -477,8 +482,8 @@ function seatName(seat) { return R.table.seats[seat].label; }
 function buildSteps(h, t) {
   const n = h.start.length;
   const total = h.start.reduce((a, b) => a + b, 0);
-  const st = { stack: h.start.slice(), bet: Array(n).fill(0), pot: 0, board: [], folded: Array(n).fill(false), shown: Array(n).fill(false), act: Array(n).fill(""), won: Array(n).fill(0), acting: null, newCards: 0 };
-  const snap = (text, kind) => ({ ...st, stack: st.stack.slice(), bet: st.bet.slice(), board: st.board.slice(), folded: st.folded.slice(), shown: st.shown.slice(), act: st.act.slice(), won: st.won.slice(), text, kind, chips: st.stack.reduce((a, b) => a + b, 0) + st.bet.reduce((a, b) => a + b, 0) + st.pot });
+  const st = { stack: h.start.slice(), bet: Array(n).fill(0), pot: 0, board: [], folded: Array(n).fill(false), shown: Array(n).fill(false), act: Array(n).fill(""), won: Array(n).fill(0), acting: null, newCards: 0, discarded: Array(n).fill(null), revealed: Array(n).fill(null) };
+  const snap = (text, kind) => ({ ...st, stack: st.stack.slice(), bet: st.bet.slice(), board: st.board.slice(), folded: st.folded.slice(), shown: st.shown.slice(), act: st.act.slice(), won: st.won.slice(), discarded: st.discarded.slice(), revealed: st.revealed.slice(), text, kind, chips: st.stack.reduce((a, b) => a + b, 0) + st.bet.reduce((a, b) => a + b, 0) + st.pot });
   const steps = [snap(`Hand ${h.hand} dealt · button ${esc(seatName(h.button))}`, "hand")];
   let blinds = 0, allin = false, showdown = false, ok = true;
   const collect = () => { st.pot += st.bet.reduce((a, b) => a + b, 0); st.bet.fill(0); };
@@ -513,6 +518,10 @@ function buildSteps(h, t) {
     } else if (kind === "board") {
       collect(); st.board.push(...cards); st.newCards = cards.length; st.act.fill(""); st.acting = null;
       text = `${names[Math.min(2, st.board.length - 3)]}: ${cards.map((c) => card(c)).join(" ")}`;
+    } else if (kind === "discard") {
+      st.discarded[seat] = cards[0]; st.act[seat] = "discard"; text = `${nm} discards ${card(cards[0])} face down`;
+    } else if (kind === "reveal") {
+      st.revealed[seat] = cards[0]; st.act[seat] = "reveal"; text = `${nm} turns ${card(cards[0])} face up`;
     } else if (kind === "show") {
       st.shown[seat] = true; showdown = true; text = `${nm} shows ${cards.map((c) => card(c)).join(" ")}`;
     } else if (kind === "win" || kind === "leftover") {
@@ -588,7 +597,7 @@ function renderStep() {
     html += `<div class="${cls}" style="left:${x}%;top:${y}%" data-seat="${i}">
       <div class="nm" title="${esc(t.seats[i].bot)}">${esc(t.seats[i].label)}</div>
       <div class="stk">${out ? "—" : fmt(sp.stack[i])}</div>
-      <div class="hole">${out ? "" : cards.map((c) => card(c)).join("")}</div>
+      <div class="hole">${out ? "" : cards.map((c) => card(c, c === sp.discarded[i] ? "discarded" : c === sp.revealed[i] ? "revealed" : "")).join("")}</div>
       <div class="tags">${tags.join("")}</div>
       <div class="act">${esc(sp.act[i])}</div></div>`;
     if (sp.bet[i]) {
@@ -600,7 +609,7 @@ function renderStep() {
   const board = [0, 1, 2, 3, 4].map((k) => card(sp.board[k], `big${k >= sp.board.length - sp.newCards && k < sp.board.length ? " new" : ""}`)).join("");
   $("#rp-board").innerHTML = board;
   $("#rp-pot").textContent = `Pot ${fmt(sp.pot + sp.bet.reduce((a, b) => a + b, 0))}`;
-  $("#rp-level").textContent = `Table ${t.table} · Hand ${h.hand} · Level ${h.level + 1} · Blinds ${fmt(h.blinds[0])}/${fmt(h.blinds[1])}`;
+  $("#rp-level").textContent = `Table ${t.table} · Hand ${h.hand} · Level ${h.level + 1} · Blinds ${fmt(h.blinds[0])}/${fmt(h.blinds[1])}${h.variant && h.variant !== "holdem" ? ` · ${E.variants[h.variant] || h.variant}` : ""}`;
   $("#rp-step").textContent = `step ${R.step} / ${R.steps.length - 1} · hand ${R.pos + 1} of ${R.list.length}`;
   const chip = $("#rp-chips");
   chip.dataset.ok = String(R.tableChipsOk);

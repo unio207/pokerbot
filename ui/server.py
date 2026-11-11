@@ -8,7 +8,8 @@ Two engines:
 - "kit": every table is played by the organizers' starter kit (`poker-agent play`), so the
   variant, rules and the 1 ms limit are the real ones. Used by default when `poker-agent`
   is found (start this server from the kit's activated environment, or pass --kit).
-- "mini": the UNOFFICIAL in-process simulator in devtest/mini_sim.py (standard hold'em).
+- "mini": the UNOFFICIAL in-process simulator in devtest/mini_sim.py: hold'em and the
+  variants in devtest/sim_variants.py, chosen per run.
 
 Standard library only. Bots are re-read from disk on every run, so edit an agent.py and
 click Run again; no restart needed.
@@ -228,6 +229,7 @@ class Rules:
         self.hand_cap = settings["hand_cap"]
         self.hands_per_level = settings["hands_per_level"]
         self.payouts = tuple(settings["payouts"])
+        self.variant = settings["variant"]
 
 
 def _int(value, low, high, name):
@@ -262,8 +264,13 @@ def parse_settings(body) -> dict:
         raise ValueError("The organizers' kit was not found. Start this server from the kit's activated "
                          "environment (so `poker-agent` is on PATH) or pass --kit, or switch the engine "
                          "to the mini simulator.")  # fmt: skip
+    variant = str(body.get("variant") or "holdem")
+    if variant not in mini_sim.VARIANTS:
+        raise ValueError(f"Variant must be one of: {', '.join(sorted(mini_sim.VARIANTS))}.")
     return {
         "engine": engine,
+        # The kit plays its own variant; the choice applies to the mini simulator only.
+        "variant": variant if engine == "mini" else "kit",
         "lineup": lineup,
         "tables": _int(body.get("tables", 50), 1, MAX_TABLES, "Tables"),
         "seed": seed,
@@ -561,8 +568,9 @@ class Store:
 def compare(a: Run, b: Run) -> dict:
     if not (a.results and b.results):
         raise ValueError("Both runs need results.")
-    # Paired = the same deals in the same order: same engine, seed and split into tables/chunks.
+    # Paired = the same deals in the same order: same engine, variant, seed and split into tables/chunks.
     paired = (a.settings["engine"] == b.settings["engine"] and a.settings["seed"] == b.settings["seed"]
+              and a.settings.get("variant") == b.settings.get("variant")
               and len(a.points) == len(b.points) and a.weights == b.weights
               and len(a.points[0]) == len(b.points[0]) and a.status == b.status == "done")  # fmt: skip
     tables = min(a.results["tables"], b.results["tables"])
@@ -586,9 +594,9 @@ def compare(a: Run, b: Run) -> dict:
     return {"a": a.id, "b": b.id, "paired": paired and not rough, "tables": tables, "rows": rows,
             "unit": "chunk" if a.settings["engine"] == "kit" else "table",
             "engines": [a.settings["engine"], b.settings["engine"]],
-            "same_settings": {k: a.settings[k] == b.settings[k]
+            "same_settings": {k: a.settings.get(k) == b.settings.get(k)
                               for k in ("engine", "seed", "tables", "hand_cap", "hands_per_level", "stack",
-                                        "payouts")}}  # fmt: skip
+                                        "payouts", "variant")}}  # fmt: skip
 
 
 # ---------------------------------------------------------------------------- HTTP
@@ -638,7 +646,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
             elif parts == ["api", "engine"]:
                 self.send_json({"kit": str(KIT) if KIT else None, "replay": bool(find_replay()),
-                                "default": "kit" if KIT else "mini"})  # fmt: skip
+                                "default": "kit" if KIT else "mini",
+                                "variants": [{"name": v.name, "title": v.title}
+                                             for v in mini_sim.VARIANTS.values()]})  # fmt: skip
             elif parts == ["api", "bots"]:
                 self.send_json({"bots": discover_bots()})
             elif parts == ["api", "runs"]:

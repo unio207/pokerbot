@@ -51,7 +51,8 @@ Copy `starter/` to a new folder per version (`v2/`, `v3/`) and compare with the 
 python3.12 practice.py starter --mini
 ```
 
-`--mini` uses `devtest/mini_sim.py`: standard no-limit hold'em only, bots run in-process,
+`--mini` uses `devtest/mini_sim.py`: no-limit hold'em, or with `--variant <name>` our own
+version of a ruleset in `zoo/variants/`, bots run in-process,
 rules re-implemented from the kit's documentation. Good for catching crashes and illegal
 actions; not a substitute for the kit.
 
@@ -84,7 +85,8 @@ The page has two engines, chosen under **Match settings**:
   decisions but not decision times. A hand history of the first 20 tables is saved under
   `hand-history/`, and the **Hand replay** tab opens it in the kit's own viewer, which
   shows the cards of the bot in seat #0 and other bots' cards only when shown.
-- **Mini simulator** (the fallback). Unofficial, standard hold'em only. It adds decision
+- **Mini simulator** (the fallback). Unofficial; hold'em or a variant from `zoo/variants/`
+  picked in the Variant box. It adds decision
   times, per-table failure details and a built-in replay with every bot's cards visible.
 
 A kit run is split into about ten `poker-agent play` calls so the page can show progress

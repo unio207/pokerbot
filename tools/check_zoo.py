@@ -2,6 +2,10 @@
 
     python3.12 tools/check_zoo.py            # all zoo bots
     python3.12 tools/check_zoo.py zoo/my_bot # just one
+    python3.12 tools/check_zoo.py --variant discard_reveal zoo/my_bot  # under another variant
+
+`--variant` takes a name from zoo/variants/ that the mini simulator plays (default holdem).
+Run a bot once per variant its header lists.
 
 For each bot, on the unofficial mini simulator: the static upload check, an imitation of
 the upload test match (heads-up against check-or-fold, 20 hands, 1 ms, no time bank), then
@@ -29,12 +33,22 @@ TABLES = 60
 
 
 def main() -> None:
-    if len(sys.argv) > 1:
-        bots = [Path(argument).resolve() for argument in sys.argv[1:]]
+    arguments = sys.argv[1:]
+    variant = "holdem"
+    if "--variant" in arguments:
+        at = arguments.index("--variant")
+        if at + 1 >= len(arguments):
+            sys.exit("--variant needs a name, e.g. --variant discard_reveal")
+        variant = arguments[at + 1]
+        del arguments[at : at + 2]
+    rules = ["--variant", variant]
+    if arguments:
+        bots = [Path(argument).resolve() for argument in arguments]
     else:
         bots = sorted(p.parent for p in (ROOT / "zoo").glob("*/agent.py") if p.parent.name != "_template")
     if not bots:
         sys.exit("No zoo bots yet. Copy zoo/_template to zoo/<name> and edit it.")
+    print(f"variant: {variant}")
     print(f"{'bot':32s} {'status':7s} {'pts/table':>9s} {'1st':>5s} {'failed':>7s} {'p99.9 µs':>9s}")
     broken = 0
     for bot in bots:
@@ -47,7 +61,7 @@ def main() -> None:
             continue
         upload = subprocess.run(
             SIM + ["play", str(bot), str(ROOT / "sparring" / "check_or_fold"), "--tables", "200",
-                   "--hand-cap", "20", "--bank-ms", "0", "--payouts", "50", "--seed", "upload"],
+                   "--hand-cap", "20", "--bank-ms", "0", "--payouts", "50", "--seed", "upload", *rules],
             capture_output=True, text=True,
         )  # fmt: skip
         if upload.returncode != 0:
@@ -62,7 +76,7 @@ def main() -> None:
             broken += 1
             continue
         played = subprocess.run(
-            SIM + ["play", str(bot), *map(str, FIELD), "--tables", str(TABLES), "--seed", "zoo"],
+            SIM + ["play", str(bot), *map(str, FIELD), "--tables", str(TABLES), "--seed", "zoo", *rules],
             capture_output=True, text=True,
         )  # fmt: skip
         if played.returncode != 0:

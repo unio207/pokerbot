@@ -189,6 +189,8 @@ details.failures pre { white-space: pre-wrap; background: var(--panel-2); border
 .pc.big { width: 44px; height: 62px; font-size: 21px; }
 .pc.big .s { font-size: 21px; }
 .pc.new { outline: 3px solid #ffd54a; }
+.pc.discarded { opacity: .3; filter: grayscale(1); text-decoration: line-through; }
+.pc.revealed { outline: 2px solid #4fc3f7; transform: translateY(-4px); }
 
 /* ----------------------------------------------------------------- replay */
 .replay-pickers select { max-width: 330px; }

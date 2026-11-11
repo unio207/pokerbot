@@ -3,10 +3,13 @@
     python devtest/mini_sim.py check starter/agent.py
     python devtest/mini_sim.py play starter sparring/nit sparring/shover --tables 200
 
-It plays standard no-limit hold'em only (no variant phases) with the table defaults the
-starter kit documents: 8 seats, 2,000 chips, 50/30/20 points, ICM split at the hand cap,
-1 ms per decision with a 100 ms per-table time bank. `play` prints the same JSON summary
-as the kit's `poker-agent play`, plus decision latency.
+    python devtest/mini_sim.py play starter sparring/nit --variant discard_reveal
+
+It plays no-limit hold'em and the variants in devtest/sim_variants.py (one per ruleset in
+zoo/variants/), with the table defaults the starter kit documents: 8 seats, 2,000 chips,
+50/30/20 points, ICM split at the hand cap, 1 ms per decision with a 100 ms per-table
+time bank. `play` prints the same JSON summary as the kit's `poker-agent play`, plus
+decision latency.
 
 It runs bots in-process, so latency here is optimistic compared with the real platform,
 and its rules are a re-implementation. The kit's `poker-agent play` is the authority.
@@ -38,12 +41,14 @@ from poker_agent_sdk import (  # noqa: E402
     icm,
 )
 
+sys.path.insert(0, str(HERE))
+from sim_variants import DECK, VARIANTS  # noqa: E402,F401
+
 sys.path.insert(0, str(HERE.parent / "starter"))
 from agent import hand_rank  # noqa: E402  (the starter bot's evaluator, reused for showdowns)
 
 BLINDS = ((10, 20), (20, 40), (30, 60), (50, 100), (80, 160), (125, 250), (200, 400),
           (300, 600), (500, 1000), (800, 1600), (1200, 2400), (2000, 4000))  # fmt: skip
-DECK = [rank + suit for rank in "23456789TJQKA" for suit in "cdhs"]
 FORBIDDEN_IMPORTS = {"poker_engine", "pokerkit"}  # exist only in the local kit; uploads importing them are rejected
 # Everything a bot can import on the competition machines besides the standard library.
 ALLOWED_LIBRARIES = {"poker_agent_sdk", "poker_agent_protocol", "numpy", "scipy", "pandas", "sklearn",
@@ -71,6 +76,7 @@ class Table:
         `on_failure(seat, hand, reason, detail)` is called for each failed decision.
         Both are optional hooks for tools such as ui/server.py; they do not change play."""
         self.agents, self.rng, self.rules = agents, rng, rules
+        self.variant = VARIANTS[getattr(rules, "variant", None) or "holdem"]
         self.hands: list[dict] | None = [] if record else None
         self.on_failure = on_failure
         self.n = len(agents)
@@ -89,7 +95,7 @@ class Table:
         self.log: list[Event] = []
         self.levels = tuple(BlindLevel(small, big) for small, big in BLINDS)
         self.configs = [
-            TableConfig(table_id, seat, self.n, "holdem", rules.stack, self.levels,
+            TableConfig(table_id, seat, self.n, self.variant.name, rules.stack, self.levels,
                         rules.hands_per_level, rules.hand_cap, self.payouts, rules.decision_ms,
                         65536, rules.bank_ms)  # fmt: skip
             for seat in range(self.n)
@@ -150,9 +156,10 @@ class Table:
         blinds = self.levels[level]
         self.hand_start = len(self.log)
         self.log.append(Event("hand", None, hand))
-        deck = DECK[:]
+        deck = self.variant.deck()
         self.rng.shuffle(deck)
-        hole = {seat: (deck.pop(), deck.pop()) for seat in sorted(alive)}
+        hole = {seat: tuple(deck.pop() for _ in range(self.variant.hole_cards)) for seat in sorted(alive)}
+        dealt_hole = dict(hole)  # for the replay: a variant may shrink `hole` during the hand
         bet, total, folded = [0] * n, [0] * n, set()
         board: list[str] = []
         if len(alive) == 2:
@@ -166,10 +173,11 @@ class Table:
             bet[seat] += paid
             total[seat] += paid
             self.log.append(Event("blind", seat, paid))
-        context = dict(hand=hand, level=level, blinds=blinds, alive=alive, hole=hole, bet=bet,
-                       total=total, folded=folded, board=board)  # fmt: skip
         # Replay-only events (chips moved without a public event), keyed by log position.
         marks: list[tuple[int, list]] | None = [] if self.hands is not None else None
+        # `shown` holds each seat's face-up cards, for variants that expose some.
+        context = dict(hand=hand, level=level, blinds=blinds, alive=alive, hole=hole, bet=bet,
+                       total=total, folded=folded, board=board, shown={}, marks=marks)  # fmt: skip
 
         first = self.next_seat(big_seat, alive)
         for street in range(4):
@@ -178,6 +186,7 @@ class Table:
                 board.extend(dealt)
                 self.log.append(Event("board", None, 0, tuple(dealt)))
                 first = self.next_seat(self.button, alive)
+                self.variant.after_board(self, context, street)
             self.betting_round(first, context)
             # Return an uncalled bet, then close the round.
             ordered = sorted(bet, reverse=True)
@@ -201,7 +210,7 @@ class Table:
         else:
             while len(board) < 5:
                 board.append(deck.pop())
-            ranks = {seat: hand_rank(hole[seat] + tuple(board)) for seat in contenders}
+            ranks = {seat: self.variant.rank(hole[seat], board, hand_rank) for seat in contenders}
             for seat in sorted(contenders):
                 self.log.append(Event("show", seat, 0, hole[seat]))
             previous = 0
@@ -224,7 +233,7 @@ class Table:
         for seat in sorted(alive):
             self.log.append(Event("stack", seat, stacks[seat]))
         if marks is not None:
-            self.record_hand(hand, level, blinds, start, hole, board, marks)
+            self.record_hand(hand, level, blinds, start, dealt_hole, board, marks)
         # Two bots busting on the same hand: the one that started it with more chips places
         # higher; equal stacks tie.
         busted = sorted((s for s in alive if stacks[s] == 0), key=lambda s: start[s])
@@ -248,6 +257,7 @@ class Table:
         self.hands.append({
             "hand": hand, "level": level, "blinds": [blinds.small_blind, blinds.big_blind],
             "button": self.button, "start": start, "end": self.stacks[:],
+            "variant": self.variant.name,
             "hole": {str(seat): list(cards) for seat, cards in hole.items()},
             "board": list(board), "events": events,
         })  # fmt: skip
@@ -305,12 +315,16 @@ class Table:
             seat = (turn + 1) % self.n
 
     # ------------------------------------------------------------------ one decision
-    def ask(self, seat, to_call, legal, context) -> Action:
+    def ask(self, seat, to_call, legal, context, phase="betting", fallback=None, validate=None) -> Action:
+        """One decision. A variant's own phase passes its `phase` name, the `fallback` the
+        platform plays on a failed decision, and `validate(action, state)`, which returns
+        the action to play or None when it is illegal."""
         alive, folded = context["alive"], context["folded"]
         seats = tuple(
             Seat(s, self.stacks[s], context["bet"][s],
                  "busted" if s not in alive else "folded" if s in folded
-                 else "all_in" if self.stacks[s] == 0 else "active")  # fmt: skip
+                 else "all_in" if self.stacks[s] == 0 else "active",
+                 context["shown"].get(s, ()))  # fmt: skip
             for s in range(self.n)
         )
         rules = self.rules
@@ -332,10 +346,12 @@ class Table:
             players_remaining=len(alive),
             bust_order=tuple(self.bust_order),
             config=self.configs[seat],
+            phase=phase,
             time_bank_ms=self.bank[seat],
         )
         delivered = len(self.log)  # after a timeout or exception these events are delivered again
-        fallback = Action.check() if state.can("check") else Action.fold()
+        if fallback is None:
+            fallback = Action.check() if state.can("check") else Action.fold()
         self.decisions[seat] += 1
         began = time.perf_counter_ns()
         try:
@@ -361,13 +377,22 @@ class Table:
         if isinstance(memory, bytes):
             self.memory[seat] = memory[:65536]  # stored even when the action turns out illegal
         allowed = state.can(action.kind) if isinstance(action, Action) else None
+        if allowed is not None and validate is not None:
+            try:
+                checked = validate(action, state)
+            except Exception:
+                checked = None
+            if checked is None:
+                allowed = None
+            else:
+                action = checked
         if allowed is not None and action.kind == "raise":
             try:  # whole numbers (NumPy's too) pass unchanged; floats are rounded DOWN, not clamped
                 action = Action("raise", math.floor(action.amount))
             except (TypeError, ValueError, OverflowError):
                 allowed = None
         if allowed is None or (
-            action.kind == "raise" and not allowed.min_amount <= action.amount <= allowed.max_amount
+            validate is None and action.kind == "raise" and not allowed.min_amount <= action.amount <= allowed.max_amount
         ):
             self.failures[seat] += 1
             if self.on_failure:
@@ -459,7 +484,7 @@ def play(arguments) -> None:
             failures[label] += table.failures[seat]
             decisions[label] += table.decisions[seat]
             latency[label].extend(table.latency[seat])
-    summary = {"seed": seed, "tables": arguments.tables, "bots": {}}
+    summary = {"seed": seed, "tables": arguments.tables, "variant": arguments.variant, "bots": {}}
     for label in labels:
         times = sorted(latency[label]) or [0]
         summary["bots"][label] = {
@@ -493,6 +518,8 @@ def main() -> None:
     play_command.add_argument("--payouts", type=int, nargs="+", default=[50, 30, 20])
     play_command.add_argument("--random-payouts", action="store_true",
                               help="Each table draws its own split of 100 points over three places.")  # fmt: skip
+    play_command.add_argument("--variant", choices=sorted(VARIANTS), default="holdem",
+                              help="Game variant; rulesets are in zoo/variants/.")  # fmt: skip
     play_command.add_argument("--no-history", action="store_true", help="Accepted for compatibility.")
     arguments = parser.parse_args()
     if arguments.command == "check":
