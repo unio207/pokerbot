@@ -83,6 +83,7 @@
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="results" aria-selected="true">Results</button>
       <button role="tab" data-tab="replay" aria-selected="false">Hand replay</button>
+      <button role="tab" data-tab="rankings" aria-selected="false">Rankings</button>
     </nav>
 
     <!-- ---------------- results -->
@@ -92,7 +93,7 @@
         <h3>Past runs</h3>
         <div class="table-wrap">
           <table class="history">
-            <thead><tr><th>Run</th><th>Variant</th><th class="num">Tables</th><th class="term" data-term="seed" tabindex="0">Seed</th><th class="term" data-term="topbot" tabindex="0">Top bot</th><th class="num term" data-term="pts" tabindex="0">Pts / table</th><th class="num term" data-term="failed_total" tabindex="0">Failed</th></tr></thead>
+            <thead><tr><th>Run</th><th>Variant</th><th class="num">Tables</th><th class="term" data-term="seed" tabindex="0">Seed</th><th class="term" data-term="topbot" tabindex="0">Top bot</th><th class="num term" data-term="pts" tabindex="0">Pts / table</th><th class="num term" data-term="failed_total" tabindex="0">Failed</th><th class="term" data-term="copylog" tabindex="0">Log</th></tr></thead>
             <tbody id="history"></tbody>
           </table>
         </div>
@@ -142,6 +143,24 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- ---------------- rankings -->
+    <section id="tab-rankings" class="tab" role="tabpanel" hidden>
+      <div class="card rk-filters" id="rk-filters">
+        <div class="row gap wrap">
+          <label class="inline" data-term="rk_variant"><span class="term">Variant</span> <select id="rk-variant"></select></label>
+          <span id="rk-summary" class="rk-summary" data-term="rk_data"></span>
+          <button id="rk-clear" class="ghost small danger" type="button">Clear all runs</button>
+        </div>
+        <div class="rk-runs-head">
+          <span class="term" data-term="rk_runs" tabindex="0">Runs included</span>
+          <button id="rk-all" class="ghost small" type="button">all</button>
+          <button id="rk-none" class="ghost small" type="button">none</button>
+        </div>
+        <div id="rk-runs" class="rk-runs"></div>
+      </div>
+      <div id="rk-view"></div>
     </section>
   </main>
 </div>

@@ -21,6 +21,8 @@
   --card-red: #c8102e;
   --highlight: #fff3b0;
   --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  /* variant colours in the rankings' run-by-run chart (not green/red, which mean above/below par) */
+  --v1: #2a78d6; --v2: #eb6834; --v3: #6250d6; --v4: #c98500; --v5: #d55181; --v6: #8a8f98;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -29,6 +31,7 @@
     --line: #333944; --accent: #5b8ef0; --accent-text: #0b1220; --good: #4cc38a; --bad: #ff6b6b;
     --bad-bg: #3a1d20; --warn: #f0b44c; --warn-bg: #352a14; --felt: #18573a; --felt-edge: #3d2a18;
     --seat-bg: #262a32; --highlight: #4a4320; --shadow: 0 1px 3px rgba(0, 0, 0, .5);
+    --v1: #3987e5; --v2: #e0703f; --v3: #9085e9; --v4: #d9a21c; --v5: #e06a96; --v6: #8a8f98;
     color-scheme: dark;
   }
 }
@@ -189,12 +192,75 @@ tr.notes-row p { margin: 4px 0; }
 tr.notes-row pre, details.failures pre { white-space: pre-wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font-size: 12px; max-height: 240px; overflow: auto; margin: 4px 0 8px; }
 details.failures { margin-top: 10px; }
 
+/* run log: copy / show */
+.log-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -4px 0 10px; }
+.log-tools .hint { margin: 0; }
+.log-msg { font-size: 12.5px; font-weight: 600; }
+.log-msg.ok { color: var(--good); }
+.log-msg.err { color: var(--bad); }
+textarea.runlog { display: block; width: 100%; height: 320px; resize: vertical; margin: 0 0 10px; padding: 8px;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
+td.logcell { padding-top: 2px; padding-bottom: 2px; }
+
 .meter { position: relative; width: 100%; min-width: 120px; height: 14px; background: var(--panel-2); border-radius: 3px; border: 1px solid var(--line); }
 .meter .par { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); opacity: .6; }
 .meter .fill { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; }
 .meter .fill.up { background: var(--good); }
 .meter .fill.down { background: var(--bad); }
 .meter .err { position: absolute; top: 5px; height: 2px; background: var(--text); opacity: .65; }
+
+/* ----------------------------------------------------------------- rankings */
+.rk-filters > .row { align-items: center; }
+.rk-summary { color: var(--muted); }
+.rk-summary b { color: var(--text); }
+#rk-clear { margin-left: auto; }
+button.danger:hover { border-color: var(--bad); color: var(--bad); }
+.rk-runs-head { display: flex; align-items: center; gap: 6px; margin: 10px 0 4px; font-size: 12.5px; color: var(--muted); }
+.rk-runs { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0 12px; max-height: 132px; overflow: auto;
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+.rk-runs label { flex-direction: row; align-items: center; gap: 6px; color: var(--text); font-size: 12.5px; white-space: nowrap; padding: 1px 0; cursor: pointer; }
+.rk-runs label.off { color: var(--muted); }
+.rk-runs input { margin: 0; }
+.rk-read { color: var(--muted); margin: 0 0 8px; }
+table.rk .meter-cell { width: 240px; }
+table.rk .pts { font-size: 19px; }
+table.rk .bot { max-width: 300px; }
+table.rk .botcell { flex-wrap: wrap; row-gap: 2px; }
+table.rk .botname { flex: none; max-width: 100%; }
+.rk-group { flex: none; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.rk-close { color: var(--warn); font-weight: 700; margin-left: 3px; cursor: help; }
+.badge-prov { flex: none; margin-left: 6px; font-size: 10.5px; font-weight: 700; padding: 1px 5px; border-radius: 4px; color: var(--muted); border: 1px dashed var(--muted); cursor: help; }
+th.rk-scale > div { display: flex; justify-content: space-between; font-weight: 400; cursor: help; }
+.rk-meter { height: 18px; }
+.rk-meter .fill { opacity: .75; }
+.rk-meter .par { top: -3px; bottom: -3px; }
+/* the whisker: a line from -2 se to +2 se with end marks */
+.rk-meter .err { top: 2px; height: 12px; background: transparent; opacity: 1; border: solid var(--text); border-width: 0 2px; }
+.rk-meter .err::before { content: ""; position: absolute; left: 0; right: 0; top: 5px; height: 2px; background: var(--text); }
+.rk-detail { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.rk-detail .hint { margin: 0; }
+svg.rk-series { display: block; max-width: 100%; height: auto; }
+svg.rk-series text { font-size: 11px; fill: var(--muted); }
+svg.rk-series text.val { fill: var(--text); font-weight: 600; }
+svg.rk-series .grid { stroke: var(--line); stroke-width: 1; }
+svg.rk-series .grid.zero { stroke: var(--muted); stroke-width: 1.5; }
+svg.rk-series .avg { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; }
+svg.rk-series .wh { stroke: var(--text); stroke-width: 1.5; }
+svg.rk-series circle { stroke: var(--panel); stroke-width: 2; }
+svg.rk-series .hit { fill: transparent; cursor: help; }
+.rk-keys { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+.rk-key i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.rk-key i.avg { width: 16px; height: 0; border-radius: 0; border-top: 2px dashed var(--accent); vertical-align: 3px; }
+table.rk-heat th:not(:first-child), table.rk-heat td.heat { text-align: center; }
+table.rk-heat td.heat { min-width: 96px; cursor: help; }
+table.rk-heat td.heat.few, .heat-key.few { outline: 1px dashed var(--muted); outline-offset: -3px; }
+table.rk-heat td.heat.none { color: var(--muted); cursor: default; }
+table.rk-heat td.heat.idle { background: repeating-linear-gradient(45deg, var(--warn-bg) 0 6px, transparent 6px 12px); }
+table.rk-heat td.heat .badge-idle { margin-left: 2px; }
+.heat-key { padding: 0 5px; border-radius: 3px; color: var(--text); }
+.heat-key.up { background: color-mix(in srgb, var(--good) 40%, transparent); }
+.heat-key.down { background: color-mix(in srgb, var(--bad) 40%, transparent); }
 
 /* ----------------------------------------------------------------- cards */
 .pc {

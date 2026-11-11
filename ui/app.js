@@ -6,6 +6,8 @@ const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const fmt = (n) => Number(n).toLocaleString("en-US");
 const fx = (n, d = 2) => Number(n).toFixed(d);
 const pct = (v) => (v == null ? "–" : `${Math.round(100 * v)}%`);
+const signed = (v, d = 1) => { const t = fx(Math.abs(v), d); return Number(t) === 0 ? t : `${v > 0 ? "+" : "−"}${t}`; };
+const PROVISIONAL = 200; // rankings: bots with fewer tables than this are marked provisional
 
 const store = {
   get(key, fallback) { try { const v = localStorage.getItem("pokerui." + key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } },
@@ -33,6 +35,8 @@ const S = {
 };
 const E = { kit: null, variants: {} };
 const variantTitle = (v) => (v === "kit" ? "organizers' kit" : E.variants[v] || v);
+const VARIANT_SHORT = { holdem: "Hold'em", discard_reveal: "Discard & reveal", short_deck: "Short deck", omaha: "Omaha", auction: "Auction", kit: "Kit" };
+const variantShort = (v) => VARIANT_SHORT[v] || variantTitle(v);
 
 // ------------------------------------------------------------------ glossary
 // Every hover explanation on the page lives here: key -> { label?, text }. `text` is a
@@ -98,6 +102,35 @@ const TERMS = {
   failed_total: { text: "Failed decisions of all bots in the run added up: turns where a bot crashed, ran out of time or made a move that is not allowed. Should be 0." },
   inactive: { label: "Inactive", text: "This bot was dealt at least 50 hands and never once chose to put chips in: it only checked or folded. It probably does not support this variant, or it is broken." },
   topbot: { text: "The entry with the most points per table in that run." },
+  copylog: { label: "Run log", text: "The whole run as plain text: settings, line-up, every bot's numbers, warnings and the error details of failed decisions. Copy it and paste it into an AI chat to ask what went wrong." },
+  // ---- rankings
+  rk_variant: { text: "Only count runs of this variant. All mixes every variant: good for the overall order, but a bot that is great at one game and poor at another averages out. The By variant grid below shows them apart." },
+  rk_runs: { text: "Tick the saved runs the ranking should use, for example to leave out runs made before you fixed a bot. New runs are ticked automatically." },
+  rk_data: { text: "How much play the ranking rests on. More tables means less luck: with only a few hundred tables, gaps of a few points per table are often just noise." },
+  rk_vspar: { label: "Points above par", text: "Points per table above (+) or below (−) par. Par is what an average seat scores in that run: the points a table awards, split evenly between the seats. Comparing with par makes runs with different numbers of seats fair to compare. Runs are combined weighted by their tables. The gray ± number is how uncertain it is." },
+  rk_cell: { text: (el) => {
+    const v = Number(el.dataset.v), se = Number(el.dataset.se), lo = v - 2 * se, hi = v + 2 * se;
+    const verdict = lo > 0 ? "clearly better than an average bot" : hi < 0 ? "clearly worse than an average bot" : "not clearly different from an average bot: the gap could be luck";
+    return `${signed(v)} points per table compared with par. Allowing for luck, the true value is probably between ${signed(lo)} and ${signed(hi)}, so this bot is ${verdict}.`;
+  } },
+  rk_bar: { label: "Bar and whisker", text: "The middle line is par (0). The bar runs right in green when the bot beats par and left in red when it falls short. The whisker (thin line with end marks) is the likely range, twice the ± number either way: the true value is probably inside it. When two bots' whiskers overlap, their order could be luck." },
+  rk_close: { label: "Too close to call", text: "This bot's whisker overlaps the one of the bot ranked just above it, so their order could be luck. Play more tables to separate them." },
+  rk_prov: { label: "Provisional", text: `Fewer than ${PROVISIONAL} tables so far, so this bot's place can still move a lot. Run more matches with it before trusting the ranking.` },
+  rk_inactive: { label: "Inactive in some runs", text: (el) => `In ${el.dataset.n} of its ${el.dataset.runs} runs this bot never once chose to put chips in: it only checked or folded. It probably does not support that variant. Its score in those runs says little; see the By variant grid.` },
+  rk_win: { label: "Win", text: "Share of tables this bot finished in 1st place, over all included runs. What an average bot gets depends on the number of seats (1 in 8 is about 13%)." },
+  rk_top3: { label: "Top 3", text: "Share of tables this bot finished 1st, 2nd or 3rd, usually the places that score points. With 8 seats an average bot gets about 38%." },
+  rk_tables: { text: "Tables this bot played in the included runs. A table counts once even if the bot had several seats at it." },
+  rk_failed: { label: "Failed decisions", text: "Turns where the bot crashed, ran out of time or made a move that is not allowed, added up over all included runs. This should be 0. Open the run in Results (or copy its log) to see the details." },
+  rk_heat: { label: "By variant", text: `Each cell is the bot's points per table above par in one variant, with its ± uncertainty. Green means above par and red below; the stronger the colour, the bigger the gap. A dash means the bot never played that variant. A dashed outline means fewer than ${PROVISIONAL} tables, so the number is provisional. A striped cell marked INACTIVE means the bot folded everything in at least one run of that variant, so its score there means little.` },
+  rk_heat_cell: { text: (el) => {
+    const d = el.dataset, v = Number(d.v), se = Number(d.se);
+    return `${d.bot} in ${variantTitle(d.variant)}: ${signed(v)} ± ${fx(se, 1)} points per table compared with par, over ${fmt(Number(d.tables))} tables in ${d.runs} run${d.runs === "1" ? "" : "s"}.${Number(d.tables) < PROVISIONAL ? " Few tables: provisional." : ""}${Number(d.idle) ? ` Inactive in ${d.idle} of those runs: it folded everything, so this score means little.` : ""}`;
+  } },
+  rk_series: { label: "Run by run", text: "One point per run, in the order the runs were made, coloured by variant. The whisker is the likely range in that run (twice its ± number either way). The dashed line is the bot's overall average. Points that jump around far outside each other's whiskers mean the bot does well in some line-ups or variants and badly in others." },
+  rk_point: { text: (el) => {
+    const d = el.dataset;
+    return `Run #${d.run}, ${variantTitle(d.variant)}, ${fmt(Number(d.tables))} tables, ${d.seats} seat${d.seats === "1" ? "" : "s"} for this bot: ${signed(Number(d.v))} ± ${fx(Number(d.se), 1)} points per table compared with par.`;
+  } },
   // ---- hand replay
   notable: { text: "Lists only the hands where something big happened: cards were turned over at the end (a showdown), a bot bet all its chips (all-in), or a bot lost its last chips (a bust)." },
   rp_table: { text: "Only the first tables of a run (20 unless set otherwise) are recorded hand by hand. Each line shows who finished 1st and how many hands the table took." },
@@ -218,6 +251,7 @@ function showTab(name) {
   document.querySelectorAll(".tab").forEach((t) => { t.hidden = t.id !== "tab-" + name; });
   try { history.replaceState(null, "", "#" + name); } catch { /* not allowed here */ }
   if (name === "replay") syncReplayRuns();
+  if (name === "rankings") loadRankings();
 }
 document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 
@@ -439,6 +473,7 @@ async function poll() {
   await refreshHistory().catch(() => {});
   if (S.selected === run.id) renderResult(run);
   if (!$("#tab-replay").hidden) syncReplayRuns();
+  if (!$("#tab-rankings").hidden) loadRankings();
 }
 
 // ------------------------------------------------------------------ results
@@ -457,10 +492,24 @@ async function refreshHistory() {
       <td><code>${esc(r.settings.seed)}</code></td>
       <td class="topbot">${top ? esc(top.label) : `<span class="status-${esc(r.status)}">${esc(r.status)}</span>`}</td>
       <td class="num">${top ? `<b>${fx(top.average_points, 1)}</b> <span class="pm">±${fx(top.se, 1)}</span>` : ""}</td>
-      <td class="num">${failed ? `<span class="failn">${fmt(failed)}</span>` : entries.length ? `<span class="dim">0</span>` : ""}</td></tr>`;
+      <td class="num">${failed ? `<span class="failn">${fmt(failed)}</span>` : entries.length ? `<span class="dim">0</span>` : ""}</td>
+      <td class="logcell">${r.status === "running" || r.status === "queued" ? "" : `<button type="button" class="ghost small" data-copylog="${r.id}" title="Copy the full log of run #${r.id}">Copy</button>`}</td></tr>`;
   }).join("");
 }
-$("#history").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-run]"); if (tr) selectRun(Number(tr.dataset.run)); });
+$("#history").addEventListener("click", async (e) => {
+  const copy = e.target.closest("[data-copylog]");
+  if (copy) {
+    const id = Number(copy.dataset.copylog), res = await copyLog(id, copy);
+    if (res.ok) return flashBtn(copy, "Copied ✓");
+    flashBtn(copy, "Failed");
+    // Show the problem (and the log to copy by hand) where there is room for it.
+    await selectRun(id);
+    showLogFailure(res);
+    return;
+  }
+  const tr = e.target.closest("tr[data-run]");
+  if (tr) selectRun(Number(tr.dataset.run));
+});
 
 async function selectRun(id) {
   S.selected = id;
@@ -493,7 +542,92 @@ function runHead(run) {
       <span>${term("seed", "seed", TAB)} <code>${esc(s.seed)}</code></span>
       <span class="session">${term("session", "Session", TAB)}: <b>${fmt(S.session.runs)}</b> run${S.session.runs === 1 ? "" : "s"} · <b>${fmt(S.session.tables)}</b> tables</span>
     </div>
-    <div class="rules-line">Rules: ${rules}</div>`;
+    <div class="rules-line">Rules: ${rules}</div>
+    <div class="log-tools">
+      <button type="button" class="small" data-copylog="${run.id}">Copy log</button>
+      <button type="button" class="ghost small" data-showlog="${run.id}" aria-expanded="false">Show log</button>
+      <span class="log-msg" role="status"></span>
+      <span class="hint term" data-term="copylog"${TAB}>the whole run as text, to paste into an AI chat</span>
+    </div>
+    <textarea class="runlog" readonly wrap="off" spellcheck="false" aria-label="Run log" hidden></textarea>`;
+}
+
+// ------------------------------------------------------------------ run log (text to paste into a chat)
+async function fetchLog(id) {
+  const res = await fetch(`/api/runs/${id}/log`);
+  const text = await res.text();
+  if (!res.ok) { let msg = text; try { msg = JSON.parse(text).error || msg; } catch { /* not JSON */ } throw new Error(msg || `HTTP ${res.status}`); }
+  return text;
+}
+// navigator.clipboard needs a secure context (http://127.0.0.1 and localhost count; other host
+// names, e.g. through an SSH tunnel, may not), so fall back to the older execCommand("copy").
+async function writeClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); return true; } catch { /* try the fallback */ }
+  }
+  const back = document.activeElement, ta = document.createElement("textarea");
+  ta.value = text; ta.readOnly = true;
+  ta.style.cssText = "position:fixed;top:0;left:-9999px;opacity:0";
+  document.body.append(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch { ok = false; }
+  ta.remove();
+  back?.focus?.();
+  return ok;
+}
+// -> { ok, text?, error? }: text is set when the log loaded but the clipboard refused it.
+async function copyLog(id, btn) {
+  btn.disabled = true;
+  try {
+    const text = await fetchLog(id);
+    return (await writeClipboard(text)) ? { ok: true } : { ok: false, text };
+  } catch (err) {
+    return { ok: false, error: `Could not load the log: ${err.message}` };
+  } finally { btn.disabled = false; }
+}
+function flashBtn(btn, text, ms = 1600) {
+  if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+  btn.textContent = text;
+  clearTimeout(btn._flash);
+  btn._flash = setTimeout(() => { btn.textContent = btn.dataset.label; }, ms);
+}
+function logMsg(text, kind) {
+  const msg = $("#result-view .log-msg");
+  if (!msg) return;
+  msg.textContent = text; msg.className = `log-msg ${kind || ""}`;
+  clearTimeout(msg._t);
+  if (kind === "ok") msg._t = setTimeout(() => { msg.textContent = ""; }, 2500);
+}
+function openLogBox(text, select) {
+  const box = $("#result-view .runlog"), btn = $("#result-view [data-showlog]");
+  if (!box) return;
+  box.value = text; box.hidden = false;
+  if (btn) { btn.textContent = "Hide log"; btn.setAttribute("aria-expanded", "true"); }
+  if (select) { box.focus(); box.select(); }
+}
+function showLogFailure(res) {
+  if (res.text) {
+    openLogBox(res.text, true);
+    logMsg("This browser blocked copying. The log is shown below and selected: press Ctrl+C (Cmd+C on a Mac).", "err");
+  } else logMsg(res.error, "err");
+}
+async function onLogClick(e) {
+  const copy = e.target.closest("[data-copylog]"), show = e.target.closest("[data-showlog]");
+  if (copy) {
+    logMsg("Copying…");
+    const res = await copyLog(Number(copy.dataset.copylog), copy);
+    if (res.ok) { flashBtn(copy, "Copied ✓"); logMsg("Copied to the clipboard.", "ok"); }
+    else showLogFailure(res);
+  } else if (show) {
+    const box = $("#result-view .runlog");
+    if (!box.hidden) {
+      box.hidden = true; show.textContent = "Show log"; show.setAttribute("aria-expanded", "false");
+      return;
+    }
+    try { openLogBox(await fetchLog(Number(show.dataset.showlog)), false); logMsg(""); }
+    catch (err) { logMsg(`Could not load the log: ${err.message}`, "err"); }
+  }
 }
 
 function renderResult(run) {
@@ -548,6 +682,7 @@ function renderResult(run) {
     </div>`;
 }
 $("#result-view").addEventListener("click", (e) => {
+  if (e.target.closest("[data-copylog], [data-showlog]")) return onLogClick(e);
   const btn = e.target.closest("[data-toggle]");
   if (!btn) return;
   const row = $(`#result-view tr[data-notes="${btn.dataset.toggle}"]`);
@@ -838,6 +973,209 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "PageUp") { e.preventDefault(); stopPlay(); selectHand(R.pos - 1); }
   else return;
 });
+// ------------------------------------------------------------------ rankings
+// Bots ranked over many runs by points above par (server: /api/rankings). Filters: one variant
+// or all, and which runs count (RK.excluded holds the unticked ones, so new runs count by default).
+const RK = { data: null, variant: "", excluded: new Set(), bot: null, seq: 0 };
+const VARIANT_HUE = { holdem: 1, discard_reveal: 2, short_deck: 3, omaha: 4, auction: 5 }; // --v1 … --v5 in style.css
+const vHue = (v) => `var(--v${VARIANT_HUE[v] || 6})`;
+const rkRuns = () => S.runs.filter((r) => r.results && r.status !== "running" && r.status !== "queued");
+
+function renderRkFilters() {
+  const all = rkRuns();
+  const variants = [...new Set(all.map((r) => r.settings.variant))].sort();
+  if (RK.variant && !variants.includes(RK.variant)) RK.variant = "";
+  $("#rk-variant").innerHTML = `<option value="">All variants</option>` + variants.map((v) => `<option value="${esc(v)}">${esc(variantTitle(v))}</option>`).join("");
+  $("#rk-variant").value = RK.variant;
+  const shown = all.filter((r) => !RK.variant || r.settings.variant === RK.variant);
+  const used = new Set((RK.data?.runs || []).map((r) => r.id));
+  $("#rk-runs").innerHTML = shown.map((r) => {
+    const on = !RK.excluded.has(r.id), skipped = on && RK.data && !used.has(r.id);
+    return `<label class="${on ? "" : "off"}"><input type="checkbox" data-rkrun="${r.id}"${on ? " checked" : ""}>
+      <b>#${r.id}</b> ${esc(variantShort(r.settings.variant))} <span class="dim">· ${fmt(r.done)} tables · ${r.settings.lineup.length} seats</span>${skipped ? ` <span class="dim" title="Made before rankings existed, so it lacks the numbers needed">(not usable)</span>` : ""}</label>`;
+  }).join("");
+  $("#rk-filters").hidden = all.length === 0;
+  return shown;
+}
+
+async function loadRankings() {
+  const shown = renderRkFilters();
+  const ids = shown.filter((r) => !RK.excluded.has(r.id)).map((r) => r.id);
+  const view = $("#rk-view");
+  if (!rkRuns().length) {
+    RK.data = null;
+    view.innerHTML = `<div class="card"><p class="empty">No finished runs yet. Run a few matches, then come back: this tab ranks the bots over all of them.</p></div>`;
+    $("#rk-summary").textContent = "";
+    return;
+  }
+  if (!ids.length) {
+    RK.data = null;
+    $("#rk-summary").textContent = "No runs selected.";
+    view.innerHTML = `<div class="card"><p class="empty">No runs are ticked. Tick at least one run above.</p></div>`;
+    return;
+  }
+  const q = new URLSearchParams();
+  if (RK.variant) q.set("variant", RK.variant);
+  if (shown.some((r) => RK.excluded.has(r.id))) q.set("runs", ids.join(","));
+  const seq = ++RK.seq;
+  let data;
+  try { data = await api(`/api/rankings${q.toString() ? "?" + q : ""}`); }
+  catch (err) { if (seq === RK.seq) view.innerHTML = `<div class="card"><div class="error-box">Could not load the rankings: ${esc(err.message)}</div></div>`; return; }
+  if (seq !== RK.seq) return; // a newer request is on its way
+  RK.data = data;
+  renderRkFilters(); // marks ticked runs the server could not use
+  renderRankings(data, ids);
+}
+
+function rkBar(v, se, span) {
+  const at = (x) => Math.max(0, Math.min(100, 50 + (50 * x) / span));
+  const lo = Math.min(0, v), hi = Math.max(0, v);
+  return `<div class="meter rk-meter" data-term="rk_bar">
+    <div class="fill ${v >= 0 ? "up" : "down"}" style="left:${at(lo)}%;width:${at(hi) - at(lo)}%"></div>
+    <div class="par" style="left:50%"></div>
+    <div class="err" style="left:${at(v - 2 * se)}%;width:${at(v + 2 * se) - at(v - 2 * se)}%"></div></div>`;
+}
+
+function renderRankings(data, ids) {
+  const view = $("#rk-view"), bots = data.bots;
+  const skipped = ids.length - data.runs.length;
+  $("#rk-summary").innerHTML = `Based on <b>${fmt(data.runs.length)}</b> run${data.runs.length === 1 ? "" : "s"} · <b>${fmt(data.tables)}</b> tables · <b>${bots.length}</b> bots${skipped > 0 ? ` <span class="dim">(${skipped} older run${skipped === 1 ? "" : "s"} skipped)</span>` : ""}`;
+  if (!bots.length) {
+    view.innerHTML = `<div class="card"><p class="empty">None of the ticked runs can be ranked${skipped ? " (they were made before rankings existed)" : ""}. Run a few matches, then come back.</p></div>`;
+    return;
+  }
+  if (RK.bot && !bots.some((b) => b.bot === RK.bot)) RK.bot = null;
+  const span = Math.max(4, ...bots.map((b) => Math.abs(b.vs_par) + 2 * b.se)) * 1.05;
+  const rows = bots.map((b, i) => {
+    const prev = bots[i - 1];
+    const close = prev && b.vs_par + 2 * b.se >= prev.vs_par - 2 * prev.se;
+    const tone = b.vs_par - 2 * b.se > 0 ? "pos" : b.vs_par + 2 * b.se < 0 ? "neg" : "";
+    const known = findBot(b.bot);
+    return `<tr class="clickable${b.bot === RK.bot ? " selected" : ""}${b.inactive_runs ? " idle" : ""}${b.failed_decisions ? " has-fail" : ""}" data-rkbot="${esc(b.bot)}">
+      <td class="rank">${b.rank}${close ? `<span class="rk-close" data-term="rk_close">≈</span>` : ""}</td>
+      <td class="bot"><div class="botcell"><span class="botname" title="${esc(known ? botTitle(known) : b.bot)}">${esc(b.name)}</span>${b.group ? `<span class="rk-group">${esc(b.group)}</span>` : ""}
+        ${b.tables < PROVISIONAL ? `<span class="badge-prov" data-term="rk_prov">PROVISIONAL</span>` : ""}
+        ${b.inactive_runs ? `<span class="badge-idle" data-term="rk_inactive" data-n="${b.inactive_runs}" data-runs="${b.runs}">INACTIVE ×${b.inactive_runs}</span>` : ""}</div></td>
+      <td class="num pts ${tone}" data-term="rk_cell" data-v="${b.vs_par}" data-se="${b.se}">${signed(b.vs_par)}<span class="pm"> ±${fx(b.se, 1)}</span></td>
+      <td class="meter-cell">${rkBar(b.vs_par, b.se, span)}</td>
+      <td class="num big">${pct(b.win_rate)}</td>
+      <td class="num big">${pct(b.top3_rate)}</td>
+      <td class="num">${fmt(b.tables)} <span class="dim">in ${b.runs}</span></td>
+      <td class="num big">${b.failed_decisions ? `<span class="failn">${fmt(b.failed_decisions)}</span>` : `<span class="dim">0</span>`}</td></tr>`;
+  }).join("");
+  const tick = span >= 10 ? Math.round(span / 1.05) : fx(span / 1.05, 1);
+  view.innerHTML = `<div class="card">
+      <p class="rk-read">Best first, by ${term("rk_vspar", "points per table above par", TAB)} (0 = an average seat).
+        The ${term("rk_bar", "whisker", TAB)} is the likely range: where whiskers overlap, the order could be luck (marked ${term("rk_close", "≈", TAB)}).
+        Fewer than ${PROVISIONAL} tables: ${term("rk_prov", "provisional", TAB)}. Click a bot to see it run by run.</p>
+      <div class="table-wrap"><table class="results rk">
+        <thead><tr><th></th><th>Bot</th>
+          <th class="num term" data-term="rk_vspar"${TAB}>vs par</th>
+          <th class="rk-scale" data-term="rk_bar"><div><span>−${tick}</span><span>0 = par</span><span>+${tick}</span></div></th>
+          <th class="num term" data-term="rk_win"${TAB}>Win</th>
+          <th class="num term" data-term="rk_top3"${TAB}>Top 3</th>
+          <th class="num term" data-term="rk_tables"${TAB}>Tables</th>
+          <th class="num term" data-term="rk_failed"${TAB}>Failed</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      <div id="rk-detail" class="rk-detail">${rkDetail(bots.find((b) => b.bot === RK.bot))}</div>
+    </div>
+    ${rkHeatmap(data)}`;
+}
+
+function rkDetail(b) {
+  if (!b) return `<p class="hint">Click a bot above to see its score run by run.</p>`;
+  const variants = [...new Set(b.series.map((p) => p.variant))];
+  return `<h3><span class="term" data-term="rk_series"${TAB}>Run by run</span>: ${esc(b.name)}${b.group ? ` <span class="dim">${esc(b.group)}</span>` : ""}</h3>
+    ${seriesChart(b)}
+    <div class="rk-keys">${variants.map((v) => `<span class="rk-key"><i style="background:${vHue(v)}"></i>${esc(variantShort(v))}</span>`).join("")}
+      <span class="rk-key"><i class="avg"></i>overall ${signed(b.vs_par)}</span></div>`;
+}
+
+// vs par per run, in run order, with ±2 se whiskers; a dot per run coloured by variant.
+function seriesChart(b) {
+  const s = b.series, n = s.length;
+  const W = Math.min(860, Math.max(380, 90 + n * 60)), H = 200, L = 48, Rr = 14, T = 22, B = 38;
+  const span = Math.max(4, ...s.map((p) => Math.abs(p.vs_par) + 2 * p.se)) * 1.08;
+  const y = (v) => T + ((H - T - B) * (span - v)) / (2 * span);
+  const x = (i) => L + ((W - L - Rr) * (i + 0.5)) / n;
+  const labelEvery = Math.ceil(n / 14), showVals = n <= 14;
+  const tick = span >= 10 ? Math.round(span / 1.6) : Number(fx(span / 1.6, 1));
+  const axis = [tick, 0, -tick].map((v) => `<line class="grid${v ? "" : " zero"}" x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}"/>
+    <text class="ax" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v ? signed(v, span >= 10 ? 0 : 1) : "par"}</text>`).join("");
+  const avg = `<line class="avg" x1="${L}" x2="${W - Rr}" y1="${y(b.vs_par)}" y2="${y(b.vs_par)}"/>`;
+  const pts = s.map((p, i) => {
+    const cx = x(i), top = y(p.vs_par + 2 * p.se), bot = y(p.vs_par - 2 * p.se);
+    return `<g data-term="rk_point" data-run="${p.run}" data-variant="${esc(p.variant)}" data-tables="${p.tables}" data-seats="${p.seats}" data-v="${p.vs_par}" data-se="${p.se}">
+      <rect class="hit" x="${cx - 18}" y="${T - 18}" width="36" height="${H - T - B + 36}"/>
+      <line class="wh" x1="${cx}" x2="${cx}" y1="${top}" y2="${bot}"/><line class="wh" x1="${cx - 4}" x2="${cx + 4}" y1="${top}" y2="${top}"/><line class="wh" x1="${cx - 4}" x2="${cx + 4}" y1="${bot}" y2="${bot}"/>
+      <circle cx="${cx}" cy="${y(p.vs_par)}" r="5" fill="${vHue(p.variant)}"/>
+      ${showVals ? `<text class="val" x="${cx}" y="${top - 5}" text-anchor="middle">${signed(p.vs_par)}</text>` : ""}
+      ${i % labelEvery === 0 ? `<text class="ax" x="${cx}" y="${H - B + 16}" text-anchor="middle">#${p.run}</text>` : ""}</g>`;
+  }).join("");
+  return `<svg class="rk-series" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(b.name)}: points above par in each run">${axis}${avg}${pts}
+    <text class="ax" x="${(L + W - Rr) / 2}" y="${H - 4}" text-anchor="middle">run</text></svg>`;
+}
+
+// bots × variants grid of vs par, green above par and red below, stronger for bigger gaps.
+function rkHeatmap(data) {
+  const variants = data.variants;
+  const cells = data.bots.flatMap((b) => variants.map((v) => b.variants[v]).filter(Boolean));
+  const max = Math.max(4, ...cells.map((c) => Math.abs(c.vs_par)));
+  const rows = data.bots.map((b) => `<tr class="clickable${b.bot === RK.bot ? " selected" : ""}" data-rkbot="${esc(b.bot)}">
+      <td class="bot"><span class="botname">${esc(b.name)}</span>${b.group ? `<span class="rk-group">${esc(b.group)}</span>` : ""}</td>
+      ${variants.map((v) => {
+        const c = b.variants[v];
+        if (!c) return `<td class="heat none">–</td>`;
+        const attrs = `data-term="rk_heat_cell" data-bot="${esc(b.name)}" data-variant="${esc(v)}" data-v="${c.vs_par}" data-se="${c.se}" data-tables="${c.tables}" data-runs="${c.runs}" data-idle="${c.inactive_runs}"`;
+        const val = `<b>${signed(c.vs_par)}</b><span class="pm"> ±${fx(c.se, 1)}</span>`;
+        const few = c.tables < PROVISIONAL ? " few" : "";
+        if (c.inactive_runs) return `<td class="heat idle${few}" ${attrs}>${val} <span class="badge-idle">INACTIVE</span></td>`;
+        const strength = Math.round(10 + 50 * Math.min(1, Math.abs(c.vs_par) / max));
+        return `<td class="heat${few}" ${attrs} style="background:color-mix(in srgb, var(${c.vs_par >= 0 ? "--good" : "--bad"}) ${strength}%, transparent)">${val}</td>`;
+      }).join("")}</tr>`).join("");
+  return `<div class="card">
+      <h3><span class="term" data-term="rk_heat"${TAB}>By variant</span></h3>
+      <p class="rk-read">Points per table above par in each variant: <span class="heat-key up">green above par</span> <span class="heat-key down">red below</span>, stronger for bigger gaps;
+        – no data; <span class="heat-key few">dashed</span> fewer than ${PROVISIONAL} tables; <span class="badge-idle">INACTIVE</span> folded everything there.</p>
+      <div class="table-wrap"><table class="rk-heat">
+        <thead><tr><th>Bot</th>${variants.map((v) => `<th class="term" data-term="variant" data-variant="${esc(v)}"${TAB}>${esc(variantShort(v))}</th>`).join("")}</tr></thead>
+        <tbody>${rows}</tbody></table></div>
+    </div>`;
+}
+
+$("#rk-view").addEventListener("click", (e) => {
+  const tr = e.target.closest("tr[data-rkbot]");
+  if (!tr || !RK.data) return;
+  RK.bot = RK.bot === tr.dataset.rkbot ? null : tr.dataset.rkbot;
+  if (RK.bot && findBot(RK.bot)) { S.info = RK.bot; renderBotInfo(); renderBotList(); } // its description in the sidebar
+  document.querySelectorAll("#rk-view tr[data-rkbot]").forEach((row) => row.classList.toggle("selected", row.dataset.rkbot === RK.bot));
+  $("#rk-detail").innerHTML = rkDetail(RK.data.bots.find((b) => b.bot === RK.bot));
+});
+$("#rk-variant").addEventListener("change", (e) => { RK.variant = e.target.value; loadRankings(); });
+$("#rk-runs").addEventListener("change", (e) => {
+  const box = e.target.closest("[data-rkrun]");
+  if (!box) return;
+  const id = Number(box.dataset.rkrun);
+  if (box.checked) RK.excluded.delete(id); else RK.excluded.add(id);
+  loadRankings();
+});
+$("#rk-all").addEventListener("click", () => { RK.excluded.clear(); loadRankings(); });
+$("#rk-none").addEventListener("click", () => { rkRuns().forEach((r) => RK.excluded.add(r.id)); loadRankings(); });
+$("#rk-clear").addEventListener("click", async () => {
+  const n = rkRuns().length;
+  if (!n || !confirm(`Delete all ${n} finished run${n === 1 ? "" : "s"} and their saved files? This cannot be undone.`)) return;
+  try {
+    await api("/api/runs/clear", {});
+    S.full = {}; RK.excluded.clear(); RK.bot = null;
+    await refreshHistory();
+    if (!S.runs.some((r) => r.id === S.selected)) {
+      S.selected = null;
+      $("#result-view").innerHTML = `<div class="card"><p class="empty">No runs yet. Pick bots and press Run match.</p></div>`;
+    }
+    await loadRankings();
+  } catch (err) { $("#rk-summary").textContent = `Could not clear: ${err.message}`; }
+});
+
 // ------------------------------------------------------------------ start
 (async function init() {
   try {
@@ -847,7 +1185,8 @@ document.addEventListener("keydown", (e) => {
     const running = S.runs.find((r) => r.status === "running" || r.status === "queued");
     if (running) { S.active = running.id; S.selected = running.id; S.seedShown = true; setRunning(true); poll(); }
     else if (S.runs.length) await selectRun(S.runs[0].id);
-    showTab(location.hash === "#replay" ? "replay" : "results");
+    const want = location.hash.slice(1);
+    showTab(["replay", "rankings"].includes(want) ? want : "results");
   } catch (err) {
     showRunError("Cannot reach the server: " + err.message);
   }

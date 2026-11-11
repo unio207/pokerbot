@@ -716,7 +716,8 @@ class Store:
 def rankings(runs: list[Run]) -> dict:
     """Bots ranked across runs. Each run contributes each bot's points per table (averaged
     over its seats in that run), weighted by the run's tables. Bots are compared on points
-    above par, because par depends on how many seats the table had."""
+    above par, because par depends on how many seats the table had. Runs in which a bot was
+    inactive are counted in `inactive_runs` and left out of its scores."""
     bots: dict[str, dict] = {}
 
     def blank():
@@ -724,6 +725,12 @@ def rankings(runs: list[Run]) -> dict:
                 "vpip": 0.0, "vpip_tables": 0, "failed": 0, "slowest": None, "inactive_runs": 0}  # fmt: skip
 
     def add(total, row, tables):
+        if row.get("inactive"):
+            # The bot folded or checked every hand in this run (it does not play the variant),
+            # so the run says nothing about how good it is: count it, but leave its score out.
+            total["inactive_runs"] += 1
+            total["failed"] += row["failed_decisions"]
+            return
         total["runs"] += 1
         total["tables"] += tables
         total["points"] += tables * row["average_points"]
@@ -737,7 +744,6 @@ def rankings(runs: list[Run]) -> dict:
         total["failed"] += row["failed_decisions"]
         if row.get("slowest_us") is not None:
             total["slowest"] = max(total["slowest"] or 0, row["slowest_us"])
-        total["inactive_runs"] += bool(row.get("inactive"))
 
     def done(total):
         tables = max(1, total["tables"])
@@ -768,7 +774,7 @@ def rankings(runs: list[Run]) -> dict:
               | done(bot["all"])
               | {"variants": {name: done(total) for name, total in bot["variants"].items()}, "series": bot["series"]}
               for path, bot in bots.items()]  # fmt: skip
-    ranked.sort(key=lambda bot: -bot["vs_par"])
+    ranked.sort(key=lambda bot: (bot["tables"] == 0, -bot["vs_par"]))  # bots with no scored run go last
     for place, bot in enumerate(ranked, 1):
         bot["rank"] = place
     return {"bots": ranked, "runs": used, "variants": sorted({run["variant"] for run in used}),
