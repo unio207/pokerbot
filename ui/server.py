@@ -201,7 +201,7 @@ def load_agent_fresh(folder: Path):
     finally:
         sys.path.remove(str(folder))
         sys.modules.pop(name, None)
-    return module.Agent()
+    return mini_sim.CopyPool(module.Agent)
 
 
 def clone_bot(source_rel, new_name) -> str:

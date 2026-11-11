@@ -6,11 +6,18 @@ Notes:   <one line on what it does, e.g. "tight preflop, shoves under 10 big bli
 
 Rules every zoo bot must follow (same as the competition):
 - One file. `class Agent` with `act(state, memory) -> (Action, bytes)`.
-- No state on `self` or in globals between calls; use the `memory` bytes (empty at the
-  start of every table, keep it small).
+- No state on `self` or in globals between calls: the platform runs several copies and
+  any copy may answer any turn. Use the `memory` bytes (empty at the start of every
+  table, cut at 64 KB, keep it small, parse it defensively).
 - Return within 1 ms. An exception, timeout or illegal action is played as check/fold.
-- Standard library only (eval7 is allowed). No network, files or subprocesses.
-- Read table settings from `state` (blinds, payouts, players); do not hard-code them.
+- A raise outside [min_amount, max_amount] is illegal; it is NOT clamped for you, and a
+  float amount is rounded down. Use whole numbers and clamp them yourself.
+- Check and call are never both offered, and fold is not offered when checking is free.
+- Imports: standard library, poker_agent_sdk, and only NumPy, SciPy, pandas,
+  scikit-learn, PyTorch (CPU), LightGBM, XGBoost, ONNX Runtime, Numba, eval7.
+  Never poker_engine or pokerkit. No network, files or subprocesses.
+- Read table settings from `state.config` (blinds, payouts, players); payouts can differ
+  per table, so do not assume 50/30/20.
 """
 
 import poker_agent_sdk

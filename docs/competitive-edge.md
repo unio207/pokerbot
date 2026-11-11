@@ -24,7 +24,9 @@ the edge is mostly preparation and process, not cleverer poker. In rough order o
 
 4. **Never fail a decision.** A crashed or slow bot is played as check/fold. In our
    simulator a field of mostly passive bots was worth 41 points per table against a par
-   of 12.5. Every broken opponent is a gift, and we must not be one. Test timing on the
+   of 12.5. Every broken opponent is a gift, and we must not be one. Note that the
+   upload test (no time bank, rejected above 10% failed decisions) keeps always-failing
+   bots out of the field, so expect weak and passive opponents more than dead seats. Test timing on the
    team build machine the kit mentions, not only on a laptop.
 
 ## Poker edges specific to this format

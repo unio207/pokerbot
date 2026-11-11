@@ -3,13 +3,17 @@
     python3.12 tools/check_zoo.py            # all zoo bots
     python3.12 tools/check_zoo.py zoo/my_bot # just one
 
-For each bot: the upload check, then a short match on the unofficial mini simulator
-against the sparring bots. Reports points per table, failed decisions, decision time
-and a status:
+For each bot, on the unofficial mini simulator: the static upload check, an imitation of
+the upload test match (heads-up against check-or-fold, 20 hands, 1 ms, no time bank), then
+a short 8-seat match against the sparring bots. Reports points per table, failed
+decisions, decision time and a status:
 
-    OK       plays without failed decisions
-    FLAKY    plays, but some decisions failed (kept: real fields contain these)
-    BROKEN   will not import or pass the upload check (fix or remove)
+    OK        plays without failed decisions
+    FLAKY     passes the upload test but fails some decisions at a full table
+              (keep: real fields contain these)
+    REJECTED  fails more than 10% of decisions in the upload test, so the real platform
+              would refuse it and it could not be in the field (fix or remove)
+    BROKEN    fails the static check or will not import (fix or remove)
 """
 
 import json
@@ -41,6 +45,22 @@ def main() -> None:
             print(f"{name:32s} BROKEN  {problems}")
             broken += 1
             continue
+        upload = subprocess.run(
+            SIM + ["play", str(bot), str(ROOT / "sparring" / "check_or_fold"), "--tables", "200",
+                   "--hand-cap", "20", "--bank-ms", "0", "--payouts", "50", "--seed", "upload"],
+            capture_output=True, text=True,
+        )  # fmt: skip
+        if upload.returncode != 0:
+            last = (upload.stderr.strip().splitlines() or ["did not run"])[-1]
+            print(f"{name:32s} BROKEN  {last}")
+            broken += 1
+            continue
+        test = json.loads(upload.stdout)["bots"][f"{bot.name}#0"]
+        rate = test["failed_decisions"] / max(1, test["decisions"])
+        if rate > 0.10:
+            print(f"{name:32s} REJECTED  upload test: {rate:.0%} of decisions failed (limit 10%)")
+            broken += 1
+            continue
         played = subprocess.run(
             SIM + ["play", str(bot), *map(str, FIELD), "--tables", str(TABLES), "--seed", "zoo"],
             capture_output=True, text=True,
@@ -56,7 +76,7 @@ def main() -> None:
         status = "FLAKY" if failed else "OK"
         print(f"{name:32s} {status:7s} {entry['average_points']:9.1f} {firsts:5.0%} {failed:7d}"
               f" {entry['latency_us']['p99.9']:9.0f}")  # fmt: skip
-    print(f"\n{len(bots)} bots, {broken} broken. Par is 12.5 points per table.")
+    print(f"\n{len(bots)} bots, {broken} broken or rejected. Par is 12.5 points per table.")
     sys.exit(1 if broken else 0)
 
 

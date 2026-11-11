@@ -16,6 +16,7 @@ import argparse
 import ast
 import importlib.util
 import json
+import math
 import random
 import sys
 import time
@@ -43,8 +44,25 @@ from agent import hand_rank  # noqa: E402  (the starter bot's evaluator, reused 
 BLINDS = ((10, 20), (20, 40), (30, 60), (50, 100), (80, 160), (125, 250), (200, 400),
           (300, 600), (500, 1000), (800, 1600), (1200, 2400), (2000, 4000))  # fmt: skip
 DECK = [rank + suit for rank in "23456789TJQKA" for suit in "cdhs"]
-FORBIDDEN_IMPORTS = {"poker_engine", "pokerkit", "socket", "subprocess", "requests", "urllib"}
+FORBIDDEN_IMPORTS = {"poker_engine", "pokerkit"}  # exist only in the local kit; uploads importing them are rejected
+# Everything a bot can import on the competition machines besides the standard library.
+ALLOWED_LIBRARIES = {"poker_agent_sdk", "poker_agent_protocol", "numpy", "scipy", "pandas", "sklearn",
+                     "torch", "lightgbm", "xgboost", "onnxruntime", "numba", "eval7"}  # fmt: skip
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+MAX_CODE_BYTES = 1024 * 1024  # of code in agent.py
+
+
+class CopyPool:
+    """A team's bot as the platform runs it: agent.py is imported once, then several copies
+    each construct `Agent()`, and any copy may answer any table's turn. A bot that keeps
+    table state on `self` therefore breaks here the same way it would in the tournament."""
+
+    def __init__(self, factory, copies=2):
+        self.copies = [factory() for _ in range(copies)]
+        self.pick = random.Random(0)  # its own generator, so it never disturbs the deals
+
+    def act(self, state, memory):
+        return self.pick.choice(self.copies).act(state, memory)
 
 
 class Table:
@@ -59,6 +77,9 @@ class Table:
         self.stacks = [rules.stack] * self.n
         self.button = rng.randrange(self.n)
         self.bust_order: list[int] = []
+        # Indexes in bust_order whose seat tied with the one before it (same hand, equal stacks).
+        self.ties: set[int] = set()
+        self.payouts = draw_payouts(rules, rng)
         self.memory = [b""] * self.n
         self.cursor = [0] * self.n
         self.bank = [float(rules.bank_ms)] * self.n
@@ -69,7 +90,7 @@ class Table:
         self.levels = tuple(BlindLevel(small, big) for small, big in BLINDS)
         self.configs = [
             TableConfig(table_id, seat, self.n, "holdem", rules.stack, self.levels,
-                        rules.hands_per_level, rules.hand_cap, rules.payouts, rules.decision_ms,
+                        rules.hands_per_level, rules.hand_cap, self.payouts, rules.decision_ms,
                         65536, rules.bank_ms)  # fmt: skip
             for seat in range(self.n)
         ]
@@ -80,22 +101,38 @@ class Table:
         while hand < self.rules.hand_cap and sum(stack > 0 for stack in self.stacks) > 1:
             hand += 1
             self.play_hand(hand)
-        payouts = list(self.rules.payouts) + [0] * self.n
+        payouts = list(self.payouts) + [0] * self.n
         points = [0.0] * self.n
-        for index, seat in enumerate(self.bust_order):
-            points[seat] = payouts[self.n - 1 - index]
+        for group in self.bust_groups():
+            # Seats that tied share their places and split those places' points.
+            share = sum(payouts[self.n - 1 - index] for index in group) / len(group)
+            for index in group:
+                points[self.bust_order[index]] = share
         survivors = [seat for seat in range(self.n) if self.stacks[seat] > 0]
         shares = icm([self.stacks[seat] for seat in survivors], payouts[: len(survivors)])
         for seat, share in zip(survivors, shares):
             points[seat] = share
         return points
 
+    def bust_groups(self) -> list[list[int]]:
+        groups: list[list[int]] = []
+        for index in range(len(self.bust_order)):
+            if index in self.ties and groups:
+                groups[-1].append(index)
+            else:
+                groups.append([index])
+        return groups
+
     def places(self) -> list[int]:
-        """1 = best. Survivors at the hand cap are ranked by chips."""
-        survivors = sorted((s for s in range(self.n) if self.stacks[s] > 0),
-                           key=lambda s: -self.stacks[s])  # fmt: skip
-        order = survivors + self.bust_order[::-1]
-        return [order.index(seat) + 1 for seat in range(self.n)]
+        """1 = best. Survivors at the hand cap rank by chips; seats that tied share the better place."""
+        places = [0] * self.n
+        for group in self.bust_groups():
+            for index in group:
+                places[self.bust_order[index]] = self.n - group[-1]
+        for seat in range(self.n):
+            if self.stacks[seat] > 0:
+                places[seat] = 1 + sum(other > self.stacks[seat] for other in self.stacks)
+        return places
 
     # ------------------------------------------------------------------ one hand
     def next_seat(self, seat, alive):
@@ -188,8 +225,13 @@ class Table:
             self.log.append(Event("stack", seat, stacks[seat]))
         if marks is not None:
             self.record_hand(hand, level, blinds, start, hole, board, marks)
-        # Two bots busting on the same hand: the one that started it with more chips places higher.
-        self.bust_order.extend(sorted((s for s in alive if stacks[s] == 0), key=lambda s: start[s]))
+        # Two bots busting on the same hand: the one that started it with more chips places
+        # higher; equal stacks tie.
+        busted = sorted((s for s in alive if stacks[s] == 0), key=lambda s: start[s])
+        for position, seat in enumerate(busted):
+            if position and start[seat] == start[busted[position - 1]]:
+                self.ties.add(len(self.bust_order))
+            self.bust_order.append(seat)
         self.button = self.next_seat(self.button, {s for s in range(n) if stacks[s] > 0})
 
     def record_hand(self, hand, level, blinds, start, hole, board, marks):
@@ -292,7 +334,7 @@ class Table:
             config=self.configs[seat],
             time_bank_ms=self.bank[seat],
         )
-        self.cursor[seat] = len(self.log)
+        delivered = len(self.log)  # after a timeout or exception these events are delivered again
         fallback = Action.check() if state.can("check") else Action.fold()
         self.decisions[seat] += 1
         began = time.perf_counter_ns()
@@ -315,12 +357,17 @@ class Table:
                                     f"took {elapsed / 1e6:.2f} ms with the time bank exhausted")  # fmt: skip
                 return fallback  # a timeout keeps the previous memory
             self.bank[seat] -= over
+        self.cursor[seat] = delivered
         if isinstance(memory, bytes):
-            self.memory[seat] = memory[:65536]
+            self.memory[seat] = memory[:65536]  # stored even when the action turns out illegal
         allowed = state.can(action.kind) if isinstance(action, Action) else None
+        if allowed is not None and action.kind == "raise":
+            try:  # whole numbers (NumPy's too) pass unchanged; floats are rounded DOWN, not clamped
+                action = Action("raise", math.floor(action.amount))
+            except (TypeError, ValueError, OverflowError):
+                allowed = None
         if allowed is None or (
-            action.kind == "raise"
-            and not (type(action.amount) is int and allowed.min_amount <= action.amount <= allowed.max_amount)
+            action.kind == "raise" and not allowed.min_amount <= action.amount <= allowed.max_amount
         ):
             self.failures[seat] += 1
             if self.on_failure:
@@ -339,15 +386,29 @@ def load_agent(directory: Path):
         spec.loader.exec_module(module)
     finally:
         sys.path.remove(str(directory))
-    return module.Agent()
+    return CopyPool(module.Agent)
+
+
+def draw_payouts(rules, rng) -> tuple[int, ...]:
+    """The table's points per place. Normally the fixed payouts; with `random_payouts` each
+    table draws its own split of 100 over three places (rounds may do this), which shows up
+    bots that hard-code 50/30/20 instead of reading `state.config.payouts`."""
+    if not getattr(rules, "random_payouts", False):
+        return tuple(rules.payouts)
+    draw = random.Random(rng.random())
+    first = draw.randint(40, 60)
+    second = draw.randint(max(21, (100 - first) // 2 + 1), min(first - 1, 100 - first - 5))
+    return (first, second, 100 - first - second)
 
 
 def check(path: Path) -> list[str]:
-    """Static upload checks the kit documents. The kit's own `poker-agent check` is stricter."""
+    """Static upload checks: what the kit's `poker-agent check` rejects (imports of the local-only
+    engine), the documented size limits, and imports of libraries the competition machines
+    do not have, which would stop the bot from starting there."""
     problems = []
     source = path.read_bytes()
-    if len(source) > MAX_UPLOAD_BYTES:
-        problems.append("larger than 50 MB")
+    if len(source) > MAX_CODE_BYTES:
+        problems.append("agent.py holds more than 1 MB of code")
     try:
         tree = ast.parse(source)
     except SyntaxError as error:
@@ -359,8 +420,13 @@ def check(path: Path) -> list[str]:
         elif isinstance(node, ast.ImportFrom):
             names = [node.module or ""]
         for name in names:
-            if name.split(".")[0] in FORBIDDEN_IMPORTS:
-                problems.append(f"imports {name}, which the competition sandbox does not allow")
+            top = name.split(".")[0]
+            if top in FORBIDDEN_IMPORTS:
+                problems.append(f"imports {name}, which exists only in the local kit; the upload is rejected")
+            elif top and top not in sys.stdlib_module_names and top not in ALLOWED_LIBRARIES \
+                    and not (path.parent / f"{top}.py").is_file() and not (path.parent / top).is_dir() \
+                    and not (isinstance(node, ast.ImportFrom) and node.level):
+                problems.append(f"imports {name}, which is not installed on the competition machines")
     agents = [node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "Agent"]
     if not agents or not any(isinstance(m, ast.FunctionDef) and m.name == "act" for m in agents[0].body):
         problems.append("no `class Agent` with an `act` method")
@@ -425,6 +491,8 @@ def main() -> None:
     play_command.add_argument("--hands-per-level", type=int, default=20)
     play_command.add_argument("--stack", type=int, default=2000)
     play_command.add_argument("--payouts", type=int, nargs="+", default=[50, 30, 20])
+    play_command.add_argument("--random-payouts", action="store_true",
+                              help="Each table draws its own split of 100 points over three places.")  # fmt: skip
     play_command.add_argument("--no-history", action="store_true", help="Accepted for compatibility.")
     arguments = parser.parse_args()
     if arguments.command == "check":
