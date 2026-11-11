@@ -438,6 +438,10 @@ def load_agent(directory: Path, fresh: bool = False):
     always picked up (a cached .pyc can be stale when two saves land in the same second)."""
     global _fresh_loads
     path = Path(directory) / "agent.py"
+    shim = str(HERE / "shim")
+    # Always put the SDK shim first so a fresh exec does not depend on import order of
+    # this module (UI workers and one-off loaders can otherwise miss poker_agent_sdk).
+    sys.path.insert(0, shim)
     sys.path.insert(0, str(directory))  # a bot may read files shipped next to it
     try:
         if fresh:
@@ -455,7 +459,11 @@ def load_agent(directory: Path, fresh: bool = False):
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
     finally:
-        sys.path.remove(str(directory))
+        for entry in (str(directory), shim):
+            try:
+                sys.path.remove(entry)
+            except ValueError:
+                pass
     return CopyPool(module.Agent)
 
 

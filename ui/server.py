@@ -145,14 +145,19 @@ def open_viewer(history: Path) -> str:
 
 # ---------------------------------------------------------------------------- bots on disk
 def bot_folders() -> list[Path]:
-    """Every folder at depth 1 or 2 under ROOT that holds an agent.py."""
+    """Every folder at depth 1 or 2 under ROOT that holds an agent.py.
+
+    Skips underscore-prefixed scaffolding such as zoo/_template so it never appears in
+    the seat picker or random-fill pools.
+    """
     found = []
     for first in sorted(ROOT.iterdir()):
         if not first.is_dir() or first.name.startswith(".") or first.name in SKIP_DIRS:
             continue
         candidates = [first] + sorted(p for p in first.iterdir() if p.is_dir()
                                       and not p.name.startswith(".") and p.name not in SKIP_DIRS)  # fmt: skip
-        found += [f for f in candidates if (f / "agent.py").is_file() and f.resolve().is_relative_to(ROOT)]
+        found += [f for f in candidates if (f / "agent.py").is_file() and f.resolve().is_relative_to(ROOT)
+                  and not f.name.startswith("_")]
     return found
 
 

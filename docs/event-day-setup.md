@@ -112,7 +112,9 @@ The steps to turn `bots/final` into a bot for a variant we have not seen. Rehear
 2026-11-11 with `irish` (four hole cards, discard two after the flop), a variant written
 for the purpose: the converted bot scored 30.9 points per table against 17.3 for the
 unconverted one at the same tables (300 tables, mini simulator), with no failed
-decisions and the bot's error handler switched off.
+decisions and the bot's error handler switched off. The same day, `discard_reveal` was
+smoked with the current `bots/final` (already variant-aware): 30.4 points per table vs
+starter 20.8 over 300 tables, seed `discard_rehearse`, zero failed decisions.
 
 1. **Read the kit's `RULES.md`** and write the variant down as `zoo/variants/<name>.md`
    from [`TEMPLATE.md`](../zoo/variants/TEMPLATE.md). The "What a bot must implement"

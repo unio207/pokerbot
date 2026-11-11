@@ -28,9 +28,26 @@ No failed decisions. Conclusion: do **not** chase more EV on mini tonight; `fina
 crushes shove-heavy and prints on the AI-shaped field. Edge left is process (build box,
 variant conversion, field_fit on real histories).
 
+## Setup completed later the same night
+
+- API key validated for **Team Allow It** (Pittsburgh).
+- SSH alias `no-limit-2026-build` → `ubuntu@18.205.162.141` (key
+  `~/.ssh/no-limit-2026`). Login probe: `ubuntu`, `pittsburgh-team-116`,
+  `cloud-init status: done`, `~/work` ready.
+- Repo synced to `~/work/pokerbot` on the box (Python **3.12.3** there).
+- Starter kit download: **404** (variant not announced yet). Re-run setup skill after
+  announcement.
+
+## Lesser follow-ups also landed
+
+- Hide `zoo/_template` from UI discovery / bot list.
+- Harden `mini_sim.load_agent` so the SDK shim is always on `sys.path` for fresh loads.
+- `discard_reveal` smoke: final 30.4 vs starter 20.8 / 300 tables / 0 fails.
+
 ## Still blocked / next human steps
 
-1. Run `/no-limit-2026-setup` until `ssh no-limit-2026-build` works.
-2. On kit day: upload `bots/final` first, convert variant, scout rounds 1–3 with
-   `field_report` / `field_fit --sweep`, ship best version for rounds 4–6.
-3. Optionally merge this branch to `main` after review.
+1. On kit day: re-run setup skill to unpack kit; upload `bots/final` first; convert
+   variant; scout rounds 1–3 with `field_report` / `field_fit --sweep`; ship best
+   version for rounds 4–6.
+2. Merge this branch to `main` after review.
+3. Optional: connect Codex/Claude desktop app to `no-limit-2026-build` (skill step 4).

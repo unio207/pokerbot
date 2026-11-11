@@ -358,7 +358,8 @@ function renderBotList() {
   filled().forEach((p) => { counts[p] = (counts[p] || 0) + 1; });
   const groups = [...new Set(S.bots.map((b) => b.group))].sort();
   const html = groups.map((g) => {
-    const bots = S.bots.filter((b) => b.group === g && (!q || `${b.path} ${Object.values(b.header).join(" ")}`.toLowerCase().includes(q)));
+    const bots = S.bots.filter((b) => b.group === g && !b.name.startsWith("_")
+      && (!q || `${b.path} ${Object.values(b.header).join(" ")}`.toLowerCase().includes(q)));
     if (!bots.length) return "";
     const seated = bots.reduce((a, b) => a + (counts[b.path] || 0), 0);
     return `<details class="bot-group" data-group="${esc(g)}"${q || S.openGroups.has(g) ? " open" : ""}>
