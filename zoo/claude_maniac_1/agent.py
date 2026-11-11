@@ -3,20 +3,15 @@
 Source:   Claude Code (claude-opus-5-5)
 Profile:  The Maniac: loose-aggressive pressure player that bets because it can
 Variants: all, as of 2026-11-11: holdem, discard_reveal, short_deck, omaha, auction
-Notes:    Plays 52-57% and raises 35-38% of hands in every variant (thresholds are percentiles of
-          each variant's own starting hands), c-bets almost every flop, barrels scare cards,
-          raises min-bets, sizes at random. A big lost pot tilts it more aggressive for several
-          hands (memory "t"). Folds air to a big river raise. All five variants ran on the mini
-          simulator; no simulator guess is relied on (phase handlers fail safe).
+Notes:    Plays 52-57% and raises 35-38% of hands in every variant (percentile thresholds per
+          variant), c-bets almost every flop, barrels scare cards, raises min-bets, sizes at random.
+          A big lost pot tilts it more aggressive for several hands (memory "t"); it folds air to a
+          big river raise. All five variants ran on the mini simulator; no simulator guess relied on.
 
-How this file is organised (read zoo/_template/README.md before writing a bot):
-  1. act()      crash-proof wrapper. Never changes between variants.
-  2. VARIANTS   one entry per ruleset in zoo/variants/: detect, phases, strength, plus the
-                extra fields decide reads (pressure, open_scale).
-  3. decide()   the betting strategy (the temperament). Written once, no variant tests.
-  4. helpers    legal-action and stack helpers shared by everything above.
-Rules: one file, standard library only, no state on self or in globals between calls (memory
-bytes only), 1 ms per decision (no Monte Carlo in act), raises clamped to whole ints.
+Layout (see zoo/_template/README.md): 1. act() crash-proof wrapper; 2. VARIANTS, one entry per
+ruleset (detect, phases, strength, plus the extra fields decide reads); 3. decide(), the
+temperament, written once with no variant tests; 4. helpers. Standard library only, no state
+between calls except the memory bytes, no Monte Carlo in act: tables are built at import.
 """
 
 import gc
@@ -31,25 +26,19 @@ import poker_agent_sdk
 from poker_agent_sdk import Action, GameState
 
 # ----------------------------------------------------------------------------- tuning knobs
-OPEN_SHARE = 0.39         # top share of hands opened with a raise from early seats
-STEAL_SHARE = 0.60        # ... from the last two seats before the flop's first actor (steals)
+OPEN_SHARE, STEAL_SHARE = 0.39, 0.60  # top share opened with a raise; from the last two seats (steals)
 LIMP_SHARE = 0.66         # top share that at least limps / completes when unopened
-THREEBET_SHARE = 0.13     # top share that re-raises a raise
-LIGHT_3BET_SHARE = 0.40   # top share that re-raises a min-raise (it senses weakness) ...
-LIGHT_3BET_P = 0.55       # ... this often
-CALL_SHARE = 0.48         # top share that calls a normal raise
+THREEBET_SHARE, CALL_SHARE = 0.13, 0.48  # facing a normal raise: top share that re-raises, that calls
+LIGHT_3BET_SHARE, LIGHT_3BET_P = 0.40, 0.55  # re-raise a min-raise (senses weakness): top share, how often
 SHOVE_CALL_SHARE = 0.22   # top share that calls an all-in or a raise of 40%+ of the stack
-SHORT_BB = 12             # at or under this many big blinds: shove or fold
-SHORT_SHOVE_SHARE = 0.55  # top share shoved when short and unopened
+SHORT_BB, SHORT_SHOVE_SHARE = 12, 0.55  # at or under this many big blinds: shove this top share or fold
 CBET_P, BARREL_P, BLUFF_RIVER_P, SCARE_RIVER_P = 0.90, 0.62, 0.22, 0.75
 STAB_P, CHECKED_TO_BONUS = 0.40, 0.25  # bet when not the aggressor; more when checked to
-RAISE_WEAK_P = 0.45       # raise a min-bet or small bet with any two cards
-SEMIBLUFF_RAISE_P = 0.18  # raise a normal bet with a pair or a draw
+RAISE_WEAK_P, SEMIBLUFF_RAISE_P = 0.45, 0.18  # raise a min/small bet with anything; a bet with a pair/draw
 BET_SIZES = (0.5, 0.5, 0.75, 1.0, 1.0, 1.4)  # pot fractions, drawn at random: no tell
 TILT_BIG_POT_BB, TILT_BIG_POT_FRAC = 15, 0.25  # a big lost pot: whichever is larger
 TILT_STEP, TILT_DECAY, TILT_GAIN = 0.35, 0.78, 0.8  # +tilt per big loss, x per hand, aggression x
 RANK = {rank: value for value, rank in enumerate("23456789TJQKA", 2)}
-
 
 # ----------------------------------------------------------------------------- 1. wrapper
 class Agent(poker_agent_sdk.Agent):
@@ -81,11 +70,9 @@ def update_memory(state, memory):
         now = me(state).stack + (me(state).bet if state.phase == "betting" and not state.board else 0)
     if 0 < hand < state.hand_number and start > 0:
         tilt *= TILT_DECAY ** (state.hand_number - hand)
-        lost = start - now
-        if lost >= max(TILT_BIG_POT_BB * state.blinds.big_blind, TILT_BIG_POT_FRAC * start):
-            tilt = min(1.0, tilt + TILT_STEP + lost / start)
+        if start - now >= max(TILT_BIG_POT_BB * state.blinds.big_blind, TILT_BIG_POT_FRAC * start):
+            tilt = min(1.0, tilt + TILT_STEP + (start - now) / start)
     return json.dumps({"h": state.hand_number, "s": now, "t": round(tilt, 3)}).encode(), tilt
-
 
 # ----------------------------------------------------------------------------- 2. variants
 def build_rules(ranks, low_straight, flush_over_full):
@@ -96,11 +83,8 @@ def build_rules(ranks, low_straight, flush_over_full):
         counts = {r: key.count(r) for r in key}
         if max(counts.values()) > 4:
             continue
-        top = 0
-        if len(counts) == 5 and key[0] - key[4] == 4:
-            top = key[0]
-        elif len(counts) == 5 and key[:2] == (14, low_straight) and key[1] - key[4] == 3:
-            top = low_straight
+        wheel = key[:2] == (14, low_straight) and key[1] - key[4] == 3
+        top = 0 if len(counts) < 5 else key[0] if key[0] - key[4] == 4 else low_straight if wheel else 0
         order = sorted(counts, key=lambda r: (counts[r], r), reverse=True)
         shape = tuple(sorted(counts.values(), reverse=True))
         cat = {(4, 1): 7, (3, 2): full_cat, (3, 1, 1): 3, (2, 2, 1): 2, (2, 1, 1, 1): 1}.get(shape, 4 if top else 0)
@@ -112,16 +96,12 @@ def build_rules(ranks, low_straight, flush_over_full):
     return {"plain": plain, "flush": flush, "windows": windows, "ranks": ranks,
             "made": {8: 1.0, 7: 0.97, 6: 0.93, 5: 0.9, 4: 0.85}}
 
-def encode(cat, ranks):
-    value = cat
-    for r in tuple(ranks) + (0,) * (5 - len(ranks)):
-        value = value << 4 | r
-    return value
+def encode(cat, ranks):  # category then up to five ranks, four bits each
+    return reduce(lambda value, r: value << 4 | r, tuple(ranks) + (0,) * (5 - len(ranks)), cat)
 
 def rank5(cards, rules):
     key = tuple(sorted((c[0] for c in cards), reverse=True))
-    s = cards[0][1]
-    flush = cards[1][1] == s and cards[2][1] == s and cards[3][1] == s and cards[4][1] == s
+    flush = cards[0][1] == cards[1][1] == cards[2][1] == cards[3][1] == cards[4][1]
     return rules["flush" if flush else "plain"][key]
 
 FULL = build_rules(range(2, 15), 5, False)
@@ -133,10 +113,8 @@ bit = lambda r: 1 << r | (2 if r == 14 else 0)  # noqa: E731
 def postflop(hole, board, rules, exact):
     """(made, draw) scores of these private cards on this board. `exact`: all of them must
     play with exactly three board cards (Omaha's two). The board's own pairs are discounted."""
-    if exact:
-        best = max(rank5(hole + list(three), rules) for three in combinations(board, 3))
-    else:
-        best = max(rank5(five, rules) for five in combinations(hole + board, 5))
+    fives = (hole + list(three) for three in combinations(board, 3)) if exact else combinations(hole + board, 5)
+    best = max(rank5(five, rules) for five in fives)
     cat, hr, br = best >> 20, [c[0] for c in hole], sorted((c[0] for c in board), reverse=True)
     board_pairs = sum(br.count(r) >= 2 for r in set(br))
     air = 0.08 + (0.08 if 14 in hr else 0) + (0.04 if max(hr) > br[0] else 0)
@@ -192,8 +170,7 @@ def pre_omaha(cards):  # four cards work together: the second and third pairs an
     return scores[0] + 0.4 * scores[1] + 0.2 * scores[2] + (1.5 if suits[:2] == [2, 2] else 0)
 
 def distribution(score, deck, size, samples=20000):
-    """Sorted scores of this variant's starting hands (all of them, or a fixed-seed sample),
-    built at import: the preflop score -> percentile table."""
+    """Sorted scores of all (or a fixed-seed sample of) this variant's starting hands: percentiles."""
     rng = random.Random(size)
     hands = combinations(deck, 2) if size == 2 else (rng.sample(deck, size) for _ in range(samples))
     return sorted(score(list(hand)) for hand in hands)
@@ -228,7 +205,6 @@ def discard_reveal_select(state, tilt):
     cards, board = parse(state.cards), parse(state.board)
     if len(cards) != 3 or len(board) < 3 or state.can("select") is None:
         return automatic(state)
-
     def keep_value(keep):
         made, draw = postflop([cards[i] for i in keep], board, FULL, False)
         return 0.6 * made + 2.0 * draw + 0.15 * max(scariness(cards[i], board) for i in keep)
@@ -244,18 +220,17 @@ def auction_bid(state, tilt):
         return automatic(state)
     made, draw = postflop(parse(state.cards[:2]), parse(state.board), FULL, False)
     share = 0.10 if made >= 0.7 else 0.45 if draw else 0.30
-    wanted = state.pot * share * (1 + TILT_GAIN * tilt) * seeded(state, 3).uniform(0.7, 1.3)
-    wanted = min(wanted, 0.2 * me(state).stack)
+    wanted = min(state.pot * share * (1 + TILT_GAIN * tilt) * seeded(state, 3).uniform(0.7, 1.3), 0.2 * me(state).stack)
     return Action("bid", max(allowed.min_amount, min(allowed.max_amount, int(wanted))))
 
 def shown_weakness(state):
     """Extra aggression for each live opponent whose face-up cards are weak and miss the board."""
     board, bonus = parse(state.board), 0.0
     for seat in state.seats:
-        if seat.seat != state.seat and seat.status in ("active", "all_in") and seat.shown_cards:
-            if all(c[0] < 11 and all(b[0] != c[0] for b in board) and scariness(c, board) < 0.35
-                   for c in parse(seat.shown_cards)):
-                bonus += 0.12
+        if seat.seat != state.seat and seat.status in ("active", "all_in") and seat.shown_cards and all(
+                c[0] < 11 and all(b[0] != c[0] for b in board) and scariness(c, board) < 0.35
+                for c in parse(seat.shown_cards)):
+            bonus += 0.12
     return min(bonus, 0.3)
 
 def auction_pressure(state):
@@ -266,9 +241,8 @@ def auction_pressure(state):
 pre_holdem = lambda cards: pair_scores(cards)[0]  # noqa: E731
 pre_short = lambda cards: pair_scores(cards, True)[0]  # noqa: E731
 HOLDEM_DIST = distribution(pre_holdem, DECK, 2)
-# Extra fields decide reads: "pressure" (state -> extra aggression from public information;
-# default shown_weakness) and "open_scale" (opening-range multiplier; default 1.0), tuned so
-# the bot plays about the same share of hands in every variant.
+# Extra fields decide reads: "pressure" (state -> extra aggression from public information, default
+# shown_weakness); "open_scale" (opening-range multiplier, default 1.0) evens out VPIP/PFR per variant.
 VARIANTS = {
     "discard_reveal": {
         "detect": lambda state: state.phase == "select" or (len(state.cards) == 3 and not state.board),
@@ -305,10 +279,7 @@ VARIANTS = {
 def variant_of(state: GameState) -> str:
     """Name of the ruleset this table plays: the kit's name if we know it, else by its signs."""
     name = str(getattr(state.config, "variant", "") or "").lower().replace("-", "_")
-    if name in VARIANTS:
-        return name
-    return next(key for key, variant in VARIANTS.items() if variant["detect"](state))
-
+    return name if name in VARIANTS else next(key for key, variant in VARIANTS.items() if variant["detect"](state))
 
 # ----------------------------------------------------------------------------- 3. strategy
 def decide(state: GameState, variant: dict, tilt: float = 0.0) -> Action:
@@ -322,10 +293,9 @@ def decide(state: GameState, variant: dict, tilt: float = 0.0) -> Action:
     for event in state.history:  # this hand's events, split at each new board card
         streets.append([]) if event.kind == "board" else streets[-1].append(event)
     street, previous = streets[-1], next((st for st in reversed(streets[:-1]) if st), [])
-    raisers = [e.seat for e in previous if e.kind == "raise"]
     pot, to_call, river, size = state.pot, state.to_call, len(state.board) >= 5, rng.choice(BET_SIZES)
     if not to_call:
-        if raisers and raisers[-1] == state.seat:  # we were the aggressor: keep firing
+        if [e.seat for e in previous if e.kind == "raise"][-1:] == [state.seat]:  # we were the aggressor: keep firing
             p = CBET_P if len(state.board) == 3 else BARREL_P if not river else \
                 SCARE_RIVER_P if scare_card(state) else BLUFF_RIVER_P
         else:
@@ -340,11 +310,9 @@ def decide(state: GameState, variant: dict, tilt: float = 0.0) -> Action:
     if river and s < 0.5 and (i_raised or big):
         return passive(state)  # the off switch: nothing, facing a big river bet or a re-raise
     target = bet + to_call + int(size * (pot + to_call))
-    if s >= 0.8 or (s >= 0.6 and weak and rng.random() < 0.5 * agg):
-        return raise_to(state, target)
-    if not i_raised and weak and rng.random() < RAISE_WEAK_P * agg:
-        return raise_to(state, target)
-    if not i_raised and not river and 0.42 <= s < 0.7 and rng.random() < SEMIBLUFF_RAISE_P * agg:
+    if (s >= 0.8 or (s >= 0.6 and weak and rng.random() < 0.5 * agg)  # value, or raise the weak bet
+            or (not i_raised and weak and rng.random() < RAISE_WEAK_P * agg)
+            or (not i_raised and not river and 0.42 <= s < 0.7 and rng.random() < SEMIBLUFF_RAISE_P * agg)):
         return raise_to(state, target)
     if s >= 0.42 or (weak and s >= 0.2) or (not big and not river and s >= 0.3):
         return Action.call()
@@ -362,7 +330,7 @@ def preflop(state, s, agg, rng, bb, stack, bet, scale):
         if effective <= SHORT_BB:
             return shove(state) if s >= 1 - SHORT_SHOVE_SHARE * agg else passive(state)
         if s >= 1 - share:
-            limpers = sum(1 for e in state.history if e.kind == "call")
+            limpers = sum(1 for e in state.history if e.kind == "call")  # + one big blind per limper
             return raise_to(state, int(bb * (rng.choice((2.5, 3, 3, 3.5, 4)) + limpers)))
         if s >= 1 - LIMP_SHARE * (0.5 + 0.5 * scale) * agg or state.can("check"):
             return Action.call() if state.can("call") else passive(state)
@@ -387,19 +355,13 @@ def scare_card(state):
 def seats_to_act(state):
     """Active players after us up to the big blind (the last blind posted) before the flop."""
     blinds = [e.seat for e in state.history if e.kind == "blind"]
-    status = {x.seat: x.status for x in state.seats}
-    n, seat, count = max(len(state.seats), 1), state.seat, 0
-    for _ in range(n):
-        if not blinds or seat == blinds[-1]:
-            break
-        seat = (seat + 1) % n
-        count += status.get(seat) == "active"
-    return count
+    status, n = {x.seat: x.status for x in state.seats}, max(len(state.seats), 1)
+    steps = (blinds[-1] - state.seat) % n if blinds else 0
+    return sum(status.get((state.seat + k) % n) == "active" for k in range(1, steps + 1))
 
 def seeded(state, salt):
     """A generator fixed by hand, seat and how far the hand has gone: a seed reproduces."""
     return random.Random(state.hand_number * 1000003 + state.seat * 7919 + len(state.history) * 31 + salt)
-
 
 # ----------------------------------------------------------------------------- 4. helpers
 def automatic(state: GameState) -> Action:
@@ -424,8 +386,8 @@ def raise_to(state: GameState, total: int) -> Action:
     """Raise to `total` for this round, clamped; over 60% of our chips means all of them."""
     allowed = state.can("raise")
     if allowed:
-        total = allowed.max_amount if total >= 0.6 * allowed.max_amount else total
-        return Action.raise_to(max(allowed.min_amount, min(allowed.max_amount, int(total))))
+        total = allowed.max_amount if total >= 0.6 * allowed.max_amount else int(total)
+        return Action.raise_to(max(allowed.min_amount, min(allowed.max_amount, total)))
     return Action.call() if state.can("call") else passive(state)
 
 def shove(state: GameState) -> Action:
