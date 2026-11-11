@@ -22,6 +22,7 @@ simulator it averaged 26.6 points per table against the starter's 19.0 (par is 1
 | `tools/fuzz.py` | Throws random and malformed states at a bot; any exception or illegal action is a failure. |
 | `tools/gen_variant_tables.py` | Measures the per-variant tables embedded in the core (Monte Carlo on the mini simulator's rules). |
 | `tools/field_report.py` | Reads hand histories and says what the field is (dead seats, shovers, stations) and what to change. |
+| `tools/field_fit.py` | Measures a field from its hand histories, builds a look-alike field from zoo bots, and tries other values for a bot's `SETTINGS` against it (`--sweep`). |
 | `tools/check_zoo.py` | Upload check, upload-test imitation and a short match for zoo bots, per variant. |
 | `tools/gen_preflop.py` | Regenerates the hold'em preflop equity table embedded in a bot. |
 | `ui/` | Local web page for building line-ups, running matches, comparing runs and replaying hands. Uses the organizers' kit when it is installed. |
