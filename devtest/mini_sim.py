@@ -175,9 +175,11 @@ class Table:
             self.log.append(Event("blind", seat, paid))
         # Replay-only events (chips moved without a public event), keyed by log position.
         marks: list[tuple[int, list]] | None = [] if self.hands is not None else None
-        # `shown` holds each seat's face-up cards, for variants that expose some.
+        # For variants: `shown` holds each seat's face-up cards, `deck` the undealt cards,
+        # and `dead` chips paid into the pot outside the betting (they go to the main pot).
         context = dict(hand=hand, level=level, blinds=blinds, alive=alive, hole=hole, bet=bet,
-                       total=total, folded=folded, board=board, shown={}, marks=marks)  # fmt: skip
+                       total=total, folded=folded, board=board, shown={}, marks=marks,
+                       deck=deck, dead=0)  # fmt: skip
 
         first = self.next_seat(big_seat, alive)
         for street in range(4):
@@ -205,8 +207,8 @@ class Table:
         contenders = alive - folded
         if len(contenders) == 1:
             winner = next(iter(contenders))
-            stacks[winner] += sum(total)
-            self.log.append(Event("win", winner, sum(total)))
+            stacks[winner] += sum(total) + context["dead"]
+            self.log.append(Event("win", winner, sum(total) + context["dead"]))
         else:
             while len(board) < 5:
                 board.append(deck.pop())
@@ -216,6 +218,8 @@ class Table:
             previous = 0
             for level_amount in sorted({total[seat] for seat in contenders}):
                 side = sum(min(c, level_amount) - min(c, previous) for c in total)
+                if previous == 0:
+                    side += context["dead"]
                 eligible = [seat for seat in contenders if total[seat] >= level_amount]
                 best = max(ranks[seat] for seat in eligible)
                 winners = sorted(seat for seat in eligible if ranks[seat] == best)
@@ -334,7 +338,7 @@ class Table:
             seat=seat,
             cards=context["hole"][seat],
             board=tuple(context["board"]),
-            pot=sum(context["total"]),
+            pot=sum(context["total"]) + context["dead"],
             to_call=to_call,
             legal_actions=legal,
             history=tuple(self.log[self.hand_start :]),

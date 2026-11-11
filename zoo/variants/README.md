@@ -17,6 +17,15 @@ one. Rulesets here are therefore of three kinds, and each file says which it is:
 | --- | --- | --- | --- |
 | [`holdem.md`](holdem.md) | `holdem` | official (the base game) | Yes |
 | [`discard_reveal.md`](discard_reveal.md) | `discard_reveal` | reported (Bay Area regional) | Yes, with guesses |
+| [`short_deck.md`](short_deck.md) | `short_deck` | practice: changed deck and hand ranking | Yes |
+| [`omaha.md`](omaha.md) | `omaha` | practice: four hole cards, exactly two play | Yes |
+| [`auction.md`](auction.md) | `auction` | practice: a bidding phase for an extra card | Yes |
+
+The four variants were picked to cover the kinds of twist entrants and the organizers'
+wording point to: an extra phase that chooses cards (`discard_reveal`), a changed deck and
+ranking (`short_deck`), extra hole cards with a rule on which play (`omaha`), and an extra
+phase that spends chips (`auction`). The real variant will be something else; a bot that
+handles all four through one `VARIANTS` table is quick to convert.
 
 ## The base game
 

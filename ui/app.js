@@ -482,8 +482,8 @@ function seatName(seat) { return R.table.seats[seat].label; }
 function buildSteps(h, t) {
   const n = h.start.length;
   const total = h.start.reduce((a, b) => a + b, 0);
-  const st = { stack: h.start.slice(), bet: Array(n).fill(0), pot: 0, board: [], folded: Array(n).fill(false), shown: Array(n).fill(false), act: Array(n).fill(""), won: Array(n).fill(0), acting: null, newCards: 0, discarded: Array(n).fill(null), revealed: Array(n).fill(null) };
-  const snap = (text, kind) => ({ ...st, stack: st.stack.slice(), bet: st.bet.slice(), board: st.board.slice(), folded: st.folded.slice(), shown: st.shown.slice(), act: st.act.slice(), won: st.won.slice(), discarded: st.discarded.slice(), revealed: st.revealed.slice(), text, kind, chips: st.stack.reduce((a, b) => a + b, 0) + st.bet.reduce((a, b) => a + b, 0) + st.pot });
+  const st = { stack: h.start.slice(), bet: Array(n).fill(0), pot: 0, board: [], folded: Array(n).fill(false), shown: Array(n).fill(false), act: Array(n).fill(""), won: Array(n).fill(0), acting: null, newCards: 0, discarded: Array(n).fill(null), revealed: Array(n).fill(null), extra: Array(n).fill(null) };
+  const snap = (text, kind) => ({ ...st, stack: st.stack.slice(), bet: st.bet.slice(), board: st.board.slice(), folded: st.folded.slice(), shown: st.shown.slice(), act: st.act.slice(), won: st.won.slice(), discarded: st.discarded.slice(), revealed: st.revealed.slice(), extra: st.extra.slice(), text, kind, chips: st.stack.reduce((a, b) => a + b, 0) + st.bet.reduce((a, b) => a + b, 0) + st.pot });
   const steps = [snap(`Hand ${h.hand} dealt · button ${esc(seatName(h.button))}`, "hand")];
   let blinds = 0, allin = false, showdown = false, ok = true;
   const collect = () => { st.pot += st.bet.reduce((a, b) => a + b, 0); st.bet.fill(0); };
@@ -522,6 +522,13 @@ function buildSteps(h, t) {
       st.discarded[seat] = cards[0]; st.act[seat] = "discard"; text = `${nm} discards ${card(cards[0])} face down`;
     } else if (kind === "reveal") {
       st.revealed[seat] = cards[0]; st.act[seat] = "reveal"; text = `${nm} turns ${card(cards[0])} face up`;
+    } else if (kind === "bid") {
+      st.act[seat] = `bid ${fmt(amount)}`; text = `${nm} bid ${fmt(amount)}`;
+    } else if (kind === "auction") {
+      st.stack[seat] -= amount; st.pot += amount; st.act[seat] = `won auction`;
+      text = `${nm} wins the auction and pays ${fmt(amount)} into the pot${st.stack[seat] === 0 ? " (all-in)" : ""}`;
+    } else if (kind === "extra") {
+      st.extra[seat] = cards[0]; text = `${nm} receives ${card(cards[0])}`;
     } else if (kind === "show") {
       st.shown[seat] = true; showdown = true; text = `${nm} shows ${cards.map((c) => card(c)).join(" ")}`;
     } else if (kind === "win" || kind === "leftover") {
@@ -597,7 +604,7 @@ function renderStep() {
     html += `<div class="${cls}" style="left:${x}%;top:${y}%" data-seat="${i}">
       <div class="nm" title="${esc(t.seats[i].bot)}">${esc(t.seats[i].label)}</div>
       <div class="stk">${out ? "—" : fmt(sp.stack[i])}</div>
-      <div class="hole">${out ? "" : cards.map((c) => card(c, c === sp.discarded[i] ? "discarded" : c === sp.revealed[i] ? "revealed" : "")).join("")}</div>
+      <div class="hole">${out ? "" : cards.map((c) => card(c, c === sp.discarded[i] ? "discarded" : c === sp.revealed[i] ? "revealed" : "")).join("")}${!out && sp.extra[i] ? card(sp.extra[i], "extra") : ""}</div>
       <div class="tags">${tags.join("")}</div>
       <div class="act">${esc(sp.act[i])}</div></div>`;
     if (sp.bet[i]) {

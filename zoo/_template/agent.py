@@ -93,11 +93,33 @@ def discard_reveal_select(state: GameState) -> Action:
     return Action("select", cards=(discard, reveal))
 
 
+def auction_bid(state: GameState) -> Action:
+    """zoo/variants/auction.md: one sealed bid for an extra hole card. REPLACE the sizing."""
+    allowed = state.can("bid")
+    wanted = state.blinds.big_blind if best_two_strength(state) >= 0.85 else 0
+    return Action("bid", max(allowed.min_amount, min(allowed.max_amount, int(wanted))))
+
+
 VARIANTS = {
     "discard_reveal": {
-        "detect": lambda state: state.phase == "select" or len(state.cards) == 3,
+        "detect": lambda state: state.phase == "select" or (len(state.cards) == 3 and not state.board),
         "phases": {"select": discard_reveal_select},
         "strength": best_two_strength,
+    },
+    "omaha": {  # exactly two of the four private cards play
+        "detect": lambda state: len(state.cards) == 4,
+        "phases": {},
+        "strength": best_two_strength,
+    },
+    "auction": {
+        "detect": lambda state: state.phase == "bid",
+        "phases": {"bid": auction_bid},
+        "strength": best_two_strength,  # REPLACE: the auction winner holds three cards, all of which play
+    },
+    "short_deck": {  # nothing in the state marks it: recognised by state.config.variant only
+        "detect": lambda state: False,
+        "phases": {},
+        "strength": best_two_strength,  # REPLACE: no cards below 6, and a flush beats a full house
     },
     "holdem": {  # keep last: the fallback when nothing else is recognised
         "detect": lambda state: True,
