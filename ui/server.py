@@ -24,6 +24,7 @@ import os
 import random
 import re
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -56,13 +57,17 @@ _spec.loader.exec_module(mini_sim)
 # ---------------------------------------------------------------------------- organizers' kit
 KIT: Path | None = None  # the kit's `poker-agent` executable, when found
 HISTORY_DIR = ROOT / "hand-history"
+VIEWER_PORT = 8766  # where the kit's replay viewer is started
 KIT_CHUNKS = 9  # a kit run is split into this many `poker-agent play` calls for progress and error bars
 
 
 def find_kit(explicit=None) -> Path | None:
-    """The kit's `poker-agent`: --kit, $POKER_AGENT, next to this Python, or on PATH."""
+    """The kit's `poker-agent`: --kit, $POKER_AGENT, next to this Python, on PATH, or in a
+    `starter-kit` folder inside or beside this project (where the setup skill unpacks it)."""
     candidates = [explicit, os.environ.get("POKER_AGENT"),
                   Path(sys.executable).parent / "poker-agent", shutil.which("poker-agent")]  # fmt: skip
+    for kit in (ROOT / "starter-kit", ROOT.parent / "starter-kit", Path.home() / "work" / "starter-kit"):
+        candidates += [kit / ".venv" / "bin" / "poker-agent", kit / ".venv" / "Scripts" / "poker-agent.exe"]
     for candidate in candidates:
         if candidate and Path(candidate).is_file():
             return Path(candidate).absolute()
@@ -71,7 +76,7 @@ def find_kit(explicit=None) -> Path | None:
 
 def find_replay() -> Path | None:
     """The kit's hand viewer command, installed beside `poker-agent`."""
-    for candidate in (KIT and KIT.parent / "replay", shutil.which("replay")):
+    for candidate in (KIT and KIT.parent / "replay", KIT and KIT.parent / "replay.exe", shutil.which("replay")):
         if candidate and Path(candidate).is_file():
             return Path(candidate).absolute()
     return None
@@ -112,9 +117,13 @@ def open_viewer(history: Path) -> str:
     if replay is None:
         raise ValueError(f"The kit's `replay` command was not found. Run it yourself: replay {history}")
     stop_viewer()
+    # A fixed port, so it can be forwarded over SSH when this runs on the build machine.
+    port = VIEWER_PORT
     with socket.socket() as probe:
-        probe.bind(("127.0.0.1", 0))
-        port = probe.getsockname()[1]
+        try:
+            probe.bind(("127.0.0.1", port))
+        except OSError:
+            raise ValueError(f"Port {port} is in use; restart this server with another --viewer-port.") from None
     process = subprocess.Popen([str(replay), str(history), "--no-open", "--port", str(port)], cwd=ROOT,
                                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)  # fmt: skip
     deadline = time.time() + 8
@@ -694,12 +703,18 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    global KIT, VIEWER_PORT
+    # Stop the kit's viewer too when this server is terminated, not only on Ctrl+C.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--host", default="127.0.0.1", help="Default 127.0.0.1 (this machine only).")
-    parser.add_argument("--kit", help="Path to the kit's poker-agent executable (default: look on PATH).")
+    parser.add_argument("--kit", help="Path to the kit's poker-agent executable (default: look on PATH "
+                        "and in a starter-kit folder inside or beside this project).")  # fmt: skip
+    parser.add_argument("--viewer-port", type=int, default=VIEWER_PORT,
+                        help="Port for the kit's hand viewer (default 8766).")  # fmt: skip
     options = parser.parse_args()
-    global KIT
+    VIEWER_PORT = options.viewer_port
     KIT = find_kit(options.kit)
     if options.kit and KIT is None:
         parser.error(f"--kit {options.kit}: no such file")

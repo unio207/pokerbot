@@ -13,12 +13,26 @@ import argparse
 import json
 import math
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SPARRING = HERE / "sparring"
+
+
+def find_kit() -> str:
+    """The kit's `poker-agent`: on PATH, or in a `starter-kit` folder inside or beside this
+    project, or in ~/work (where the competition's setup skill unpacks it)."""
+    found = shutil.which("poker-agent")
+    if found:
+        return found
+    for kit in (HERE / "starter-kit", HERE.parent / "starter-kit", Path.home() / "work" / "starter-kit"):
+        for candidate in (kit / ".venv" / "bin" / "poker-agent", kit / ".venv" / "Scripts" / "poker-agent.exe"):
+            if candidate.is_file():
+                return str(candidate)
+    return "poker-agent"
 
 
 def lineups(bot: Path) -> dict[str, list[Path]]:
@@ -72,13 +86,14 @@ def main() -> None:
     elif options.mini:
         runner = [sys.executable, str(HERE / "devtest" / "mini_sim.py")]
     else:
-        runner = ["poker-agent"]
+        runner = [find_kit()]
     print(f"runner: {' '.join(runner)}" + ("   (UNOFFICIAL rules)" if options.mini else ""))
 
     try:
         checked = run(runner, ["check", str(bot / "agent.py")])
     except FileNotFoundError:
-        sys.exit("`poker-agent` not found. Activate the starter kit's environment, or pass --mini.")
+        sys.exit("`poker-agent` not found. Put the kit in a `starter-kit` folder beside this project, "
+                 "activate its environment, or pass --mini.")
     if checked.returncode != 0:
         sys.exit(f"upload check FAILED:\n{checked.stdout}{checked.stderr}")
     print("upload check: passed\n")
