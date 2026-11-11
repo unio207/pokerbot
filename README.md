@@ -28,6 +28,7 @@ simulator it averaged 26.6 points per table against the starter's 19.0 (par is 1
 | `ui/` | Local web page for building line-ups, running matches, comparing runs and replaying hands. Uses the organizers' kit when it is installed. |
 | `zoo/` | Opponent bots to tune against, with a template and instructions for adding one (`zoo/README.md`). |
 | `docs/` | Competition research, baseline strategies, edge plan, bot-zoo guide and a strategy research prompt. |
+| `rehearsal/` | A sealed variant for a timed conversion rehearsal. Read `rehearsal/README.md`; do not open its `RULES.md` before the timer starts. |
 | `devtest/` | Unofficial mini simulator and SDK stand-in, for when the kit is not installed. |
 
 ## Practising under the real rules

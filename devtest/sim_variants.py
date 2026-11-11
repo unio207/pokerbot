@@ -241,5 +241,63 @@ class Irish(Holdem):
         return Action("discard", cards=(first, second))
 
 
+class Rehearsal(Holdem):
+    """rehearsal/RULES.md: the sealed variant for the timed conversion rehearsal. The rules
+    file is the specification, written the way the organizers write theirs; this class is
+    the "kit engine" for it. Do not convert a bot to it outside a timed rehearsal."""
+
+    name = "rehearsal"
+    title = "Rehearsal (sealed: rules in rehearsal/RULES.md)"
+    STAND = Action("draw")
+
+    def after_board(self, table, context, street):
+        live = sorted(context["alive"] - context["folded"])
+        if street != 2 or len(live) < 2:
+            return
+        choices = {
+            seat: table.ask(seat, 0, (LegalAction("draw", 0, 1),), context, phase="draw",
+                            fallback=self.STAND, validate=self.validate).cards  # fmt: skip
+            for seat in live
+        }
+        for seat in live:
+            table.log.append(Event("draw", seat, len(choices[seat])))
+        for seat in live:
+            if not choices[seat]:
+                continue
+            index = choices[seat][0]
+            cards = list(context["hole"][seat])
+            thrown, cards[index] = cards[index], context["deck"].pop()
+            context["hole"][seat] = tuple(cards)
+            table.log.append(Event("discard", seat, 0, (thrown,)))
+            if context["marks"] is not None:  # replay only: the new card is private
+                context["marks"].append((len(table.log), ["extra", seat, 0, [cards[index]]]))
+
+    def validate(self, action, state):
+        """The action to play, or None when it is illegal (a failed decision)."""
+        if action.amount:
+            return None
+        if not action.cards:
+            return self.STAND
+        if len(action.cards) != 1:
+            return None
+        try:
+            index = int(action.cards[0])
+        except (TypeError, ValueError):
+            return None
+        return Action("draw", cards=(index,)) if 0 <= index < len(state.cards) else None
+
+    def rank(self, hole, board, hand_rank):
+        return max(self.five(five) for five in combinations(tuple(hole) + tuple(board), 5))
+
+    @staticmethod
+    def five(cards) -> tuple:
+        value = rank_five(cards)
+        if value[0] in (8, 4):  # see the rules file
+            ranks = sorted((RANK[card[0]] for card in cards), reverse=True)
+            return (5 if value[0] == 8 else 0, *ranks)
+        return value
+
+
 VARIANTS = {variant.name: variant
-            for variant in (Holdem(), DiscardReveal(), ShortDeck(), Omaha(), Auction(), Irish())}  # fmt: skip
+            for variant in (Holdem(), DiscardReveal(), ShortDeck(), Omaha(), Auction(), Irish(),
+                            Rehearsal())}  # fmt: skip

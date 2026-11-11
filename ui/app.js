@@ -38,6 +38,7 @@ const S = {
 // or server behaviour the page shows) add an entry at the top: the next number, the exact
 // time with its UTC offset (run `date -Iminutes`), and one line saying what changed.
 const VERSIONS = [
+  { v: "v4", when: "2026-11-11T16:26+00:00", note: "A sealed Rehearsal variant in the variant list, for the timed conversion rehearsal." },
   { v: "v3", when: "2026-11-11T02:13-05:00", note: "Irish in the variant names, hovers and replay; version history on the version pill." },
   { v: "v2", when: "2026-11-11T01:40-05:00", note: "Poker terms with plain hovers; a cleaner, simpler layout." },
   { v: "v1", when: "2026-11-11T01:09-05:00", note: "Simplified page, hover explanations, run log, rankings, first design pass." },
@@ -46,7 +47,7 @@ const versionTime = (when) => new Date(when).toLocaleString(undefined, { dateSty
 
 const E = { kit: null, variants: {} };
 const variantTitle = (v) => (v === "kit" ? "organizers' kit" : E.variants[v] || v);
-const VARIANT_SHORT = { holdem: "Hold'em", discard_reveal: "Discard & reveal", short_deck: "Short deck", omaha: "Omaha", auction: "Auction", irish: "Irish", kit: "Kit" };
+const VARIANT_SHORT = { holdem: "Hold'em", discard_reveal: "Discard & reveal", short_deck: "Short deck", omaha: "Omaha", auction: "Auction", irish: "Irish", rehearsal: "Rehearsal", kit: "Kit" };
 const variantShort = (v) => VARIANT_SHORT[v] || variantTitle(v);
 
 // ------------------------------------------------------------------ glossary
@@ -63,6 +64,7 @@ const VARIANT_TEXT = {
   omaha: "Omaha: each bot gets 4 private cards and must use exactly 2 of them with exactly 3 of the shared cards.",
   auction: "Auction: after the first three shared cards every bot secretly bids chips for an extra private card. The highest bidder gets it and pays the second-highest bid into the pot.",
   irish: "Irish: each bot gets 4 private cards. After the first three shared cards it throws two away face down and plays on with the other two, as in hold'em.",
+  rehearsal: "Rehearsal: a sealed practice variant for the timed conversion rehearsal. Its rules are in rehearsal/RULES.md; do not read them before the timer starts.",
   kit: "The variant built into the organizers' kit.",
 };
 const TERMS = {
