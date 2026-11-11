@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+hand-history/
+_gen_tmp.py
