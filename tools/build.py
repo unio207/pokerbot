@@ -6,7 +6,9 @@
 
 Profile names are the string keys of the top-level `PROFILES = {...}` dict literal in the
 core (read with `ast`; the core is never imported). Each bot is the core source with its
-one top-level `ACTIVE = "..."` line replaced by `ACTIVE = "<name>"`.
+one top-level `ACTIVE = "..."` line replaced by `ACTIVE = "<name>"`, and the one
+`Profile:` line of its zoo-format header replaced by the profile's name and its line in
+the core's top-level `ABOUT = {...}` dict.
 """
 
 import argparse
@@ -18,25 +20,45 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ACTIVE_LINE = re.compile(r'^ACTIVE = "[^"\n]*"[ \t]*$', re.M)
+PROFILE_LINE = re.compile(r"^Profile:  .*$", re.M)
+
+
+def top_level_dict(source: str, name: str) -> ast.Dict:
+    for node in ast.parse(source).body:
+        targets = node.targets if isinstance(node, ast.Assign) else [getattr(node, "target", None)]
+        if any(isinstance(t, ast.Name) and t.id == name for t in targets):
+            if not isinstance(node.value, ast.Dict):
+                sys.exit(f"build: {name} is not a dict literal")
+            return node.value
+    sys.exit(f"build: no top-level {name} dict in the core")
 
 
 def profile_names(source: str) -> list[str]:
-    for node in ast.parse(source).body:
-        targets = node.targets if isinstance(node, ast.Assign) else [getattr(node, "target", None)]
-        if any(isinstance(t, ast.Name) and t.id == "PROFILES" for t in targets):
-            if not isinstance(node.value, ast.Dict):
-                sys.exit("build: PROFILES is not a dict literal")
-            keys = [k.value for k in node.value.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)]
-            if len(keys) != len(node.value.keys) or not keys:
-                sys.exit("build: PROFILES keys must all be string constants")
-            return keys
-    sys.exit("build: no top-level PROFILES dict in the core")
+    node = top_level_dict(source, "PROFILES")
+    keys = [k.value for k in node.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)]
+    if len(keys) != len(node.keys) or not keys:
+        sys.exit("build: PROFILES keys must all be string constants")
+    return keys
 
 
-def stamp(source: str, name: str) -> str:
+def about(source: str) -> dict[str, str]:
+    """The one-line description of each profile, for the `Profile:` header line."""
+    try:
+        return {str(key): str(value) for key, value in ast.literal_eval(top_level_dict(source, "ABOUT")).items()}
+    except ValueError:
+        sys.exit("build: ABOUT must be a dict of string constants")
+
+
+def stamp(source: str, name: str, described: dict[str, str]) -> str:
     if len(ACTIVE_LINE.findall(source)) != 1:
         sys.exit(f'build: core must contain exactly one top-level line like ACTIVE = "final" '
                  f"(found {len(ACTIVE_LINE.findall(source))})")
+    if len(PROFILE_LINE.findall(source)) != 1:
+        sys.exit(f"build: core header must contain exactly one line starting `Profile:  ` "
+                 f"(found {len(PROFILE_LINE.findall(source))})")
+    if name not in described:
+        sys.exit(f"build: ABOUT has no line for profile {name!r}")
+    source = PROFILE_LINE.sub(lambda _: f"Profile:  {name}. {described[name]}", source)
     return ACTIVE_LINE.sub(lambda _: f'ACTIVE = "{name}"', source)
 
 
@@ -47,10 +69,10 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=ROOT / "bots")
     args = parser.parse_args()
     source = args.core.read_text()
-    names = profile_names(source)
+    names, described = profile_names(source), about(source)
     bad = 0
     for name in names:
-        want, path = stamp(source, name), args.out / name / "agent.py"
+        want, path = stamp(source, name, described), args.out / name / "agent.py"
         if args.check:
             have = path.read_text() if path.exists() else None
             if have == want:

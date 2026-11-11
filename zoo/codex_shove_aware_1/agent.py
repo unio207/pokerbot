@@ -1,5 +1,9 @@
-"""Source: Codex, this session. Profile: D. Shove-aware counterstrategy.
-Notes: Range-bucket all-in calls, closing-action ICM, bounded shover tracking.
+"""Shove-aware counterstrategy zoo opponent (strategy D).
+
+Source:   Codex, this session.
+Profile:  D. Shove-aware counterstrategy.
+Variants: holdem
+Notes:    Range-bucket all-in calls, closing-action ICM, bounded shover tracking.
 
 Standard hold'em only. Positional/shove policies are the user's estimates, not
 solver solutions. Range-equity and tie tables use 5,000 seeded samples per cell

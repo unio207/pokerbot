@@ -1,5 +1,9 @@
-"""Source: Codex, this session. Profile: E. Adaptive ICM/exploitation.
-Notes: Shove-aware calls plus fold/station/minraise reads, cheap steals and value sizing.
+"""Adaptive ICM and exploitation zoo opponent (strategy E).
+
+Source:   Codex, this session.
+Profile:  E. Adaptive ICM/exploitation.
+Variants: holdem
+Notes:    Shove-aware calls plus fold/station/minraise reads, cheap steals and value sizing.
 
 Standard hold'em only. Positional/shove policies are the user's estimates, not
 solver solutions. Range-equity and tie tables use 5,000 seeded samples per cell
