@@ -105,3 +105,79 @@ that port is forwarded above.
   exist in the current kit.
 - The Claude desktop app and Codex are both supported on the build machine, so using
   Claude there is expected by the organizers.
+
+## Converting to the announced variant
+
+The steps to turn `bots/final` into a bot for a variant we have not seen. Rehearsed on
+2026-11-11 with `irish` (four hole cards, discard two after the flop), a variant written
+for the purpose: the converted bot scored 30.9 points per table against 17.3 for the
+unconverted one at the same tables (300 tables, mini simulator), with no failed
+decisions and the bot's error handler switched off.
+
+1. **Read the kit's `RULES.md`** and write the variant down as `zoo/variants/<name>.md`
+   from [`TEMPLATE.md`](../zoo/variants/TEMPLATE.md). The "What a bot must implement"
+   section is the checklist for step 3. Note the exact phase names, action forms and
+   `state.config.variant`.
+2. **Upload `bots/final/agent.py` unchanged first.** It answers an unknown phase with the
+   automatic choice, so it is legal in any variant and the team has an active bot.
+3. **Add one entry to `VARIANTS` in `tools/core_agent.py`**, using the `irish` entry as
+   the pattern:
+   - `detect`: the phase name or card count that marks the variant.
+   - `phases`: one handler per extra phase, returning the kit's action form. Fall back to
+     `automatic(state)` when the cards are not what the ruleset says.
+   - `preflop`: a score of the private cards mapped to (equity, percentile). Try two or
+     three scores and keep the one that predicts winning best.
+   - `postflop`: which private cards play with the board. `holdem_postflop` already
+     takes the best two-card combination of any number of cards.
+4. **Measure its tables.** Add a job to `tools/gen_variant_tables.py` (the `irish` job is
+   four lines) and run it. On the mini simulator this needs the variant as a class in
+   `devtest/sim_variants.py`; with the kit, deal the hands with the kit's engine instead.
+
+   ```bash
+   python3.12 tools/gen_variant_tables.py tools/core_agent.py --samples 400000
+   ```
+
+   This remeasures every variant's tables; keep only the new variant's lines if the
+   others should stay as they were.
+5. **Rebuild and check.**
+
+   ```bash
+   python3.12 tools/build.py
+   ```
+
+   ```bash
+   python3.12 tools/fuzz.py bots/final --states 20000
+   ```
+
+   ```bash
+   python3.12 tools/check_zoo.py --variant <name> bots/final
+   ```
+
+6. **Compare with the unconverted bot on the kit**, same seed, before uploading. Keep the
+   unconverted upload selectable on the team page as the rollback.
+
+What the rehearsal did not cover: reading an unfamiliar `RULES.md`, the kit's real phase
+names and action forms, a changed deck or hand ranking (see the `short_deck` entry for
+that pattern), and timing on the build machine. The rehearsal took a few minutes because
+the variant, the simulator class and the bot were all ours; budget most of the hour.
+
+## Reading the field between rounds
+
+```bash
+python3.12 tools/field_report.py <downloaded history file> --hero <our team name>
+```
+
+prints each opponent's habits, the mix of types in the field and which `PROFILES` knobs
+to change. The organizers' file format was not available beforehand, so the first run on
+a real file may recognise no hands. Then:
+
+```bash
+python3.12 tools/field_report.py --inspect <downloaded history file>
+```
+
+shows the file's structure; match it in the one function `kit_hands` in
+`tools/field_report.py`. To see the report on our own simulator:
+
+```bash
+python3.12 tools/field_report.py --simulate bots/final starter sparring/shover sparring/nit sparring/check_or_fold --tables 40 --hero final
+```

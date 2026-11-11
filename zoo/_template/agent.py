@@ -100,7 +100,18 @@ def auction_bid(state: GameState) -> Action:
     return Action("bid", max(allowed.min_amount, min(allowed.max_amount, int(wanted))))
 
 
+def irish_discard(state: GameState) -> Action:
+    """zoo/variants/irish.md: throw away two of four cards once the flop is out."""
+    keep = best_two(state.cards)
+    return Action("discard", cards=tuple(index for index in range(len(state.cards)) if index not in keep)[:2])
+
+
 VARIANTS = {
+    "irish": {  # four cards before the flop, the two kept afterwards
+        "detect": lambda state: state.phase == "discard",
+        "phases": {"discard": irish_discard},
+        "strength": best_two_strength,  # REPLACE: before the flop four cards are worth more than their best two
+    },
     "discard_reveal": {
         "detect": lambda state: state.phase == "select" or (len(state.cards) == 3 and not state.board),
         "phases": {"select": discard_reveal_select},

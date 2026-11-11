@@ -1,17 +1,29 @@
 # Pokerbot practice setup (No Limit, Pittsburgh)
 
-A starter bot, five sparring opponents, and a practice runner. The bot is written against
-the interface in the organizers' starter kit (`poker_agent_sdk`: `act(state, memory) ->
-(Action, bytes)`), so `starter/agent.py` is uploadable as is.
+Our competition bots, a starter bot, opponents to practise against, and the tools to
+measure them. Every bot is written against the interface in the organizers' starter kit
+(`poker_agent_sdk`: `act(state, memory) -> (Action, bytes)`), so any `agent.py` here is
+uploadable as is.
+
+**The bot to upload is `bots/final/agent.py`.** Over 1,500 tables per line-up on the mini
+simulator it averaged 26.6 points per table against the starter's 19.0 (par is 12.5).
 
 ## What is here
 
 | Path | What it is |
 | --- | --- |
-| `starter/agent.py` | The starter bot. One file, standard library only. |
+| `bots/<profile>/agent.py` | Seven strategy bots, `final` being the one to upload. Generated: edit `tools/core_agent.py`, then run `tools/build.py`. |
+| `tools/core_agent.py` | The single source of those bots, in the zoo template's layout: one `VARIANTS` entry per ruleset, the profiles' tuning knobs in `PROFILES`. |
+| `starter/agent.py` | The original starter bot, kept as the baseline. One file, standard library only. |
 | `sparring/*/agent.py` | Opponents: `check_or_fold`, `min_raiser`, `calling_station`, `shover`, `nit`. |
 | `practice.py` | Upload check, then five line-ups, reporting points per table and failed decisions. |
-| `tools/gen_preflop.py` | Regenerates the preflop equity table embedded in a bot. |
+| `tools/build.py` | Stamps `bots/<profile>/agent.py` from the core; `--check` fails if one has drifted. |
+| `tools/bench.py` | Compares bots over fixed line-ups on the same deals, with standard errors. |
+| `tools/fuzz.py` | Throws random and malformed states at a bot; any exception or illegal action is a failure. |
+| `tools/gen_variant_tables.py` | Measures the per-variant tables embedded in the core (Monte Carlo on the mini simulator's rules). |
+| `tools/field_report.py` | Reads hand histories and says what the field is (dead seats, shovers, stations) and what to change. |
+| `tools/check_zoo.py` | Upload check, upload-test imitation and a short match for zoo bots, per variant. |
+| `tools/gen_preflop.py` | Regenerates the hold'em preflop equity table embedded in a bot. |
 | `ui/` | Local web page for building line-ups, running matches, comparing runs and replaying hands. Uses the organizers' kit when it is installed. |
 | `zoo/` | Opponent bots to tune against, with a template and instructions for adding one (`zoo/README.md`). |
 | `docs/` | Competition research, baseline strategies, edge plan, bot-zoo guide and a strategy research prompt. |
@@ -112,6 +124,14 @@ real kit is the real test: if `poker-agent play` rejects an option, the page sho
 kit's error message.
 
 ![Hand replay](ui/screenshots/replay.png)
+
+## How the competition bots are organised
+
+`tools/core_agent.py` follows [`zoo/_template/README.md`](zoo/_template/README.md): a
+crash-proof `act`, a `VARIANTS` table with one entry per ruleset in `zoo/variants/`
+(how to recognise the variant, its extra phases, how to score our cards), the betting
+strategy written once, and helpers. To convert it to the announced variant, follow
+"Converting to the announced variant" in [`docs/event-day-setup.md`](docs/event-day-setup.md).
 
 ## How the starter bot is organised
 

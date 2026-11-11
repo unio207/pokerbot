@@ -13,6 +13,8 @@ the mini simulator plays (devtest/sim_variants.py):
   _OMAHA_FIT       omaha: equity as a line in the mean two-card equity of four cards
   _OMAHA_MARKS     omaha: that score at each 5% step of all hands, best first
   _OMAHA_MADE      omaha: equity of the best two-plus-three hand, by street and category
+  _IRISH_FIT       irish: equity as a line in the average of the best and the mean two-card equity
+  _IRISH_MARKS     irish: that score at each 5% step of all hands, best first
 
 `--samples` is the number of deals per table. Then run tools/build.py to restamp the bots.
 These are measurements of our own re-implementation of each ruleset, not of the kit.
@@ -57,7 +59,7 @@ def omaha_rank(bot, hole, board) -> tuple:
 
 
 def keep_two(bot, cards, flop):
-    """The discard a bot makes in discard_reveal: keep the pair that plays best with the flop."""
+    """The discard a bot makes in discard_reveal and irish: keep the pair that plays best with the flop."""
     return max(combinations(cards, 2), key=lambda pair: bot._made_strength(pair, flop))
 
 
@@ -104,13 +106,19 @@ def work(job):
             won, guessed, n = totals.get(category, (0.0, 0.0, 0))
             totals[category] = (won + result, guessed + bot._made_strength(hole, board, True), n + 1)
         return kind, totals
-    if kind == "discard" or kind == "omaha":
+    if kind in ("discard", "omaha", "irish"):
         sums, scores = [0.0] * 5, []
         for _ in range(count):
             drawn = rng.sample(DECK, 13)
             if kind == "discard":
                 mine, theirs, board = drawn[:3], drawn[3:6], tuple(drawn[6:11])
                 score = max(bot._EQUITY[bot._class_key(a, b)] for a, b in combinations(mine, 2))
+                result = outcome(bot.hand_rank(keep_two(bot, mine, board[:3]) + board),
+                                 bot.hand_rank(keep_two(bot, theirs, board[:3]) + board))  # fmt: skip
+            elif kind == "irish":
+                mine, theirs, board = drawn[:4], drawn[4:8], tuple(drawn[8:13])
+                pairs = [bot._EQUITY[bot._class_key(a, b)] for a, b in combinations(mine, 2)]
+                score = (max(pairs) + sum(pairs) / 6) / 2
                 result = outcome(bot.hand_rank(keep_two(bot, mine, board[:3]) + board),
                                  bot.hand_rank(keep_two(bot, theirs, board[:3]) + board))  # fmt: skip
             else:
@@ -159,14 +167,14 @@ def main() -> None:
     chunks = max(1, args.procs)
     per_class = max(50, args.samples // 81 // chunks)
     jobs = [("short_table", path, per_class, args.seed + chunk) for chunk in range(chunks)]
-    for offset, kind in enumerate(("short_shift", "discard", "omaha", "omaha_made"), 1):
+    for offset, kind in enumerate(("short_shift", "discard", "omaha", "omaha_made", "irish"), 1):
         jobs += [(kind, path, args.samples // chunks, args.seed + 1000 * offset + chunk) for chunk in range(chunks)]
     with multiprocessing.Pool(chunks) as pool:
         results = pool.map(work, jobs, chunksize=1)
 
     merged = {}
     for kind, part in results:
-        if kind in ("discard", "omaha"):
+        if kind in ("discard", "omaha", "irish"):
             sums, scores = merged.setdefault(kind, ([0.0] * 5, []))
             for index, value in enumerate(part[0]):
                 sums[index] += value
@@ -198,6 +206,8 @@ def main() -> None:
         "_DISCARD_MARKS": repr(marks(merged["discard"][1])),
         "_OMAHA_FIT": repr(line_fit(merged["omaha"][0])),
         "_OMAHA_MARKS": repr(marks(merged["omaha"][1])),
+        "_IRISH_FIT": repr(line_fit(merged["irish"][0])),
+        "_IRISH_MARKS": repr(marks(merged["irish"][1])),
     }
     source = args.bot.read_text()
     for name, value in values.items():

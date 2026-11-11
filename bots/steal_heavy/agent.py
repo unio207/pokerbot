@@ -3,7 +3,7 @@
 Source:   strategies branch (VedaantK, commit fa9590f); moved into the zoo template layout
           and given its variant entries by Claude (Fable 5.2)
 Profile:  steal_heavy. B. Wider opens and steals, tighter all-in calls, frequent continuation bets.
-Variants: all, as of 2026-11-11: holdem, discard_reveal, short_deck, omaha, auction
+Variants: all, as of 2026-11-11: holdem, discard_reveal, short_deck, omaha, auction, irish
 Notes:    Seven profiles share this source; `ACTIVE` below picks one and tools/build.py
           stamps a copy per profile into bots/<name>/agent.py. Hold'em play is the tuned
           original. The other variants' numbers are estimates measured on our own mini
@@ -187,6 +187,32 @@ def omaha_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
     return min(strength, 0.97), flush_draw
 
 
+def irish_preflop(state: GameState) -> tuple[float, float]:
+    """zoo/variants/irish.md: four cards, two of which we keep once the flop is known.
+    Scored as the average of their best two-card combination and the mean of all six."""
+    cards = state.cards
+    if len(cards) != 4:
+        return holdem_preflop(state)
+    pairs = [_EQUITY[_class_key(a, b)] for i, a in enumerate(cards) for b in cards[i + 1 :]]
+    score = (max(pairs) + sum(pairs) / 6) / 2
+    return _IRISH_FIT[0] + _IRISH_FIT[1] * score, _percentile_of(score, _IRISH_MARKS)
+
+
+def irish_discard(state: GameState) -> Action:
+    """Throw away two of four cards: keep the pair that plays best with the board."""
+    cards = state.cards
+    if len(cards) != 4:
+        return automatic(state)
+    best, keep = -1.0, (0, 1)
+    for i in range(3):
+        for j in range(i + 1, 4):
+            kept = (cards[i], cards[j])
+            score = _made_strength(kept, state.board) if state.board else _preflop_equity(kept)
+            if score > best:
+                best, keep = score, (i, j)
+    return Action("discard", cards=tuple(index for index in range(4) if index not in keep))
+
+
 def _five(cards) -> tuple:
     """Exactly five (rank, suit) cards as a tuple that compares correctly. Full deck."""
     ranks = sorted((card[0] for card in cards), reverse=True)
@@ -281,6 +307,10 @@ def _entry(detect, phases: dict, preflop_score, postflop_score) -> dict:
 
 
 VARIANTS = {
+    "irish": _entry(  # four cards before the flop; the two kept afterwards play as hold'em
+        lambda state: state.phase == "discard",
+        {"discard": irish_discard}, irish_preflop, holdem_postflop,
+    ),  # fmt: skip
     "discard_reveal": _entry(  # after the select phase the two kept cards play as hold'em
         lambda state: state.phase == "select" or len(state.cards) == 3,
         {"select": discard_reveal_select}, discard_reveal_preflop, holdem_postflop,
@@ -1282,6 +1312,9 @@ _OMAHA_MADE = (
     (0.226, 0.378, 0.544, 0.757, 0.807, 0.877, 0.931, 0.999, 0.999),
     (0.025, 0.198, 0.471, 0.675, 0.806, 0.87, 0.926, 0.999, 1.0),
 )
+# irish: the same for the average of the best and the mean two-card equity of the four cards.
+_IRISH_FIT = (-0.061, 1.006)
+_IRISH_MARKS = (0.853, 0.7039, 0.6609, 0.6269, 0.6111, 0.5993, 0.5896, 0.5801, 0.571, 0.5624, 0.5536, 0.5448, 0.5361, 0.527, 0.5166, 0.5051, 0.4926, 0.4784, 0.4606, 0.4375, 0.364)
 # auction: equity an extra private card adds with a draw, an ordinary hand, a made hand (estimates).
 _AUCTION_GAIN = (0.10, 0.06, 0.03)
 

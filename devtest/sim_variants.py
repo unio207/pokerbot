@@ -202,4 +202,44 @@ class Auction(Holdem):
         return best_five(tuple(hole) + tuple(board))
 
 
-VARIANTS = {variant.name: variant for variant in (Holdem(), DiscardReveal(), ShortDeck(), Omaha(), Auction())}
+class Irish(Holdem):
+    """zoo/variants/irish.md: four hole cards; after the flop every live player discards
+    two face down and plays on with the other two. Our own rehearsal variant.
+
+    GUESS: the discard comes after the flop is dealt and before flop betting.
+    GUESS: the automatic choice discards the last two cards.
+    GUESS: a `discard` action with no cards asks for the automatic choice and is legal.
+    """
+
+    name = "irish"
+    title = "Irish (4 hole cards, discard 2 after the flop)"
+    hole_cards = 4
+    AUTOMATIC = Action("discard", cards=(2, 3))
+
+    def after_board(self, table, context, street):
+        live = sorted(context["alive"] - context["folded"])
+        if street != 1 or len(live) < 2:
+            return
+        for seat in live:
+            thrown = table.ask(seat, 0, (LegalAction("discard"),), context, phase="discard",
+                               fallback=self.AUTOMATIC, validate=self.validate).cards  # fmt: skip
+            cards = context["hole"][seat]
+            context["hole"][seat] = tuple(card for index, card in enumerate(cards) if index not in thrown)
+            if context["marks"] is not None:  # replay only: discards are never public
+                context["marks"].append((len(table.log), ["discard", seat, 0, [cards[index] for index in thrown]]))
+
+    def validate(self, action, state):
+        """The action to play, or None when it is illegal (a failed decision)."""
+        if not action.cards:
+            return self.AUTOMATIC
+        try:
+            first, second = (int(index) for index in action.cards)
+        except (TypeError, ValueError):
+            return None
+        if first == second or not all(0 <= index < len(state.cards) for index in (first, second)):
+            return None
+        return Action("discard", cards=(first, second))
+
+
+VARIANTS = {variant.name: variant
+            for variant in (Holdem(), DiscardReveal(), ShortDeck(), Omaha(), Auction(), Irish())}  # fmt: skip
