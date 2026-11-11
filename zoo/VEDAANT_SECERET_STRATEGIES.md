@@ -1,11 +1,11 @@
 # Vedaant Seceret Strategies HeHeHe
 
-Handoff plan for the RubricPressure ICM zoo bot. **Bot implementation is unfinished** — finish on another device from this branch.
+Design for the RubricPressure ICM zoo bot. **The bot is implemented** in `zoo/codex_rubric_pressure_icm_1/agent.py`; results are under Strategy F in [`STRATEGIES.md`](STRATEGIES.md). The sections below are the original handoff plan, kept as the design record.
 
 ## Status on this branch
 
 - Branch: `zoo/rubric-pressure-icm` (stacked on `zoo/strategy-opponents` / PR #1)
-- Stub: `zoo/codex_rubric_pressure_icm_1/agent.py` — currently a copy of `zoo/_template` only; replace `decide` / rewrite with the design below
+- Bot: `zoo/codex_rubric_pressure_icm_1/agent.py` — implemented from the design below (was a copy of `zoo/_template`)
 - This document: full design + transfer map + validation checklist
 
 ## Decisions locked
@@ -59,7 +59,9 @@ flowchart TD
 4. **Memory:** Compact JSON like steal_value (`seat → [seen, folds, calls, raises]` + optional fold-to-agg counters), capped to `min(4096, state.config.memory_bytes)`, reset on overflow. No state on `self`.
 5. **Safety:** `legal()` clamp; non-betting phases → first legal; try/except → check/fold; header docstring with Source / Profile / Notes.
 
-## Finish checklist (other device)
+## Finish checklist
+
+Steps 1–3 are done. Not done: the neighbourhood smoke test on the bluff threshold, and any run on the organizers' kit.
 
 1. Implement full standalone `zoo/codex_rubric_pressure_icm_1/agent.py` (reimplement ideas from steal_value + adaptive ICM; do not import them).
 2. Append Strategy F to `zoo/STRATEGIES.md` (label: Vedaant Seceret Strategies HeHeHe).

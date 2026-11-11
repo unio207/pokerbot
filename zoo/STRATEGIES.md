@@ -93,3 +93,34 @@ regressions, eight opponent-classification cases, and all 500 simulated tables
 Fixed-field full-decision p99.9 was 84–192 microseconds. Scheduling outliers in
 mixed play reached 3.2 ms and used the time bank. Neither these timings nor the
 point estimates certify platform performance or a reliable strategy ordering.
+
+## Strategy F: RubricPressure ICM ("Vedaant Seceret Strategies HeHeHe")
+
+`codex_rubric_pressure_icm_1` was added after the five bots above, from Vedaant's design
+in [`VEDAANT_SECERET_STRATEGIES.md`](VEDAANT_SECERET_STRATEGIES.md). It was implemented by
+Claude (Fable 5.2), not Codex; the folder name is the one the design fixed. It is not
+covered by `strategy_validation.json` or by the generator above.
+
+| Folder | Strategy | Distinguishing behavior |
+| --- | --- | --- |
+| `codex_rubric_pressure_icm_1` | F. RubricPressure ICM | The only bot here that bluffs: small c-bets, turn/river probes and semibluff raises at rubric-set frequencies, switched off when ICM pressure is high. |
+
+- Every decision is a fixed prior plus bounded points, clipped: open and shove fractions
+  by players left to act, bluff frequencies by spot (c-bet, barrel, stab, probe, raise).
+- Per-seat counters (preflop fold/call/raise, postflop fold when facing a bet) are ignored
+  below 10 samples and reach full weight at 24.
+- ICM is a rubric (bubble distance, chip leader, shortest stack), not an exact
+  calculation. Near the bubble, a weak hand with a good bluffing story checks instead.
+- Mixed plays use a deterministic hash of the hand, seat and cards, not a random number.
+- All ranges, strengths and frequencies are hand-set estimates. Standard hold'em only.
+
+Checks on Python 3.12 with the unofficial mini simulator:
+
+| Check | Result |
+| --- | --- |
+| `tools/check_zoo.py` (upload test, then 60 tables against the sparring field) | OK, 19.0 points, 37% firsts, 0 failed decisions |
+| 200 mixed tables with A–E, `starter` and `sparring/nit` (seed `strategy-f-holdout`) | 13.25 points (A 11.45, B 12.95, C 12.05, D 12.90, E 17.30, starter 13.60), 0 failed decisions |
+| `replay_checks` from `tools/validate_strategy_zoo.py`, 60,000 generated decisions, also with the catch-all handler removed | 0 failures, memory at most 142 bytes |
+
+Full-decision p99.9 was 152–200 microseconds. As above, these small samples describe the
+bot; they do not rank it, and nothing here was run on the organizers' kit.
