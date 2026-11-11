@@ -1,5 +1,12 @@
 # Sequoia's pokerbot sprint rewards preparation over poker
 
+> **Superseded figures.** This guide was written from the public rules page. For
+> Pittsburgh, [`official-format.md`](official-format.md) and
+> [`official-getting-started.md`](official-getting-started.md) are the authority: blinds
+> rise every **20** hands (not 25), the hand cap is **250** (not 200), a round runs **at
+> least 5,000** iterations (not 10,000), uploads are limited to **one per 30 seconds**
+> (not five minutes) and the upload limit is **50 MB** (not 100 MB).
+
 Sequoia Capital's "No Limit: A Bot Building Tournament" is a free, in-person, student-only contest in which teams of one or two get 60 minutes to write a Python poker bot, which then plays six scored tournaments of 10,000 eight-bot sit-and-gos each. **Applications are closed as of November 10, 2026**: the Bay Area (Nov 6) and Boston (Nov 9) regionals have run, and only the Pittsburgh regional (Nov 12) and the invitation-only San Francisco Finals (Nov 15) remain, so anyone not already accepted cannot enter this edition. Sequoia organizes it with OpenAI and Citadel Securities as co-hosts, and the Finals pay $100,000, $50,000 and $25,000 per team, with $5,000 to each regional top-five team. The poker variant is secret until the build clock starts, bots must answer within one millisecond with no network access, and later tournaments count up to six times more than the first. Those constraints make runtime search and LLM play impossible and shift the edge to lookup tables, tournament-survival (ICM) logic, crash-proof code and fast measured iteration with a coding agent. The official sources are only the landing page and rules page; everything about the starter kit's internals and the revealed variant comes from unofficial participant repositories, and no regional results have been published.
 
 ## A Sequoia experiment with OpenAI and Citadel Securities, now closed to new entrants

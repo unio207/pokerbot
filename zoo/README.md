@@ -113,9 +113,9 @@ Tune on about two thirds of the zoo and check the final bot against the rest.
 A zoo bot is an ordinary competition bot, so its folder works unchanged as an argument to
 the kit's `poker-agent play` and in the web page's kit engine. What the mini simulator
 does and does not share with the kit is listed in
-[`devtest/README.md`](../devtest/README.md). The main gap is the variant: zoo bots are
-written for standard hold'em, and under the announced variant they will take the
-automatic choice in any extra phase unless they are rewritten.
+[`devtest/README.md`](../devtest/README.md). The main gap is the variant: a bot plays only the
+rulesets named on its `Variants:` header line, and under any other variant, including the
+announced one, it takes the automatic choice in any extra phase until an entry is added.
 
 `_template` is skipped by `check_zoo.py`. It still appears in the web page's bot list; it
 is a valid, very tight bot.

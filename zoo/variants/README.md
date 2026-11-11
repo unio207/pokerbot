@@ -20,6 +20,7 @@ one. Rulesets here are therefore of three kinds, and each file says which it is:
 | [`short_deck.md`](short_deck.md) | `short_deck` | practice: changed deck and hand ranking | Yes |
 | [`omaha.md`](omaha.md) | `omaha` | practice: four hole cards, exactly two play | Yes |
 | [`auction.md`](auction.md) | `auction` | practice: a bidding phase for an extra card | Yes |
+| [`irish.md`](irish.md) | `irish` | practice: four hole cards, discard two after the flop (the conversion rehearsal) | Yes |
 
 The four variants were picked to cover the kinds of twist entrants and the organizers'
 wording point to: an extra phase that chooses cards (`discard_reveal`), a changed deck and
