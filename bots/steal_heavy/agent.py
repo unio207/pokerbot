@@ -436,6 +436,27 @@ PROFILES = {
 
 P = {**_BASE, **PROFILES[ACTIVE]}
 
+# Day-of knobs for `tools/field_fit.py --sweep` (floats only, one pair per line).
+# Applied only when ACTIVE is "final" so other stamped profiles keep their own ranges.
+# Keep these in sync with PROFILES["final"] (and the _BASE values final still uses).
+SETTINGS = {
+    "open_size": 2.3,
+    "steal_widen": 1.15,
+    "steal_any": 0.85,
+    "call_margin": 0.05,
+    "bubble_margin": 0.08,
+    "semi_bluff": 0.3,
+    "cbet_air": 0.3,
+    "hu_open": 0.65,
+    "push_scale": 0.9,
+    "threebet": 0.03,
+    "call_raise": 0.08,
+    "points_tight": 0.08,
+    "icm_scale": 1.0,
+}
+if ACTIVE == "final":
+    P.update(SETTINGS)
+
 # Unopened shove range by effective stack (big blinds) and players behind. The 15/12/10/8/5
 # rows for 7, 3, 2 and 1 behind are from published chip-EV push/fold charts; the middle
 # position column and the 20, 3 and 1.5 rows are filled in by interpolation and judgement.

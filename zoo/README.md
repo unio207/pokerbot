@@ -89,6 +89,13 @@ The same as the competition, so that a zoo bot behaves like a real opponent:
 - Do not import from `starter/` or from another zoo bot. Each bot stands alone.
 - Do not "fix" a model's bot to make it stronger. Record it as it came.
 
+## Overnight AI-default fillers (2026-11-11)
+
+Twelve field-shaped bots under `zoo/gpt_*` and `zoo/codex_default_1`, written as typical
+first-draft assistant styles (premium-only, ace-magnet, limp-station, jammer, TAG, nit,
+draw-chaser, …). All passed `tools/check_zoo.py` with 0 failed decisions. Use them via
+the practice page or `tools/bench.py --lineup ai_field`.
+
 ## Use the zoo
 
 ```bash
