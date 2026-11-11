@@ -69,12 +69,16 @@ The page has two engines, chosen under **Match settings**:
 
 - **Organizers' kit** (the default when it is found). Every table is played by the kit's
   `poker-agent play`, so the variant, the rules and the 1 ms limit are the real ones.
-  Start the server from the kit's activated environment so `poker-agent` is on the PATH,
-  or point at it:
+  The server finds the kit when it is unpacked as `starter-kit` inside or beside this
+  folder (or in `~/work`, where the competition's setup skill puts it), when its
+  environment is active, or when you point at it:
 
   ```bash
   python ui/server.py --kit /path/to/kit/.venv/bin/poker-agent
   ```
+
+  On the team build machine, forward ports 8765 and 8766 over SSH to see the page and the
+  kit's viewer in your own browser: see [`docs/event-day-setup.md`](docs/event-day-setup.md).
 
   Hands per level, payouts and starting stack come from the kit. The kit reports failed
   decisions but not decision times. A hand history of the first 20 tables is saved under

@@ -11,12 +11,15 @@ looks like the real field instead of five hand-written opponents.
    answer is one `agent.py`.
 2. **Save.** Put each one in its own folder: `zoo/<model>_<profile>_<n>/agent.py`. The
    practice web page finds any folder with an `agent.py` up to two levels deep.
-3. **Filter lightly.** Run each through the upload check. Keep bots that crash or time
-   out: real fields contain them, and the platform plays check/fold for them. Only
-   discard ones that will not import at all.
+3. **Filter the way the platform does.** Every real upload first plays a test match
+   (heads-up against check-or-fold, up to 20 hands, no time bank) and is refused if it
+   does not start, crashes, or fails more than 10% of its decisions. So a bot that fails
+   constantly cannot be in the field. `tools/check_zoo.py` imitates that test: discard
+   `REJECTED` and `BROKEN` bots, keep `FLAKY` ones (they pass the test but fail some
+   decisions at a full table, which real bots will too).
 
    ```bash
-   for d in zoo/*/; do python3.12 devtest/mini_sim.py check "$d/agent.py" >/dev/null || echo "BROKEN $d"; done
+   python3.12 tools/check_zoo.py
    ```
 
 4. **Measure the zoo.** Play 8 random zoo bots per run a few times and note the mix:
@@ -54,10 +57,21 @@ Interface (do not invent other methods):
 - memory is bytes, empty at the start of each table, returned and handed back on the
   next turn at that table. Nothing else persists: no globals, nothing on self.
 
+- Check and call are never both offered. Fold is not offered when checking is free.
+- A raise total outside [min_amount, max_amount] is an illegal action; it is not clamped,
+  and a float amount is rounded down. Use whole numbers.
+
 Rules: no-limit hold'em, 8 players, 2,000 chips each, blinds 10/20 rising every 20
-hands, table ends at one survivor or 250 hands. Points per table: 50/30/20 for
-1st/2nd/3rd. Each decision must return within 1 ms; an error, timeout or illegal action
-is played as check-or-fold. Standard library only, plus eval7 if you want it. No network.
+hands, table ends at one survivor or 250 hands. Points per table are in
+state.config.payouts (50/30/20 for 1st/2nd/3rd by default, but they can differ per
+table); bots still in at the hand cap split the remaining points by ICM on their stacks
+(poker_agent_sdk.icm(stacks, payouts) is provided). Each decision must return within
+1 ms, with a 100 ms time bank per table for overruns; an error, timeout or illegal action
+is played as check-or-fold. Every upload first plays a short test match with no time bank
+and is rejected if more than 10% of its decisions fail. Python 3.12; you may import the
+standard library and NumPy, SciPy, pandas, scikit-learn, PyTorch (CPU), LightGBM,
+XGBoost, ONNX Runtime, Numba and eval7, nothing else. No network, no files, no state
+across tables.
 
 Team profile: <ONE OF THE PROFILES BELOW>
 ```
@@ -80,6 +94,9 @@ the field looks like.
 
 ## Caveats
 
+- The real field has no always-failing bots: the upload test screens them out, and a
+  team with no accepted upload scores zero without being seated. Expect weak and passive
+  bots, not dead seats, apart from bots that break only at a full table or mid-round.
 - These bots are written for standard hold'em. When the variant is announced, most of the
   real field will be converting in a hurry, so expect more broken bots than the zoo has.
 - Zoo results come from the unofficial mini simulator unless run through the kit's
