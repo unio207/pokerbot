@@ -27,7 +27,9 @@ and against the Bay Area kit's source.
 
 ## Differs from the kit
 
-- **Variant.** Standard hold'em only. The announced variant's extra phases, cards and
+- **Variant.** Hold'em plus our own versions of the rulesets in `zoo/variants/`, chosen
+  with `--variant` (see below). They are built from entrants' reports with guesses where
+  facts are unknown. The announced variant's real extra phases, cards and
   actions exist only in the kit. This is the big one.
 - **Timing.** Bots run inside the simulator's process, with no message passing, so
   decisions look faster than on the platform. The kit also allows a small delivery
@@ -45,6 +47,26 @@ and against the Bay Area kit's source.
   organizers' ranges are not published.
 - **Fillers and field size.** Every seat scores here; the platform fills short tables
   with bots whose finishes do not count.
+
+## Variants
+
+`sim_variants.py` holds one class per ruleset in [`zoo/variants/`](../zoo/variants/README.md),
+under the same name. A variant sets the number of hole cards and overrides a few hooks:
+the deck, an extra decision phase after a street's cards are dealt, and the showdown
+ranking. Play one with:
+
+```bash
+python3.12 devtest/mini_sim.py play starter zoo/_template sparring/nit --variant discard_reveal
+```
+
+`tools/check_zoo.py --variant <name>`, `practice.py --mini --variant <name>` and the
+practice web page's Variant box use the same list. Hold'em deals are unchanged by this:
+the same seed gives the same hold'em match as before.
+
+In a variant's own phase a failed decision gets that variant's automatic choice. A
+variant action sent with no cards is treated as asking for the automatic choice and is
+not counted as failed; the kit may count it. The guesses each variant makes are listed in
+its ruleset's "Local testing" section.
 
 ## When the kit is available
 

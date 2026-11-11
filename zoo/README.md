@@ -4,10 +4,32 @@ Opponents to tune against. Each folder here is one bot. The aim is variety that 
 like tomorrow's field, not strength: weak, odd and even failing bots belong here.
 Background and the reasoning are in [`docs/bot-zoo.md`](../docs/bot-zoo.md).
 
+## Variants
+
+The tournament's variant is secret until the build starts, so zoo bots are built to take
+any variant we have written down:
+
+- [`zoo/variants/`](variants/README.md) holds one ruleset per variant, in a fixed layout,
+  and says how to add a new one.
+- [`zoo/_template/`](_template/README.md) is the bot skeleton. Its strategy is written
+  once; everything that depends on the variant sits in one `VARIANTS` table with an entry
+  per ruleset.
+
+To have an AI assistant write a bot, point it at the template folder and name a profile
+and the variants, for example: "Read `zoo/_template/README.md` and make a tight zoo bot
+for all variants." The template's README is the brief it follows.
+
+The mini simulator plays every variant that has a class in
+[`devtest/sim_variants.py`](../devtest/sim_variants.py). Pick one with `--variant <name>`
+on `devtest/mini_sim.py play`, `tools/check_zoo.py` and `practice.py --mini`, or in the
+Variant box on the practice web page. Its versions are our own, with guesses where a
+ruleset says "unknown".
+
 ## Add a bot
 
 1. **Copy the template** to a new folder. Name it `<source>_<profile>_<n>`, using
-   letters, digits, `_` and `-` only, for example `gpt_aggro_1` or `henry_tight_2`.
+   letters, digits, `_` and `-` only, for example `gpt_aggro_1` or `henry_tight_2`. Add
+   the variant when the bot supports only one: `gpt_aggro_discard_reveal_1`.
 
    ```bash
    cp -r zoo/_template zoo/gpt_aggro_1
@@ -16,13 +38,15 @@ Background and the reasoning are in [`docs/bot-zoo.md`](../docs/bot-zoo.md).
    The Clone button on the practice web page does the same thing.
 
 2. **Write the bot** in `zoo/<name>/agent.py`. Either:
-   - replace `decide` in the template by hand, using its helpers, or
+   - follow [`zoo/_template/README.md`](_template/README.md): write `decide` and one
+     `VARIANTS` entry per ruleset the bot supports, or
    - paste a whole `agent.py` from a model. The generation prompt and the list of team
      profiles are in [`docs/bot-zoo.md`](../docs/bot-zoo.md). A pasted file replaces the
      template entirely; that is fine.
 
-3. **Fill in the header** at the top of the file: source, profile, and one line on what
-   it does. This is how we later know what mix the zoo contains.
+3. **Fill in the header** at the top of the file: source, profile, the variants it
+   implements, and one line on what it does. This is how we later know what mix the zoo
+   contains. A pasted bot written for standard hold'em gets `Variants: holdem`.
 
 4. **Check it.**
 

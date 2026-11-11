@@ -49,12 +49,12 @@ def lineups(bot: Path) -> dict[str, list[Path]]:
     }
 
 
-def upload_test(runner: list[str], bot: Path) -> None:
+def upload_test(runner: list[str], bot: Path, rules: list[str]) -> None:
     """Imitate the upload test match: heads-up against check-or-fold, up to 20 hands, 1 ms
     per decision and NO time bank. An upload is rejected if over 10% of decisions fail.
     The kit's `play` always gives the 100 ms bank, so only the mini simulator can do this."""
     result = run(runner, ["play", str(bot), str(SPARRING / "check_or_fold"), "--tables", "300",
-                          "--hand-cap", "20", "--bank-ms", "0", "--payouts", "50", "--seed", "upload"])  # fmt: skip
+                          "--hand-cap", "20", "--bank-ms", "0", "--payouts", "50", "--seed", "upload", *rules])  # fmt: skip
     if result.returncode != 0:
         print(f"upload test: runner failed\n{result.stderr}")
         return
@@ -76,9 +76,14 @@ def main() -> None:
     parser.add_argument("--tables", type=int, default=200, help="Tables per line-up.")
     parser.add_argument("--seed", default="practice", help="Same seed = same deals, for A/B runs.")
     parser.add_argument("--mini", action="store_true", help="Use the unofficial mini simulator.")
+    parser.add_argument("--variant", help="With --mini: a variant from zoo/variants/ (default holdem). "
+                                          "The kit always plays its own variant.")  # fmt: skip
     parser.add_argument("--runner", help="Override the runner command, e.g. 'poker-agent'.")
     options = parser.parse_args()
     bot = options.bot.resolve()
+    if options.variant and not options.mini:
+        sys.exit("--variant only applies with --mini; the kit plays its own variant.")
+    rules = ["--variant", options.variant] if options.variant else []
     if not (bot / "agent.py").is_file():
         sys.exit(f"{bot} has no agent.py")
     if options.runner:
@@ -99,12 +104,12 @@ def main() -> None:
     print("upload check: passed\n")
 
     if options.mini:
-        upload_test(runner, bot)
+        upload_test(runner, bot, rules)
 
     worst_failures = 0
     for name, bots in lineups(bot).items():
         result = run(runner, ["play", *map(str, bots), "--tables", str(options.tables),
-                              "--seed", options.seed, "--no-history"])  # fmt: skip
+                              "--seed", options.seed, "--no-history", *rules])  # fmt: skip
         if result.returncode != 0:
             print(f"{name}: runner failed\n{result.stderr}")
             continue
