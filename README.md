@@ -12,6 +12,7 @@ the interface in the organizers' starter kit (`poker_agent_sdk`: `act(state, mem
 | `sparring/*/agent.py` | Opponents: `check_or_fold`, `min_raiser`, `calling_station`, `shover`, `nit`. |
 | `practice.py` | Upload check, then five line-ups, reporting points per table and failed decisions. |
 | `tools/gen_preflop.py` | Regenerates the preflop equity table embedded in a bot. |
+| `ui/` | Local web page for building line-ups, running matches, comparing runs and replaying hands. |
 | `devtest/` | Unofficial mini simulator and SDK stand-in, for when the kit is not installed. |
 
 ## Practising under the real rules
@@ -50,6 +51,20 @@ python3.12 practice.py starter --mini
 `--mini` uses `devtest/mini_sim.py`: standard no-limit hold'em only, bots run in-process,
 rules re-implemented from the kit's documentation. Good for catching crashes and illegal
 actions; not a substitute for the kit.
+
+## Web interface
+
+```bash
+python3.12 ui/server.py
+```
+
+Then open http://127.0.0.1:8765/. Pick a bot for each seat, run a match, compare two runs
+on the same seed, and step through recorded hands with every bot's cards visible. Bots
+are re-read from disk on every run, so edit an `agent.py` and click Run again. The Clone
+button copies a bot folder to a new name for the next version. It runs on the unofficial
+mini simulator, not the kit.
+
+![Hand replay](ui/screenshots/replay.png)
 
 ## How the starter bot is organised
 
