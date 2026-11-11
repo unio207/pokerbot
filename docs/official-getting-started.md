@@ -1,8 +1,7 @@
 # Official "Getting started" page: what it says and what it changes for us
 
 Condensed from a team member's summary of the competition site's Getting started page
-(pokerbot.sequoiacap.com). The **Format** page, which has the variant rules, payouts,
-round schedule, weights and tiebreaks, is separate and not covered here.
+(pokerbot.sequoiacap.com). The **Format** page is summarised in [`official-format.md`](official-format.md).
 
 ## Facts that override our earlier notes
 
@@ -90,5 +89,4 @@ decisions. Showdowns reveal all hole cards of everyone who reaches them.
    the maximum to 1 ms, not the average.
 5. **Set up beforehand:** SSH key added to the portal, API key generated, and the
    connection to the build box tested (it reports its opening time before it opens).
-6. **Read the Format page** for payouts, round weights and tiebreaks, and correct the
-   numbers in `docs/` if they differ.
+6. **The Format page** is summarised in [`official-format.md`](official-format.md).

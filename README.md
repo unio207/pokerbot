@@ -126,9 +126,9 @@ Not tested: anything against the organizers' kit itself, so run `practice.py` wi
 
 ## Things to check in your own kit
 
-- **Table settings.** The Bay Area kit's defaults were blinds rising every 20 hands and a
-  250-hand cap; the published rules say 25 and 200. The bot reads these from
-  `state.config`, so it adapts, but tune against whatever your kit uses.
+- **Table settings.** The official Format page for Pittsburgh says blinds rise every 20
+  hands with a 250-hand cap (see [`docs/official-format.md`](docs/official-format.md)),
+  which is what the mini simulator uses. The bot reads these from `state.config` anyway.
 - **Payouts.** Rounds may draw payouts per table. The bot reads `state.config.payouts`.
 - **Upload test.** It has no time bank and rejects a bot that fails more than 10% of
   decisions. `practice.py --mini` imitates it; the kit's `play` always gives the bank.

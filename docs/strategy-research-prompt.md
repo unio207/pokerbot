@@ -3,9 +3,8 @@
 Paste the block below into each model. It is self-contained and asks for the same output
 structure from each, so the answers line up for comparison.
 
-- The ranges in the facts section ("20-25 hands" per blind level, "200-250" hand cap,
-  "50-100 MB") reflect the disagreement between the published rules and the Bay Area
-  kit. Replace them with our own kit's values.
+- The table settings in the facts section are from the official Format page for
+  Pittsburgh (`docs/official-format.md`).
 - The expected-points figures in sections 2 and 11 will be guesses from every model.
   Section 4's ranges are the part worth pasting into the bot and running through
   `practice.py`.
@@ -25,17 +24,21 @@ Format
   derivative. A previous regional used: three hole cards, and after the flop every
   player discards one face down and exposes one of the two they keep. Ours will differ.
 - Tables: 8 bots, sit-and-go, 2,000 chips each. Blinds start at 10/20 and rise every
-  20-25 hands (10/20, 20/40, 30/60, 50/100, 80/160, 125/250, 200/400, 300/600,
+  20 hands (10/20, 20/40, 30/60, 50/100, 80/160, 125/250, 200/400, 300/600,
   500/1000, 800/1600, 1200/2400, 2000/4000). A table ends when one bot has all the
-  chips or at a hand cap of 200-250 hands.
+  chips or at a hand cap of 250 hands.
 - Scoring: points by finishing place, reported default 50/30/20 for 1st/2nd/3rd and 0
   for the rest (par = 12.5 per table). The split can vary by table and is given to the
   bot in the table config. At the hand cap, survivors split the remaining points by ICM
   (Malmuth-Harville) on their chip stacks.
-- Six scored tournaments, 20 minutes apart, each 10,000 tables. Final score = sum of
-  (tournament number x average points per table), so tournaments 4-6 are 71% of the
-  total. We may upload a new bot at most once every 5 minutes, including between
-  tournaments. Unscored practice runs happen during the build.
+- Six scored tournaments, starting 20 minutes apart, each at least 5,000 tables. Final
+  score = sum of (tournament number x average points per table), so tournaments 4-6 are
+  71% of the total. Each tournament snapshots our active bot at its start; its result
+  usually arrives during the following 20 minutes. We may upload a new bot every 30
+  seconds. Unscored practice runs of about 1,000 tables happen every 10 minutes during
+  the build. Ties are broken by share of tables won.
+- Every upload first plays a test match with NO time bank and is rejected if more than
+  10% of its decisions fail.
 - The field is the other teams' bots, all built in the same hour, mostly by students
   with AI assistants. Expect some bots that crash or time out (the platform plays
   check-else-fold for them), some that shove constantly, and many tight heuristic bots.
@@ -55,7 +58,7 @@ Bot constraints
 - Available libraries: standard library, NumPy, SciPy, pandas, scikit-learn, PyTorch
   (CPU), LightGBM, XGBoost, ONNX Runtime, Numba, eval7 (a fast standard hold'em
   evaluator). An ICM function is provided. Lookup tables can be shipped with the bot
-  (upload limit 50-100 MB) and loaded at import time.
+  (upload limit 50 MB) and loaded at import time.
 
 Our current baseline
 - Open-raise chart by position when deep; shove-or-fold preflop at 12 big blinds or
