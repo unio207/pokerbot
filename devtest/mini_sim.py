@@ -19,6 +19,7 @@ import json
 import random
 import sys
 import time
+import traceback
 from collections import Counter
 from pathlib import Path
 
@@ -47,8 +48,13 @@ MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 
 
 class Table:
-    def __init__(self, agents, rng, rules, table_id):
+    def __init__(self, agents, rng, rules, table_id, record=False, on_failure=None):
+        """`record=True` keeps a per-hand replay in `self.hands` (hole cards included).
+        `on_failure(seat, hand, reason, detail)` is called for each failed decision.
+        Both are optional hooks for tools such as ui/server.py; they do not change play."""
         self.agents, self.rng, self.rules = agents, rng, rules
+        self.hands: list[dict] | None = [] if record else None
+        self.on_failure = on_failure
         self.n = len(agents)
         self.stacks = [rules.stack] * self.n
         self.button = rng.randrange(self.n)
@@ -124,6 +130,8 @@ class Table:
             self.log.append(Event("blind", seat, paid))
         context = dict(hand=hand, level=level, blinds=blinds, alive=alive, hole=hole, bet=bet,
                        total=total, folded=folded, board=board)  # fmt: skip
+        # Replay-only events (chips moved without a public event), keyed by log position.
+        marks: list[tuple[int, list]] | None = [] if self.hands is not None else None
 
         first = self.next_seat(big_seat, alive)
         for street in range(4):
@@ -140,6 +148,8 @@ class Table:
                 refund = ordered[0] - ordered[1]
                 stacks[seat] += refund
                 total[seat] -= refund
+                if marks is not None:
+                    marks.append((len(self.log), ["return", seat, refund, []]))
             for seat in range(n):
                 bet[seat] = 0
             if len(alive - folded) == 1:
@@ -170,11 +180,34 @@ class Table:
             leftover = sum(max(0, c - previous) for c in total)  # folded chips above the top level
             if leftover:
                 stacks[max(contenders, key=lambda seat: ranks[seat])] += leftover
+                if marks is not None:
+                    marks.append((len(self.log), ["leftover", max(contenders, key=lambda seat: ranks[seat]),
+                                                  leftover, []]))  # fmt: skip
         for seat in sorted(alive):
             self.log.append(Event("stack", seat, stacks[seat]))
+        if marks is not None:
+            self.record_hand(hand, level, blinds, start, hole, board, marks)
         # Two bots busting on the same hand: the one that started it with more chips places higher.
         self.bust_order.extend(sorted((s for s in alive if stacks[s] == 0), key=lambda s: start[s]))
         self.button = self.next_seat(self.button, {s for s in range(n) if stacks[s] > 0})
+
+    def record_hand(self, hand, level, blinds, start, hole, board, marks):
+        events = []
+        pending = iter(marks + [(len(self.log) + 1, None)])
+        mark = next(pending)
+        for index in range(self.hand_start, len(self.log) + 1):
+            while mark[0] == index:
+                events.append(mark[1])
+                mark = next(pending)
+            if index < len(self.log):
+                event = self.log[index]
+                events.append([event.kind, event.seat, event.amount, list(event.cards)])
+        self.hands.append({
+            "hand": hand, "level": level, "blinds": [blinds.small_blind, blinds.big_blind],
+            "button": self.button, "start": start, "end": self.stacks[:],
+            "hole": {str(seat): list(cards) for seat, cards in hole.items()},
+            "board": list(board), "events": events,
+        })  # fmt: skip
 
     def betting_round(self, first, context):
         stacks, bet, total, folded, alive = (self.stacks, context["bet"], context["total"],
@@ -265,6 +298,8 @@ class Table:
             action, memory = self.agents[seat].act(state, self.memory[seat])
         except Exception:
             self.failures[seat] += 1
+            if self.on_failure:
+                self.on_failure(seat, context["hand"], "exception", traceback.format_exc(limit=-6))
             return fallback
         elapsed = time.perf_counter_ns() - began
         self.latency[seat].append(elapsed)
@@ -273,6 +308,9 @@ class Table:
             if over > self.bank[seat]:
                 self.bank[seat] = 0.0
                 self.failures[seat] += 1
+                if self.on_failure:
+                    self.on_failure(seat, context["hand"], "timeout",
+                                    f"took {elapsed / 1e6:.2f} ms with the time bank exhausted")  # fmt: skip
                 return fallback  # a timeout keeps the previous memory
             self.bank[seat] -= over
         if isinstance(memory, bytes):
@@ -283,6 +321,9 @@ class Table:
             and not (type(action.amount) is int and allowed.min_amount <= action.amount <= allowed.max_amount)
         ):
             self.failures[seat] += 1
+            if self.on_failure:
+                self.on_failure(seat, context["hand"], "illegal action",
+                                f"{action!r}; legal: {', '.join(repr(a) for a in legal)}")  # fmt: skip
             return fallback
         return action
 

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pokerbot Practice</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>Pokerbot practice</h1>
+    <span class="sub">local line-ups, matches and replays</span>
+  </div>
+  <button id="theme" class="ghost small" type="button" title="Switch light / dark / system theme">Theme: system</button>
+</header>
+
+<div class="unofficial" role="note">
+  <strong>Unofficial simulator.</strong>
+  Standard no-limit hold'em only, rules re-implemented from the kit's docs, bots run in-process so
+  timing here is optimistic. The organizers' kit (<code>poker-agent play</code>) is the authority:
+  confirm anything important there before uploading.
+</div>
+
+<div class="layout">
+  <!-- ======================================================= sidebar -->
+  <aside class="side">
+    <section class="card">
+      <div class="card-head">
+        <h2>Line-up</h2>
+        <button id="refresh-bots" class="ghost small" type="button" title="Re-scan folders for agent.py">Refresh bots</button>
+      </div>
+      <div class="row gap">
+        <label class="inline">Seats
+          <span class="stepper">
+            <button type="button" id="seat-minus" aria-label="Remove a seat">&minus;</button>
+            <output id="seat-count">8</output>
+            <button type="button" id="seat-plus" aria-label="Add a seat">+</button>
+          </span>
+        </label>
+        <select id="preset" aria-label="Load a preset line-up">
+          <option value="">Preset line-up&hellip;</option>
+        </select>
+      </div>
+      <ol id="seats" class="seats"></ol>
+      <p class="hint">Seat 1's bot is "you" in presets. Bots are re-read from disk on every run.</p>
+    </section>
+
+    <section class="card">
+      <h2>Match settings</h2>
+      <div class="grid2">
+        <label>Tables <input id="s-tables" type="number" min="1" max="5000" value="200"></label>
+        <label>Seed
+          <span class="with-btn"><input id="s-seed" type="text" value="practice" spellcheck="false">
+          <button id="seed-random" class="ghost small" type="button" title="New random seed">&#x21bb;</button></span>
+        </label>
+        <label>Hand cap <input id="s-handcap" type="number" min="1" max="2000" value="250"></label>
+        <label>Hands / level <input id="s-hpl" type="number" min="1" max="1000" value="20"></label>
+        <label>Payouts <input id="s-payouts" type="text" value="50 30 20" spellcheck="false"></label>
+        <label>Starting stack <input id="s-stack" type="number" min="20" value="2000"></label>
+      </div>
+      <p class="hint">Same seed = same deals and seat draws, so A/B runs are paired. Replays are kept for the first 20 tables.</p>
+      <div class="run-row">
+        <button id="run" class="primary" type="button">Run match</button>
+        <button id="cancel" class="ghost" type="button" hidden>Cancel</button>
+      </div>
+      <div id="progress" class="progress" hidden>
+        <div class="bar"><span id="progress-fill"></span></div>
+        <span id="progress-text"></span>
+      </div>
+      <div id="run-error" class="error-box" hidden></div>
+    </section>
+
+    <section class="card">
+      <h2>Bots on disk</h2>
+      <ul id="bot-list" class="bot-list"></ul>
+      <form id="clone-form" class="clone" autocomplete="off">
+        <h3>Clone a bot</h3>
+        <div class="row gap">
+          <select id="clone-source" aria-label="Bot to copy"></select>
+          <span class="arrow">&rarr;</span>
+          <input id="clone-name" type="text" placeholder="new_name" aria-label="New folder name" spellcheck="false">
+        </div>
+        <div class="row gap">
+          <button class="primary small" type="submit">Clone</button>
+          <span class="hint">letters, digits, _ and - only; never overwrites</span>
+        </div>
+        <div id="clone-msg" class="msg" hidden></div>
+      </form>
+    </section>
+  </aside>
+
+  <!-- ======================================================= main -->
+  <main class="main">
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="results" aria-selected="true">Results</button>
+      <button role="tab" data-tab="compare" aria-selected="false">Compare runs</button>
+      <button role="tab" data-tab="replay" aria-selected="false">Hand replay</button>
+    </nav>
+
+    <!-- ---------------- results -->
+    <section id="tab-results" class="tab" role="tabpanel">
+      <div class="card">
+        <div class="card-head">
+          <h2>Runs this session</h2>
+          <span class="hint">click a run to view it</span>
+        </div>
+        <div class="table-wrap">
+          <table class="history">
+            <thead><tr><th>#</th><th>Time</th><th>Line-up</th><th>Seed</th><th class="num">Tables</th><th>Status</th><th class="num">Seat 1 pts</th><th class="num">Failed</th></tr></thead>
+            <tbody id="history"></tbody>
+          </table>
+        </div>
+        <p id="history-empty" class="empty">No runs yet. Build a line-up and press <b>Run match</b>.</p>
+      </div>
+      <div id="result-view"></div>
+    </section>
+
+    <!-- ---------------- compare -->
+    <section id="tab-compare" class="tab" role="tabpanel" hidden>
+      <div class="card">
+        <div class="row gap wrap">
+          <label class="inline">A (baseline) <select id="cmp-a"></select></label>
+          <label class="inline">B (candidate) <select id="cmp-b"></select></label>
+        </div>
+        <div id="compare-view"><p class="empty">Run at least two matches to compare them.</p></div>
+      </div>
+    </section>
+
+    <!-- ---------------- replay -->
+    <section id="tab-replay" class="tab" role="tabpanel" hidden>
+      <div class="card">
+        <div class="row gap wrap replay-pickers">
+          <label class="inline">Run <select id="rp-run"></select></label>
+          <label class="inline">Table <select id="rp-table"></select></label>
+          <label class="inline">Hand <select id="rp-hand"></select></label>
+          <label class="inline check"><input type="checkbox" id="rp-notable"> showdowns, all-ins &amp; busts only</label>
+        </div>
+        <div id="replay-empty" class="empty">Run a match to get replays.</div>
+        <div id="replay-body" class="replay" hidden>
+          <div class="felt-col">
+            <div class="felt-wrap">
+              <div class="felt" id="felt">
+                <div class="center">
+                  <div id="rp-level" class="level"></div>
+                  <div id="rp-board" class="board"></div>
+                  <div id="rp-pot" class="pot"></div>
+                </div>
+              </div>
+              <div id="rp-seats"></div>
+            </div>
+            <div class="controls">
+              <button type="button" id="rp-prev-hand" class="ghost" title="Previous hand (PgUp)">&#x23EE; Hand</button>
+              <button type="button" id="rp-prev" class="ghost" title="Previous action (&larr;)">&#x25C0; Prev</button>
+              <button type="button" id="rp-play" class="primary" title="Play / pause (space)">&#x25B6; Play</button>
+              <button type="button" id="rp-next" class="ghost" title="Next action (&rarr;)">Next &#x25B6;</button>
+              <button type="button" id="rp-next-hand" class="ghost" title="Next hand (PgDn)">Hand &#x23ED;</button>
+              <label class="inline">Speed
+                <select id="rp-speed"><option value="1200">slow</option><option value="650" selected>normal</option><option value="250">fast</option></select>
+              </label>
+              <span id="rp-step" class="hint"></span>
+            </div>
+            <div id="rp-chips" class="hint chips-check"></div>
+          </div>
+          <div class="log-col">
+            <h3>Action log</h3>
+            <ol id="rp-log" class="log"></ol>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
