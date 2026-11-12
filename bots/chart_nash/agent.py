@@ -305,11 +305,30 @@ def _db_boards(state: GameState) -> list:
     return [tuple(state.board)]
 
 
-def _db_value(pair, boards) -> tuple[float, bool]:
+def _db_value(pair, boards) -> tuple[float, bool, float]:
     """Made strength of two kept cards averaged over the boards (each board wins half the
-    pot), and whether they draw on either board."""
-    strength = sum(_made_strength(pair, board) for board in boards) / len(boards)
-    return strength, any(_has_draw(pair, board) for board in boards)
+    pot); whether they draw on any board before the river (for semi-bluffs only: the
+    entry's no_draw_call keeps postflop() from calling on the draw alone); and the
+    strength on their best board."""
+    each = [_made_strength(pair, board) for board in boards]
+    draw = any(len(board) < 5 and _has_draw(pair, board) for board in boards)
+    return sum(each) / len(each), draw, max(each)
+
+
+_DB_LOCK = 0.93  # _made_strength of a flush or better that the board does not make by itself
+
+
+def db_floor(state: GameState) -> float:
+    """Share of the pot a keepable pair nearly guarantees: half when it is close to the nuts
+    on one board. postflop() does not fold such a hand to a big bet on its average alone."""
+    cards = state.cards
+    if len(cards) not in (2, 3) or not state.board:
+        return 0.0
+    boards = _db_boards(state)
+    if len(boards) != 2:
+        return 0.0
+    pairs = [tuple(cards)] if len(cards) == 2 else [(a, b) for i, a in enumerate(cards) for b in cards[i + 1 :]]
+    return 0.5 if any(_db_value(pair, boards)[2] >= _DB_LOCK for pair in pairs) else 0.0
 
 
 def db_preflop(state: GameState) -> tuple[float, float]:
@@ -320,7 +339,37 @@ def db_preflop(state: GameState) -> tuple[float, float]:
         return holdem_preflop(state)
     pairs = [_EQUITY[_class_key(a, b)] for i, a in enumerate(cards) for b in cards[i + 1 :]]
     score = (max(pairs) + sum(pairs) / 3) / 2
-    return max(pairs), _percentile_of(score, _DB_MARKS)
+    return _db_preflop_equity(cards, pairs), _percentile_of(score, _DB_MARKS)
+
+
+def _db_preflop_equity(cards, pairs) -> float:
+    """Heads-up pot share of three cards in this variant, both players discarding by
+    db_discard: Codex's fits over 300,000 kit-evaluated deals (2026-11-12), RMSE 1.0 point
+    against 7.96 for the best pair's hold'em equity, which overrates pairs by 8 to 11."""
+    ranks = [card[0] for card in cards]
+    distinct = len(set(ranks))
+    if distinct == 3:
+        equity = 0.05890 + 0.10728 * max(pairs) + 0.74613 * sum(pairs) / 3
+    elif distinct == 2:
+        paired = next(rank for rank in ranks if ranks.count(rank) == 2)
+        i, j = [index for index, rank in enumerate(ranks) if rank == paired]
+        pocket = _EQUITY[_class_key(cards[i], cards[j])]
+        other = max(_EQUITY[_class_key(cards[k], cards[3 - i - j])] for k in (i, j))
+        equity = -0.15478 + 0.95933 * pocket + 0.17325 * other
+    else:
+        equity = -0.29592 + 1.23494 * _EQUITY[_class_key(cards[0], cards[1])]
+    return min(1.0, max(0.0, equity))
+
+
+# Pot share against one random three-card hand by db_postflop strength band [0.2, 0.3), ...,
+# [0.9, 1.0], measured by Codex over 300,000 kit-evaluated deals (2026-11-12).
+_DB_FLOP = (0.3192, 0.4086, 0.4802, 0.5646, 0.6513, 0.7328, 0.7983, 0.8657)
+_DB_TURN = (0.2255, 0.3332, 0.4345, 0.5305, 0.6326, 0.7305, 0.8154, 0.8685)
+
+
+def _db_calibrate(strength: float, board_cards: int) -> float:
+    table = _DB_FLOP if board_cards == 3 else _DB_TURN
+    return table[min(7, max(0, int(10 * strength) - 2))]
 
 
 def db_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
@@ -331,13 +380,13 @@ def db_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
         return holdem_postflop(state, facing)
     boards = _db_boards(state)
     if len(cards) == 2:
-        return _db_value(tuple(cards), boards)
+        return _db_value(tuple(cards), boards)[:2]
     best, draw = 0.0, False
     for i, a in enumerate(cards):
         for b in cards[i + 1 :]:
-            strength, has_draw = _db_value((a, b), boards)
+            strength, has_draw, _ = _db_value((a, b), boards)
             best, draw = max(best, strength), draw or has_draw
-    return best, draw
+    return _db_calibrate(best, len(boards[0])), draw
 
 
 def db_discard(state: GameState) -> Action:
@@ -348,7 +397,7 @@ def db_discard(state: GameState) -> Action:
     boards = _db_boards(state)
     best, keep = -1.0, (0, 1)
     for i, j in ((0, 1), (0, 2), (1, 2)):
-        strength, has_draw = _db_value((cards[i], cards[j]), boards)
+        strength, has_draw, _ = _db_value((cards[i], cards[j]), boards)
         score = strength + (0.04 if has_draw else 0.0)
         if score > best:
             best, keep = score, (i, j)
@@ -369,6 +418,8 @@ _DB_ENTRY = _entry(  # Pittsburgh: three cards, two boards, one discard after th
     lambda state: isinstance(getattr(state, "variant", None), dict) and "boards" in state.variant,
     {"discard": db_discard}, db_preflop, db_postflop,
 )  # fmt: skip
+_DB_ENTRY["floor"] = db_floor
+_DB_ENTRY["no_draw_call"] = True  # a one-board draw is half a draw; strength already counts it
 
 VARIANTS = {
     "double_board_turn_discard": _DB_ENTRY,  # first: its discard phase must not route to irish
@@ -810,9 +861,11 @@ def postflop(state: GameState, variant: dict, tracker) -> Action:
         edge += P["icm_scale"] * _icm_premium(state, me, _seat(state, bettor))
     if strength >= 0.88 and can_raise:
         return raise_to(state, me.bet + to_call + int(0.75 * (pot + to_call)))
-    if to_call > 0.5 * me.stack and strength < 0.75:
+    floor = variant["floor"](state) if "floor" in variant else 0.0
+    if to_call > 0.5 * me.stack and strength < 0.75 and need > floor:
         return Action.fold()  # do not call off a stack with a marginal hand
-    if strength >= need + edge or (draw and need <= 0.25 and not minimal):
+    draw_call = draw and need <= 0.25 and not minimal and not variant.get("no_draw_call")
+    if strength >= need + edge or draw_call:
         return Action.call()
     return Action.fold()
 
