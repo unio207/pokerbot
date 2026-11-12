@@ -6,8 +6,8 @@ hand-history/
 _gen_tmp.py
 practice-runs/
 .claude/
-rules_card.json
-rules_card.*.json
+/rules_card.json
+/rules_card.*.json
 /v[0-9]*/
 skills/sequoia-launch/.t0
 starter-kit/

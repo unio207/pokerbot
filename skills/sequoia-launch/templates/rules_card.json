@@ -1,0 +1,53 @@
+{
+  "_about": "Rules Card. Copy to <repo>/rules_card.json (scripts/probe.py does it) and correct every value from the kit's RULES.md and state.config. gate.py, gauntlet.py and clock.py read limits from here, never from constants. Values below are the pre-announcement defaults from docs/official-format.md and docs/official-getting-started.md.",
+  "source": "DEFAULTS, not the kit",
+  "variant": {
+    "name": "holdem",
+    "mini_name": "",
+    "hole_cards": 2,
+    "deck_cards": 52,
+    "phases": ["betting"],
+    "phase_shapes": [],
+    "showdown": "best five of hole cards plus board",
+    "ranking_changes": "",
+    "betting_changes": "",
+    "notes": ""
+  },
+  "config": {
+    "players": 8,
+    "starting_stack": 2000,
+    "blinds": [[10, 20]],
+    "hands_per_level": 20,
+    "hand_cap": 250,
+    "payouts": [50, 30, 20],
+    "decision_ms": 1,
+    "time_bank_ms": 100,
+    "memory_bytes": 65536
+  },
+  "limits": {
+    "upload_bytes": 52428800,
+    "unpacked_bytes": 209715200,
+    "entries": 1000,
+    "code_bytes": 1048576,
+    "upload_test_fail_rate": 0.10,
+    "upload_interval_s": 30
+  },
+  "schedule": {
+    "build_minutes": 60,
+    "round_gap_minutes": 20,
+    "rounds": 6,
+    "practice_every_minutes": 10,
+    "upload_cutoff_minutes": 5
+  },
+  "margins": {
+    "_about": "Ours, not the organizers'. Fractions of decision_ms unless named otherwise.",
+    "p99": 0.25,
+    "p999": 0.5,
+    "overrun_rate": 0.0002,
+    "upload_test_fail_rate": 0.01,
+    "memory_fraction": 0.25,
+    "import_seconds": 2.0
+  },
+  "invalidates": [],
+  "open_questions": []
+}

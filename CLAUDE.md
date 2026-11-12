@@ -19,7 +19,7 @@ Run `git pull` first: a session on 2026-11-12 worked from a checkout 49 commits 
 - Without the kit: system `python3.12` and the mini simulator (`--mini`); `devtest/shim/`
   stands in for the SDK.
 - Claude Code runs on the Mac with a local kit. The team build machine (Ubuntu,
-  `ssh no-limit-2026-build`, repo by `scp` to `~/work/pokerbot`, kit at
+  `ssh no-limit-2026-build`, repo by `rsync` to `~/work/pokerbot`, kit at
   `~/work/starter-kit`, no git credentials) is for timing.
 
 ## Data paths

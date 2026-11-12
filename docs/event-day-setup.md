@@ -59,7 +59,7 @@ Notes:
 3. Copy this repository next to the kit:
 
    ```bash
-   scp -r pokerbot no-limit-2026-build:work/
+   rsync -a --exclude .git --exclude .claude --exclude starter-kit --exclude __pycache__ ./ no-limit-2026-build:work/pokerbot/
    ```
 
 4. Log in with the two ports forwarded, so the practice page and the kit's hand viewer
