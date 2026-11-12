@@ -163,3 +163,27 @@ The script that ran it is not in the repo.
 28 in `auction`). `bots/final` was the best `bots/` profile in `short_deck` and `holdem` and 4th in `auction`.
 No bot failed a decision. Caveats: the `bots/` profiles were tuned on this simulator, and the exploiter
 reads opponents, which suits a mixed field.
+
+## `zoo/claude_exploiter_2` against weak and strong fields, 2026-11-12
+
+`zoo/claude_exploiter_2` is `claude_exploiter_1` with one change: before the money it wants more safety
+before risking its stack, in proportion to the share of seats that do not play like a solid bot. Measured on
+the **unofficial** mini simulator, 1,000 tables per variant per field (`holdem`, `omaha`, `short_deck`,
+`auction`, `discard_reveal`), every bot on the same tables in the same seat, on a seed not used for tuning.
+The scripts are not in the repo.
+
+- **Fields:** the hero plus 7 opponents: all weak (the 12 `gpt_*`/`codex_default_1` bots, `claude_tourist_1`,
+  `claude_maniac_1`, `starter` and the sparring bots), mostly weak (2 strong + 5 weak), strong (7 of
+  `bots/icm_survival`, `adaptive`, `chart_nash`, `steal_heavy` and zoo `claude_shark_1`,
+  `codex_adaptive_icm_1`, `codex_shove_aware_1`, `codex_rubric_pressure_icm_1`).
+
+| bot | all weak | mostly weak | strong | top-3 finishes |
+|--|--:|--:|--:|--:|
+| `zoo/claude_exploiter_2` | 29.6 | 25.4 | 20.0 | 64.3% |
+| `zoo/claude_exploiter_1` | 27.3 | 24.9 | 19.8 | 57.4% |
+| `bots/final` | 29.4 | 21.6 | 13.5 | 59.0% |
+
+Paired, `claude_exploiter_2` minus `claude_exploiter_1`: all weak +2.28 ± 0.27, mostly weak +0.50 ± 0.27,
+strong +0.16 ± 0.31; positive in every variant (+0.7 to +1.4). The original won as many tables as `bots/final`
+at weak tables but seldom finished 2nd or 3rd. Opening tighter, betting the flop less and the other settings
+tried made no measurable difference.
