@@ -114,7 +114,7 @@ Read after the re-base, as asked. `skills/competition-build` and `skills/mid-rou
 | Validation gates: check, fuzz, practice smoke | yes, all inside `gate.py`, plus timing margins, memory, upload imitation | |
 | "Stop chasing mini-EV" in the build hour | yes: stage 5 is format corrections only | |
 | Strategy spec and locked knobs | referenced, not repeated | one source of truth is `tools/core_agent.py` |
-| Promote at about +1 point over 1,600 same-seed tables | same bar stated as 2 standard errors plus a fresh seed | their bench command names a line-up, `ai_field`, that is not in `tools/bench.py` on main |
+| Promote at about +1 point over 1,600 same-seed tables | same bar stated as 2 standard errors plus a fresh seed | their bench command's `ai_field` line-up was missing from `tools/bench.py` on main; added 2026-11-12 from the overnight branch |
 | `bots/final_prev` as the rollback copy | `vN/` copies instead | one folder per upload matches what the team page lists |
 | Commands run on the build machine | Mac with a local kit, gate repeated on the build machine | Claude Code runs on the Mac (decided 2026-11-12) |
 
@@ -123,7 +123,8 @@ What theirs lack and this adds: a clock and upload cutoff, a Rules Card from the
 how to read practice runs, a behind-the-clock path, and the human's go on every upload.
 
 `mid-round-iterate` already is the iteration skill session 2 was going to write. Session 2
-should extend it (fix the `ai_field` line-up, add the clock, the cutoff and the gate) rather
+should extend it (add the clock, the cutoff and the gate, all of which exist in
+`sequoia-launch` and can be referenced) rather
 than start a third one.
 
 ## Strategy conclusions

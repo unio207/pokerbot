@@ -31,6 +31,11 @@ LINEUPS = {
     "passive": ["sparring/check_or_fold"] * 4 + ["sparring/nit"] * 3,
     "aggressive": ["sparring/shover"] * 3 + ["sparring/min_raiser"] * 2 + ["starter"] * 2,
     "starters": ["starter"] * 7,
+    # Default-assistant-shaped field (overnight zoo fillers + a couple of Claude archetypes).
+    "ai_field": [
+        "zoo/gpt_default_1", "zoo/gpt_limp_station_1", "zoo/gpt_jamming_1", "zoo/gpt_any_ace_1",
+        "zoo/gpt_draw_chaser_1", "zoo/claude_tourist_1", "zoo/codex_default_1",
+    ],
 }
 ZOO = [f"bots/{name}" for name in ("chart_nash", "steal_heavy", "icm_survival", "push_fold",
                                    "equity_bucket", "adaptive", "final")] + ["starter"]
@@ -135,7 +140,8 @@ def parse():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--hero", action="append", required=True, help="Bot folder; repeat for several.")
     ap.add_argument("--baseline", help="Hero to compare the others against (default: last --hero).")
-    ap.add_argument("--lineup", nargs="+", default=["all"], help="mixed passive aggressive starters zoo | all")
+    ap.add_argument("--lineup", nargs="+", default=["all"],
+                    help="mixed passive aggressive starters ai_field zoo | all")
     ap.add_argument("--tables", type=int, default=200)
     ap.add_argument("--seed", default="bench")
     ap.add_argument("--rules", choices=["kit", "published", "both"], default="kit")

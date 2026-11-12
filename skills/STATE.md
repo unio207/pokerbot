@@ -92,9 +92,10 @@ None yet.
   unusual per-table payouts, its ICM is approximate.
 - An unknown phase gets the automatic choice. Whether the kit counts that as a failed decision
   for an action that needs `cards` is unknown until the kit is in hand.
-- `skills/mid-round-iterate` runs `tools/bench.py --lineup ... ai_field`. That line-up does
-  not exist in `tools/bench.py` on main (only on `origin/overnight/prep-2026-11-11`), so that
-  command fails as written. `gauntlet.py --vs` covers the same job.
+- `skills/mid-round-iterate` compares against `bots/final_prev`, which does not exist until
+  someone copies it (`cp -a bots/final bots/final_prev`). Its `ai_field` line-up was added to
+  `tools/bench.py` on 2026-11-12 and runs (`final` 30.43 ± 1.09 against `starter`
+  26.70 ± 1.12, 400 tables).
 - `tools/field_report.py`'s reader for the organizers' history format is a guess.
 - `starter` fails `tools/fuzz.py`'s repeat-call check because it bluffs with the global
   `random`. It is an opponent, not an upload, so this only matters if someone uploads it.
