@@ -296,6 +296,65 @@ def _percentile_of(score: float, marks) -> float:
     return 1.0
 
 
+def _db_boards(state: GameState) -> list:
+    """double_board_turn_discard: both boards from state.variant["boards"]; else the one board."""
+    extra = getattr(state, "variant", None)
+    boards = extra.get("boards") if isinstance(extra, dict) else None
+    if isinstance(boards, (list, tuple)) and len(boards) == 2 and all(boards):
+        return [tuple(board) for board in boards]
+    return [tuple(state.board)]
+
+
+def _db_value(pair, boards) -> tuple[float, bool]:
+    """Made strength of two kept cards averaged over the boards (each board wins half the
+    pot), and whether they draw on either board."""
+    strength = sum(_made_strength(pair, board) for board in boards) / len(boards)
+    return strength, any(_has_draw(pair, board) for board in boards)
+
+
+def db_preflop(state: GameState) -> tuple[float, float]:
+    """Three private cards, two of which play from the river on: the best pair's equity, and
+    a percentile from the best and mean pair of the three (more good pairs, more options)."""
+    cards = state.cards
+    if len(cards) != 3:
+        return holdem_preflop(state)
+    pairs = [_EQUITY[_class_key(a, b)] for i, a in enumerate(cards) for b in cards[i + 1 :]]
+    score = (max(pairs) + sum(pairs) / 3) / 2
+    return max(pairs), _percentile_of(score, _DB_MARKS)
+
+
+def db_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
+    """Before the discard: the best pair we could keep, averaged over both boards. After it:
+    our two cards averaged over both boards."""
+    cards = state.cards
+    if len(cards) not in (2, 3) or not state.board:
+        return holdem_postflop(state, facing)
+    boards = _db_boards(state)
+    if len(cards) == 2:
+        return _db_value(tuple(cards), boards)
+    best, draw = 0.0, False
+    for i, a in enumerate(cards):
+        for b in cards[i + 1 :]:
+            strength, has_draw = _db_value((a, b), boards)
+            best, draw = max(best, strength), draw or has_draw
+    return best, draw
+
+
+def db_discard(state: GameState) -> Action:
+    """After the turn: throw away the card whose loss hurts least over both boards."""
+    cards = state.cards
+    if len(cards) != 3:
+        return automatic(state)
+    boards = _db_boards(state)
+    best, keep = -1.0, (0, 1)
+    for i, j in ((0, 1), (0, 2), (1, 2)):
+        strength, has_draw = _db_value((cards[i], cards[j]), boards)
+        score = strength + (0.04 if has_draw else 0.0)
+        if score > best:
+            best, keep = score, (i, j)
+    return Action("discard", cards=(3 - keep[0] - keep[1],))
+
+
 def _entry(detect, phases: dict, preflop_score, postflop_score) -> dict:
     def strength(state: GameState) -> float:
         if state.board:
@@ -306,7 +365,14 @@ def _entry(detect, phases: dict, preflop_score, postflop_score) -> dict:
             "preflop": preflop_score, "postflop": postflop_score}  # fmt: skip
 
 
+_DB_ENTRY = _entry(  # Pittsburgh: three cards, two boards, one discard after the turn
+    lambda state: isinstance(getattr(state, "variant", None), dict) and "boards" in state.variant,
+    {"discard": db_discard}, db_preflop, db_postflop,
+)  # fmt: skip
+
 VARIANTS = {
+    "double_board_turn_discard": _DB_ENTRY,  # first: its discard phase must not route to irish
+    "pittsburgh": _DB_ENTRY,
     "irish": _entry(  # four cards before the flop; the two kept afterwards play as hold'em
         lambda state: state.phase == "discard",
         {"discard": irish_discard}, irish_preflop, holdem_postflop,
@@ -1336,6 +1402,9 @@ _OMAHA_MADE = (
 # irish: the same for the average of the best and the mean two-card equity of the four cards.
 _IRISH_FIT = (-0.061, 1.006)
 _IRISH_MARKS = (0.853, 0.7039, 0.6609, 0.6269, 0.6111, 0.5993, 0.5896, 0.5801, 0.571, 0.5624, 0.5536, 0.5448, 0.5361, 0.527, 0.5166, 0.5051, 0.4926, 0.4784, 0.4606, 0.4375, 0.364)
+# double_board_turn_discard: percentile marks of (best pair + mean pair) / 2 over all 22,100
+# three-card hands, computed from _EQUITY on 2026-11-12.
+_DB_MARKS = (0.853, 0.6887, 0.6323, 0.6135, 0.5993, 0.5857, 0.5737, 0.5633, 0.5535, 0.5433, 0.533, 0.5215, 0.511, 0.499, 0.4855, 0.4735, 0.4585, 0.4433, 0.4233, 0.3978, 0.3422)
 # auction: equity an extra private card adds with a draw, an ordinary hand, a made hand (estimates).
 _AUCTION_GAIN = (0.10, 0.06, 0.03)
 
