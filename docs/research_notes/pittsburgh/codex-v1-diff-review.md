@@ -1,0 +1,7 @@
+1. **Folds a guaranteed profitable half-pot win.** [tools/core_agent.py:311](/Users/vedaant/pokerbot/tools/core_agent.py:311), interacting with line 813. Heads-up river: `As Ks`; boards `Qs Js Ts 2d 3c` / `4h 6d 8c 9h Qd`; pot=150, call=50, stack=80. Averaged strength is `0.645`, so it **folds** despite the royal guaranteeing ≥100 back after calling 50. **Smallest fix:** exempt double-board strength from the `strength < 0.75` stack-commitment veto; use pot odds.
+
+2. **One-board draws trigger unjustified calls.** [tools/core_agent.py:312](/Users/vedaant/pokerbot/tools/core_agent.py:312), propagated at line 339 into line 815. Turn: `2s 3s 7c`; boards `As Ks 8d 9c` / `Qh Jd 5c 6h`; pot=150, call=50, stack=1000. Returns `(0.2675, True)` and **calls solely through the draw override**. Against `Ac Ad Qc` retaining aces, even our best discard yields only **14.47% equity**, versus 25% required: **−21.05 chips**. **Smallest fix:** disable the draw-only call override for this variant; averaged strength already includes draw bonuses.
+
+Routing for both kit names/phases, discard indices, all-in discard handling, empty/None preflop boards, and two-card river evaluation check out. Percentile direction is correct; returned preflop equity remains an uncalibrated two-card estimate.
+
+Timing: sampled full `act()` CPU median **0.205 ms**, p99 **0.225 ms**, max **0.424 ms** locally; no reproducible CPU overrun found.

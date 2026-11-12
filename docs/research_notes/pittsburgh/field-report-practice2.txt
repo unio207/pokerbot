@@ -1,0 +1,197 @@
+807811 hands from 13 tables
+
+bot                                 hands  VPIP   PFR shove  limp f/raise  bets f/bet  type
+ed7485b4-5dac-437e-b7df-8cdf6c7bec 807811   15%   12%    1%    1%     89%   37%   26%  regular
+359f5127-21a2-41e2-905c-64f3b7ac33  64937   16%   12%    1%    0%     81%   36%   36%  regular
+b2d2b603-22e6-47a1-966d-28e4a6720a  63061    2%    1%    0%    1%     97%   32%    4%  dead
+db18a4cc-f213-46c7-a3be-d5c620a804  62534   17%   13%    0%    0%     85%   77%   26%  regular
+a42fc93f-7b21-488c-8203-c094db0458  61827   12%    9%    0%    1%     85%   54%   40%  nit
+38c12686-56c5-4c1f-9270-57afe91ce1  61684   14%   12%    0%    2%     85%   57%   13%  regular
+ba5e0680-bb1d-4de2-9f42-d8a3904797  61562   24%   21%    2%    0%     83%   49%   53%  regular
+93c62db0-d7d3-4bb3-8967-e4d2ab6af5  61518   14%   10%    0%    0%     65%   41%    8%  regular
+ad2c82ce-168a-460c-a1dc-e00e9be99a  61434   24%   12%    0%   15%     85%   12%   32%  regular
+b30b247c-0d12-44cc-8a47-26ad9488fc  61138   15%   10%    1%    3%     82%   49%   26%  regular
+098fcb45-b66a-479e-9807-201cc007a1  61090   19%   14%    1%    2%     82%   19%   30%  regular
+566bb835-3fc3-4b89-aff1-071a560970  60996   18%   13%    0%    0%     77%   26%   23%  regular
+edacf58c-0471-4cf3-8b13-3ee791245c  60912    8%    7%    0%    1%     95%   48%   18%  nit
+5c668000-f2ba-4f5a-bf6c-19d3d6ccbd  60832   24%    6%    1%   29%     80%   64%   35%  regular
+e4b89ef4-726d-4982-96ff-064d9b39ba  60771   15%   14%    0%    0%     92%   24%   24%  regular
+043bf68d-8e40-4b59-8b6c-67ab022b78  60418   34%    2%    0%   53%     58%   16%   57%  regular
+5c109cc0-d5e2-47cb-91de-30661f7f02  60229   23%   18%    0%    0%     79%   40%   41%  regular
+68c0c7a0-2ca8-4621-9523-1ad863e106  60166   15%   11%    1%    0%     84%   34%   12%  regular
+f60bbf0c-1323-4d49-ac7d-1c75a15d38  59994    8%    5%    0%    1%     89%   12%   23%  nit
+ef779301-0e70-4beb-bf3c-908fb5b8c1  59938   23%   15%    1%    0%     63%   27%   28%  regular
+cc1c2ccc-0673-49c2-83b7-0bcd722f0b  59873   10%    6%    0%    5%     77%   40%    8%  nit
+2c0f391e-b2a6-45ac-ac26-1a14ddc9ef  59810   23%   17%    1%    0%     74%   23%   47%  regular
+f2d3e12f-b176-4062-ac3e-fbcde246f4  59802   22%   14%    0%    5%     71%   27%   49%  regular
+5eacff7d-7663-421f-a2a6-47170f8976  59783    7%    0%    0%    4%     80%    8%    5%  nit
+79de9d2e-a731-4170-8610-13f40ddcb5  59715   14%   10%    0%    0%     86%   44%   16%  regular
+21541ad0-21a5-44b6-8120-0b65bf6315  59651   16%   11%    0%    0%     77%   36%   41%  regular
+26d2171c-6317-4fd3-85bb-bca8131ec5  59486   24%   22%    1%    0%     79%   46%   44%  regular
+76cdc17f-9f92-4ef5-a6df-06f06d2e34  59363   19%   12%    0%    5%     79%   44%   20%  regular
+d4063d6c-2d7e-4fe1-ae75-ad3f29416a  59295   12%    1%    0%    7%     74%   12%   19%  nit
+d8333578-7d28-4e8b-9176-47ce012340  59146   24%   22%    1%    0%     87%   42%   48%  regular
+a78dcbfb-7d4e-4fff-87c0-65b8ca753c  59080   15%   13%    0%    1%     91%   45%   19%  regular
+bb07d959-04b7-454a-82d3-98f898dde8  59051   20%   15%    1%    1%     81%   59%   33%  regular
+79e004f5-7a53-496a-a483-16cf64b49d  58962    0%    0%    0%    0%    100%    0%  100%  dead
+bdd8db21-8fd5-47c7-accb-f6909c6f73  58808   16%   12%    0%    1%     84%   35%   32%  regular
+717e812c-4abf-422b-a2e1-2c75720d27  58797   11%    0%    0%    9%     72%   16%   16%  nit
+d84c464d-5590-4f73-af69-6b2f246ae3  58797   17%   13%    0%    1%     85%   35%    9%  regular
+ca263870-1f52-4b4e-896e-fd269f489f  58630   18%   11%    1%    2%     76%   30%   18%  regular
+4bb380fd-cdc4-4ff3-9b56-b8534ad8da  58629   15%   13%    1%    0%     84%   54%   10%  regular
+58631148-80b3-4504-824b-b153421f7d  58567   21%   13%    0%    6%     85%   49%   30%  regular
+f60d051b-4015-4421-8412-eb4ff03641  58525   13%   10%    0%    0%     87%   30%   25%  regular
+0e775a69-3cfc-42a1-ab1a-ea724039d8  58508   19%   15%    2%    0%     79%   46%   29%  regular
+df33950b-afe1-48d1-804d-da9ed41487  58465   20%   18%    0%    0%     89%   50%   29%  regular
+df8a43d4-cee8-4f25-99d0-3d37225534  58381   11%    1%    0%    7%     73%   13%   13%  nit
+5300d421-819e-47f7-8396-7f6bf74bd8  58307   20%   15%    0%    3%     80%   32%   24%  regular
+48be2d40-0c80-458f-b4ac-3396ca0d34  58028    0%    0%    0%    0%    100%    0%  100%  dead
+ad563345-c21a-441d-85c1-a80f04c234  58023    7%    3%    0%    3%     88%    4%   33%  nit
+2a3639b1-a4b6-4fd2-802b-36c9c51944  57883    5%    0%    0%   53%      0%    0%    0%  nit
+9152b1b9-cf21-424f-aa4b-eb6208d51b  57771   18%    2%    0%   24%     36%    4%   85%  regular
+2e3f3ad7-6644-43ea-87a4-e1fd2c363b  57666   24%    5%    0%   20%     48%   25%   66%  regular
+6f9b5b99-0993-45a6-b5e1-549ca5c72e  57617   12%    2%    0%    7%     69%   30%   13%  regular
+107d177b-1b39-4463-bb7e-8afaf9d9f5  57011   15%   12%    0%    0%     84%   20%   14%  regular
+b309bfe2-cec4-4cb8-970b-144b2e5495  56911   19%   17%    1%    0%     90%   66%   26%  regular
+bc708790-55d0-4dcc-8569-618f4da0d2  56745   20%    9%    2%   17%     43%   40%   67%  regular
+0581595d-5501-4099-aad4-e59ad64f84  56733    7%    0%    0%    7%     90%   19%    9%  nit
+368d5f3d-b0b0-41c0-be27-1b4439866f  56716   19%   14%    1%    1%     72%   49%   43%  regular
+4f21d778-dd35-4525-864c-11c05deaca  56713   18%   15%    0%    1%     90%   28%   58%  regular
+b0299a28-1c16-4aac-a36d-7423fc9ffd  56500   17%   10%    0%   15%     49%   27%   14%  regular
+079e3695-0cc0-4ebc-86bb-0cdbd61ddf  56431   20%   12%    1%    0%     71%   49%   31%  regular
+b598285d-f90b-4bc3-844d-5e5e869a78  56235   23%   19%    1%    0%     78%   65%   42%  regular
+f76ceac5-e11f-4f50-b2a7-3cb57f8f32  56146   12%    1%    0%   30%     38%   14%    9%  nit
+e3215732-3743-4d96-af58-e39c4bd8eb  56036   15%   12%    1%    0%     85%   24%   15%  regular
+b3c70ac6-021f-468c-98cc-7e0b359b68  56003   24%   17%    0%   11%     56%   26%   20%  regular
+55ca9d3d-a99e-4028-b0ce-cd2ce827e8  55943   21%    6%    0%   23%     77%   38%   58%  regular
+bcfdefbb-093e-443b-b738-5e79f699cc  55933   14%    8%    0%    7%     89%   51%   19%  regular
+794b51bc-e9da-4856-8258-f8308ea653  55927   22%   16%    1%    1%     74%   49%   79%  regular
+ea153cb5-b85b-434f-ba91-3fa02b6516  55841   25%   14%    0%    7%     53%   35%   24%  regular
+dcf720ea-9147-404d-8fc9-4ca7596457  55743   19%    0%    0%   25%     79%    0%   76%  regular
+7b2e2594-dbd3-4a92-9075-9a81628b97  55366   21%   20%    1%    0%     71%   69%   70%  regular
+a2eb9bf9-526a-4f68-b52c-a5afcffb92  55334   13%    9%    0%    2%     89%   14%    8%  regular
+b7ab1f08-85e5-483e-ade9-89c4adb905  55245   24%   20%    1%    0%     71%   29%   43%  regular
+5f1fcfb7-3468-4170-84de-64347abdd4  55136   21%   17%    1%    0%     84%   26%   61%  regular
+56afaba7-8658-47eb-be98-43ac31a98b  55034   16%   11%    0%    0%     70%   26%   13%  regular
+b10e73d9-9f78-41cd-8cb6-432bc239b6  54988   16%   11%    0%    1%     46%   73%    6%  regular
+f975f760-a1a3-4133-9bae-1efd6aebb6  54912   17%   14%    0%    0%     85%   39%   29%  regular
+026ab2c2-23f2-4377-b2b0-b834916996  54729    6%    0%    0%    5%     92%   22%   79%  nit
+53c37eb9-8214-4781-af7a-a46ae14f1f  54672   23%   19%    2%    0%     79%   39%   50%  regular
+0abdcef5-385b-426e-a025-b15e4110fd  54644   17%    9%    0%    4%     80%   11%   24%  regular
+1d26a369-cb9c-4f55-ad28-2bbd8fe8a6  54415   28%   23%    0%    0%     76%   46%   69%  regular
+792bfbb9-19a0-4b67-b07b-55dab26b56  54222    7%    7%    6%    0%      0%    -     -   nit
+a43266e8-bd56-4cc6-af32-c171d396d1  54170   23%   14%    1%    0%     53%   48%   44%  regular
+d867067b-68ed-4211-b9d7-435a0c7d00  54157   24%   12%    0%   18%     64%   25%   75%  regular
+eb06d0fa-f151-443f-a407-1443766874  54057    7%    4%    0%    2%     90%    8%   81%  nit
+c922e8fc-914c-4dea-a79f-2bae5d1124  53925   16%   13%    0%    0%     77%   44%   32%  regular
+96c8c532-2a25-4cd0-ab3b-c66e556ec7  53803   19%   14%    1%    0%     82%   56%   27%  regular
+ddab47fa-a1b2-4d7c-a5ba-9d547c0a6c  53799   20%   19%    0%    0%     90%   54%   56%  regular
+a556fae5-44af-4087-9e2a-3c2bb1e417  53794   25%   23%    0%    0%     70%   69%   21%  regular
+b9bace2c-b96f-441a-9b6f-2c055a76dc  53410   20%   16%    1%    0%     84%   35%   25%  regular
+a9dcf289-764f-4827-8cf8-fea00a00f3  53399   26%   19%    1%    1%     73%   22%  100%  regular
+9c7fa053-ebae-4ebe-bb0b-21fed111f0  53123   32%   23%    0%    1%     67%   26%   46%  regular
+bb483d9b-8ae1-455c-83e6-870b12ded2  53073   20%   12%    1%    0%     68%   31%   27%  regular
+7b4cf8b4-7ce6-4ed8-900f-f2167f84cc  53053   25%   18%    2%    1%     68%   27%   32%  regular
+e56b2aec-0f40-4730-8341-088d6119b9  52792   15%   12%    2%    0%     81%   43%   53%  regular
+8ef28358-5e05-4d7c-9d79-fe83d666ff  52579   30%   27%    3%    0%     82%   53%   64%  regular
+02f0bf2a-e212-4e85-b063-9dd2dd6315  52434   16%   11%    1%    0%     82%   51%   39%  regular
+8204bae6-39b0-4a2e-85cc-560d2e55f0  52190   17%   15%    2%    0%     89%   14%   31%  regular
+20bd1cc8-39cd-47ac-80bf-77edf0bb9a  52111   16%    7%    0%   10%     68%   35%   35%  regular
+13a31210-b43c-4684-aaf7-ffe28d0e23  51503   14%    6%    1%   10%     86%   26%   14%  regular
+00d20fa8-a81b-47eb-9763-b0fecd5be7  51088   22%   13%    1%   11%     73%   33%   72%  regular
+96aac421-f262-42b7-a4fa-62fa7086d3  50673   12%    5%    0%   13%     66%   38%    5%  nit
+cda1130c-4115-438c-935b-7e4c1ec2ee  49820   13%    0%    0%   26%     45%    5%   20%  regular
+
+Hands shown after going all-in before the flop:
+  ed7485b4-5dac-437e-b7df-8cdf6c7bec 1581 shown,  50% premium (TT+, AK, AQ): AA x392, KK x105, QQ x73, TT x59, JJ x55, AKo x41, 99 x41, AQo x29
+  792bfbb9-19a0-4b67-b07b-55dab26b56 1023 shown,  11% premium (TT+, AK, AQ): QJo x33, AQo x33, QTo x27, AJo x26, JTo x22, K8o x22, ATo x21, KJo x20
+  bc708790-55d0-4dcc-8569-618f4da0d2  624 shown,  39% premium (TT+, AK, AQ): AA x43, JJ x37, AKo x36, 99 x36, KK x34, QQ x29, TT x28, 77 x26
+  8ef28358-5e05-4d7c-9d79-fe83d666ff  501 shown,  22% premium (TT+, AK, AQ): AA x33, JJ x17, QQ x17, KK x13, AKo x12, 99 x11, 77 x8, KQo x8
+  ba5e0680-bb1d-4de2-9f42-d8a3904797  359 shown,  36% premium (TT+, AK, AQ): AA x34, QQ x33, KK x26, AKo x10, 99 x9, ATo x8, TT x8, 88 x8
+  7b2e2594-dbd3-4a92-9075-9a81628b97  334 shown,  54% premium (TT+, AK, AQ): JJ x35, TT x35, KK x33, QQ x31, AA x29, 88 x16, 99 x16, AKo x9
+  e56b2aec-0f40-4730-8341-088d6119b9  303 shown,  57% premium (TT+, AK, AQ): QQ x53, KK x53, AA x44, 88 x8, KQo x8, K9o x8, TT x7, JJ x6
+  7b4cf8b4-7ce6-4ed8-900f-f2167f84cc  277 shown,  45% premium (TT+, AK, AQ): KK x50, AA x36, JJ x10, QQ x10, 66 x7, 99 x6, AKo x5, AQs x5
+  cc1c2ccc-0673-49c2-83b7-0bcd722f0b  255 shown,  65% premium (TT+, AK, AQ): AKo x33, AQo x28, KK x20, 99 x18, QQ x18, AJo x17, TT x16, JJ x16
+  5c668000-f2ba-4f5a-bf6c-19d3d6ccbd  253 shown,  81% premium (TT+, AK, AQ): AA x41, AKo x41, KK x40, QQ x40, JJ x29, AKs x15, QJo x3, A5o x3
+  359f5127-21a2-41e2-905c-64f3b7ac33  252 shown,  62% premium (TT+, AK, AQ): AA x41, QQ x39, KK x31, JJ x21, TT x17, 99 x13, 88 x5, KJo x4
+  0e775a69-3cfc-42a1-ab1a-ea724039d8  249 shown,  43% premium (TT+, AK, AQ): AA x38, KK x28, QQ x10, JJ x10, AKo x8, 77 x7, AJo x7, QTo x7
+  b7ab1f08-85e5-483e-ade9-89c4adb905  244 shown,  50% premium (TT+, AK, AQ): AA x38, KK x34, QQ x26, JJ x11, A8o x4, TT x4, 65o x4, AQo x4
+  a9dcf289-764f-4827-8cf8-fea00a00f3  228 shown,  44% premium (TT+, AK, AQ): KK x33, AA x32, QQ x14, AQo x6, AJo x5, QTo x5, TT x5, ATo x4
+  53c37eb9-8214-4781-af7a-a46ae14f1f  224 shown,  47% premium (TT+, AK, AQ): AA x44, KK x31, 99 x9, 88 x8, QQ x7, JJ x7, AJo x7, TT x6
+  68c0c7a0-2ca8-4621-9523-1ad863e106  222 shown,  67% premium (TT+, AK, AQ): QQ x40, AA x38, KK x29, JJ x24, TT x10, AJo x3, AQo x3, A3o x3
+  b598285d-f90b-4bc3-844d-5e5e869a78  207 shown,  69% premium (TT+, AK, AQ): KK x29, QQ x26, JJ x22, AA x19, AKo x13, AKs x11, TT x9, AQo x7
+  794b51bc-e9da-4856-8258-f8308ea653  201 shown,  70% premium (TT+, AK, AQ): QQ x35, AA x31, JJ x30, KK x20, TT x17, 99 x6, A9s x4, AKo x3
+  00d20fa8-a81b-47eb-9763-b0fecd5be7  200 shown,  68% premium (TT+, AK, AQ): JJ x31, KK x27, TT x26, QQ x23, 99 x20, AA x18, 77 x7, 88 x6
+  368d5f3d-b0b0-41c0-be27-1b4439866f  195 shown,  43% premium (TT+, AK, AQ): KK x30, AA x25, QQ x12, AQo x5, KJo x5, KTo x4, 99 x4, AKs x4
+  b30b247c-0d12-44cc-8a47-26ad9488fc  194 shown,  51% premium (TT+, AK, AQ): AA x28, JJ x18, QQ x17, KK x13, TT x10, 99 x8, AKo x5, KJo x5
+  098fcb45-b66a-479e-9807-201cc007a1  194 shown,  77% premium (TT+, AK, AQ): AA x47, KK x43, JJ x25, QQ x17, TT x10, 88 x6, KQo x4, A7o x3
+  26d2171c-6317-4fd3-85bb-bca8131ec5  192 shown,  36% premium (TT+, AK, AQ): AA x33, KK x13, QQ x7, JJ x7, JTo x5, AQo x5, J8o x4, A5o x4
+  8204bae6-39b0-4a2e-85cc-560d2e55f0  192 shown,  55% premium (TT+, AK, AQ): AA x39, KK x25, QQ x13, JJ x12, TT x9, 99 x4, 88 x4, KJs x3
+  ef779301-0e70-4beb-bf3c-908fb5b8c1  186 shown,  34% premium (TT+, AK, AQ): AA x23, KK x14, JJ x7, QQ x6, T9o x5, J7o x5, QJo x4, TT x4
+  ca263870-1f52-4b4e-896e-fd269f489f  184 shown,  47% premium (TT+, AK, AQ): AA x37, KK x30, QQ x7, 55 x4, AQo x4, AKo x3, A2o x3, TT x3
+  96c8c532-2a25-4cd0-ab3b-c66e556ec7  183 shown,  46% premium (TT+, AK, AQ): AA x33, KK x32, QQ x11, AQo x4, 99 x4, AJo x3, JTo x3, KJo x3
+  a42fc93f-7b21-488c-8203-c094db0458  171 shown,  77% premium (TT+, AK, AQ): AA x32, JJ x29, KK x25, QQ x25, 99 x16, TT x10, AQs x5, 88 x4
+  13a31210-b43c-4684-aaf7-ffe28d0e23  170 shown,  91% premium (TT+, AK, AQ): AA x47, KK x37, QQ x33, JJ x27, TT x10, A8o x1, 88 x1, T9o x1
+  e4b89ef4-726d-4982-96ff-064d9b39ba  165 shown,  95% premium (TT+, AK, AQ): QQ x42, JJ x41, KK x38, AA x34, Q4s x2, A2o x1, Q9o x1, QTo x1
+  b309bfe2-cec4-4cb8-970b-144b2e5495  164 shown,  44% premium (TT+, AK, AQ): AA x25, KK x18, QQ x8, AKo x6, TT x5, KJo x5, KTo x4, AQs x4
+  5f1fcfb7-3468-4170-84de-64347abdd4  163 shown,  56% premium (TT+, AK, AQ): AA x38, KK x35, QQ x6, AKo x4, A4o x3, 22 x3, A9o x3, AQs x3
+  4bb380fd-cdc4-4ff3-9b56-b8534ad8da  162 shown,  68% premium (TT+, AK, AQ): QQ x29, AA x28, KK x27, JJ x12, AQo x7, AJo x6, Q7s x3, TT x3
+  55ca9d3d-a99e-4028-b0ce-cd2ce827e8  158 shown,  52% premium (TT+, AK, AQ): 99 x25, QQ x22, 88 x20, KK x16, TT x16, JJ x16, AA x12, 77 x12
+  2c0f391e-b2a6-45ac-ac26-1a14ddc9ef  158 shown,  76% premium (TT+, AK, AQ): AA x39, KK x33, QQ x16, JJ x15, TT x6, AQo x4, KQs x3, AJo x3
+  c922e8fc-914c-4dea-a79f-2bae5d1124  149 shown,  62% premium (TT+, AK, AQ): KK x32, AA x29, JJ x11, QQ x9, KQo x3, 77 x3, AKs x3, AJo x3
+  ddab47fa-a1b2-4d7c-a5ba-9d547c0a6c  144 shown,  71% premium (TT+, AK, AQ): KK x25, QQ x19, AA x17, JJ x14, TT x13, KJs x6, AKo x5, AKs x4
+  e3215732-3743-4d96-af58-e39c4bd8eb  140 shown,  76% premium (TT+, AK, AQ): AA x38, KK x35, QQ x22, JJ x5, ATo x5, AKo x3, A4s x2, TT x2
+  38c12686-56c5-4c1f-9270-57afe91ce1  136 shown,  78% premium (TT+, AK, AQ): 99 x30, TT x26, QQ x24, AA x21, KK x18, JJ x17
+  bb07d959-04b7-454a-82d3-98f898dde8  132 shown,  35% premium (TT+, AK, AQ): AA x22, QQ x8, JJ x6, KK x5, 99 x5, AJs x3, 44 x3, A2o x3
+  b0299a28-1c16-4aac-a36d-7423fc9ffd  123 shown,  46% premium (TT+, AK, AQ): AA x13, QQ x10, AQo x7, JJ x6, TT x6, AKo x5, ATo x5, KQo x4
+  a43266e8-bd56-4cc6-af32-c171d396d1  121 shown,  41% premium (TT+, AK, AQ): KK x22, AA x19, QQ x5, AKo x3, 72s x2, 98o x2, KJo x2, A2o x2
+  b9bace2c-b96f-441a-9b6f-2c055a76dc  117 shown,  39% premium (TT+, AK, AQ): AA x28, KK x6, AKo x4, 99 x3, 88 x3, 77 x3, K9o x3, A3o x2
+  02f0bf2a-e212-4e85-b063-9dd2dd6315  114 shown,  67% premium (TT+, AK, AQ): KK x26, AA x24, JJ x10, QQ x9, 99 x5, TT x4, QJs x3, KJo x2
+  566bb835-3fc3-4b89-aff1-071a560970  105 shown,  98% premium (TT+, AK, AQ): KK x44, AA x34, QQ x25, Q6s x1, KJo x1
+  20bd1cc8-39cd-47ac-80bf-77edf0bb9a  104 shown,  42% premium (TT+, AK, AQ): QQ x11, KK x10, AA x10, JJ x5, TT x4, 99 x4, A3o x3, AQo x3
+  bb483d9b-8ae1-455c-83e6-870b12ded2  100 shown,  35% premium (TT+, AK, AQ): AA x14, TT x5, KJo x4, AKo x4, Q9o x4, AQo x4, A7o x3, K9o x3
+  079e3695-0cc0-4ebc-86bb-0cdbd61ddf   98 shown,  32% premium (TT+, AK, AQ): AA x13, AQo x5, TT x5, 88 x5, 99 x4, QQ x3, 66 x3, JJ x2
+  107d177b-1b39-4463-bb7e-8afaf9d9f5   98 shown,  73% premium (TT+, AK, AQ): AA x35, KK x23, AKs x4, 99 x3, KJo x3, AKo x3, QQ x3, 88 x2
+  d8333578-7d28-4e8b-9176-47ce012340   98 shown,  13% premium (TT+, AK, AQ): AA x7, 97o x4, 99 x3, K7o x3, QQ x3, 32s x2, KTo x2, QTs x2
+  1d26a369-cb9c-4f55-ad28-2bbd8fe8a6   94 shown,  83% premium (TT+, AK, AQ): AA x42, KK x21, QQ x9, AKs x3, 99 x2, K7s x1, 77 x1, JJ x1
+  58631148-80b3-4504-824b-b153421f7d   93 shown,  98% premium (TT+, AK, AQ): AA x47, KK x28, QQ x11, JJ x4, A9o x1, AKo x1, KQo x1
+  93c62db0-d7d3-4bb3-8967-e4d2ab6af5   87 shown,  94% premium (TT+, AK, AQ): KK x25, AA x24, QQ x15, JJ x9, TT x6, AKs x2, KTs x1, A3s x1
+  a78dcbfb-7d4e-4fff-87c0-65b8ca753c   86 shown,  92% premium (TT+, AK, AQ): KK x28, QQ x18, AA x17, JJ x12, TT x4, J7s x1, J9s x1, J4o x1
+  f60d051b-4015-4421-8412-eb4ff03641   85 shown,  88% premium (TT+, AK, AQ): AA x36, KK x24, JJ x5, QQ x4, TT x3, AQo x2, AJo x2, ATo x2
+  db18a4cc-f213-46c7-a3be-d5c620a804   80 shown,  95% premium (TT+, AK, AQ): AA x34, KK x25, QQ x11, JJ x3, TT x2, JTo x1, AKs x1, AJo x1
+  2e3f3ad7-6644-43ea-87a4-e1fd2c363b   80 shown,  59% premium (TT+, AK, AQ): KK x13, QQ x11, AA x8, JJ x7, TT x7, 77 x7, 66 x6, 99 x5
+  a556fae5-44af-4087-9e2a-3c2bb1e417   79 shown,  95% premium (TT+, AK, AQ): KK x23, AA x23, QQ x15, TT x9, JJ x4, AKo x1, K7o x1, KJs x1
+  df33950b-afe1-48d1-804d-da9ed41487   78 shown,  85% premium (TT+, AK, AQ): AA x46, KK x11, TT x4, 99 x3, QQ x2, KTs x2, JJ x2, KJo x1
+  ad563345-c21a-441d-85c1-a80f04c234   78 shown,  91% premium (TT+, AK, AQ): QQ x27, AA x26, KK x18, 88 x2, 77 x1, 55 x1, Q9s x1, 66 x1
+  9152b1b9-cf21-424f-aa4b-eb6208d51b   76 shown,  71% premium (TT+, AK, AQ): JJ x15, 99 x14, TT x13, QQ x11, KK x8, AA x7, Q9s x1, 93s x1
+  f60bbf0c-1323-4d49-ac7d-1c75a15d38   76 shown,  96% premium (TT+, AK, AQ): AA x26, QQ x15, KK x14, JJ x11, TT x7, 99 x2, 88 x1
+  76cdc17f-9f92-4ef5-a6df-06f06d2e34   75 shown,  73% premium (TT+, AK, AQ): KK x25, AA x17, QQ x10, KQs x2, AQo x2, A2o x2, AJs x1, T9o x1
+  bdd8db21-8fd5-47c7-accb-f6909c6f73   73 shown,  96% premium (TT+, AK, AQ): KK x32, AA x23, QQ x7, JJ x4, AQs x2, AKs x2, KQo x1, A4s x1
+  79de9d2e-a731-4170-8610-13f40ddcb5   73 shown,  67% premium (TT+, AK, AQ): AA x34, KK x7, AKo x3, QJo x2, QQ x2, 98o x1, QTs x1, TT x1
+  d867067b-68ed-4211-b9d7-435a0c7d00   73 shown,  78% premium (TT+, AK, AQ): JJ x17, KK x14, AA x10, QQ x7, 99 x7, TT x7, 55 x3, AKo x2
+  9c7fa053-ebae-4ebe-bb0b-21fed111f0   69 shown,  91% premium (TT+, AK, AQ): AA x28, KK x25, JJ x4, QQ x3, AQo x2, TT x1, QJo x1, 88 x1
+  5300d421-819e-47f7-8396-7f6bf74bd8   64 shown, 100% premium (TT+, AK, AQ): KK x32, AA x26, QQ x6
+  4f21d778-dd35-4525-864c-11c05deaca   61 shown,  98% premium (TT+, AK, AQ): AA x34, KK x20, QQ x4, KJs x1, AKo x1, AQs x1
+  96aac421-f262-42b7-a4fa-62fa7086d3   61 shown,  89% premium (TT+, AK, AQ): AA x17, QQ x12, JJ x11, KK x10, TT x3, 88 x3, QTs x1, JTo x1
+  ea153cb5-b85b-434f-ba91-3fa02b6516   60 shown,  93% premium (TT+, AK, AQ): AA x23, KK x19, QQ x7, JJ x3, TT x2, AQs x1, A6o x1, K4o x1
+  bcfdefbb-093e-443b-b738-5e79f699cc   56 shown,  84% premium (TT+, AK, AQ): AA x17, KK x17, JJ x7, QQ x6, QJs x1, A3o x1, A7s x1, KTs x1
+  edacf58c-0471-4cf3-8b13-3ee791245c   54 shown,  98% premium (TT+, AK, AQ): AA x42, KK x11, A9s x1
+  b10e73d9-9f78-41cd-8cb6-432bc239b6   49 shown,  92% premium (TT+, AK, AQ): AA x18, KK x14, QQ x12, Q9o x1, Q5o x1, JJ x1, K9o x1, KQo x1
+  21541ad0-21a5-44b6-8120-0b65bf6315   48 shown,  48% premium (TT+, AK, AQ): AA x10, KK x6, A9o x3, TT x3, AKo x2, A9s x1, QJo x1, J9o x1
+  ad2c82ce-168a-460c-a1dc-e00e9be99a   47 shown,  96% premium (TT+, AK, AQ): AA x29, KK x15, QQ x1, KQs x1, KJs x1
+  5c109cc0-d5e2-47cb-91de-30661f7f02   43 shown,  91% premium (TT+, AK, AQ): AA x24, KK x10, QQ x5, J9o x1, KTs x1, AJs x1, QJo x1
+  d4063d6c-2d7e-4fe1-ae75-ad3f29416a   34 shown, 100% premium (TT+, AK, AQ): AA x14, KK x11, QQ x7, JJ x2
+  d84c464d-5590-4f73-af69-6b2f246ae3   32 shown,  97% premium (TT+, AK, AQ): AA x20, KK x10, QQ x1, K7o x1
+  f76ceac5-e11f-4f50-b2a7-3cb57f8f32   30 shown,  80% premium (TT+, AK, AQ): QQ x6, TT x5, AA x5, JJ x4, KK x4, 88 x1, A7s x1, J9o x1
+  b3c70ac6-021f-468c-98cc-7e0b359b68   28 shown, 100% premium (TT+, AK, AQ): AA x21, KK x7
+  f2d3e12f-b176-4062-ac3e-fbcde246f4   24 shown,  96% premium (TT+, AK, AQ): AA x15, KK x5, Q6o x1, TT x1, QQ x1, JJ x1
+  f975f760-a1a3-4133-9bae-1efd6aebb6   16 shown,  94% premium (TT+, AK, AQ): AA x14, KK x1, A8o x1
+  6f9b5b99-0993-45a6-b5e1-549ca5c72e   12 shown,  92% premium (TT+, AK, AQ): AA x8, KK x2, K2s x1, QQ x1
+  b2d2b603-22e6-47a1-966d-28e4a6720a   11 shown, 100% premium (TT+, AK, AQ): AA x4, JJ x3, QQ x2, TT x1, KK x1
+  eb06d0fa-f151-443f-a407-1443766874    9 shown, 100% premium (TT+, AK, AQ): TT x4, JJ x2, QQ x1, KK x1, AA x1
+  df8a43d4-cee8-4f25-99d0-3d37225534    6 shown, 100% premium (TT+, AK, AQ): KK x3, QQ x2, AA x1
+  56afaba7-8658-47eb-be98-43ac31a98b    5 shown,  60% premium (TT+, AK, AQ): 33 x2, AA x2, JJ x1
+
+Field mix (share of opponent hands):  regular 83%,  nit 14%,  dead 3%
+
+No type is common enough to act on; keep the default profile.
