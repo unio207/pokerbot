@@ -13,6 +13,11 @@ Ship a never-fail, ICM-aware, steal-and-shove-aware bot as fast as possible. Do 
 a new architecture. Encode the strategy ladder below (the locked `bots/final` profile).
 After the first legal upload, hand off to `mid-round-iterate`.
 
+On the day, run `skills/sequoia-launch`: it is this same build on a clock, with the Rules
+Card, the safety gate (`skills/sequoia-launch/scripts/gate.py`) and the upload checklist.
+This file is the short form and the strategy spec. Where the two differ, the launch skill
+is the one to follow.
+
 ## Authority
 
 Prefer the event **Format** page / kit docs over older notes. Pittsburgh defaults:
@@ -38,8 +43,9 @@ kit `RULES.md` / Format page for *this* event explicitly says otherwise.
 **`bots/final/agent.py`** — generated from `tools/core_agent.py` with `ACTIVE = "final"`.
 
 - Not `starter/`, not zoo bots, not one-off experiments.
-- Proven on prep benches (mini sim): ~**29.3** pts/table vs starter ~**19.5**; weak field
-  ~**31**; fuzz 8k states / **0** failures. Stop chasing more mini-EV; process and variant
+- Measured on the mini simulator on 2026-11-12 (`skills/STATE.md`): **24.55 ± 0.19**
+  pts/table vs starter **18.99 ± 0.16** over nine line-ups, n = 9,000 tables per bot; gate
+  fuzz 20,000 states / **0** bad. Stop chasing more mini-EV; process and variant
   conversion are the remaining edge.
 
 If pre-written repo code is allowed: copy the repo, build, upload `bots/final` first, then
@@ -54,8 +60,10 @@ Copy and track:
 Build progress:
 - [ ] Kit installed (re-run no-limit-2026-setup if needed)
 - [ ] Repo on build box next to kit (`~/work/pokerbot` beside `~/work/starter-kit`)
-- [ ] build.py --check + fuzz bots/final
-- [ ] FIRST UPLOAD of bots/final (unchanged is fine — legal in unknown phases)
+- [ ] build.py --check, then gate.py on the kit: GATE: PASS, 0 failed decisions
+- [ ] FIRST UPLOAD: unchanged bots/final if the gate passed on the kit; if any decision
+      failed there, the kit's own agent.py instead (how the kit scores an automatic
+      choice in an unknown phase is unverified until the kit is in hand)
 - [ ] Read kit RULES.md; write zoo/variants/<name>.md from TEMPLATE.md
 - [ ] Variant conversion + table regen
 - [ ] Rebuild, fuzz, practice smoke
@@ -68,13 +76,13 @@ Build progress:
 ```bash
 cd ~/work/pokerbot
 ../starter-kit/.venv/bin/python tools/build.py --check
-../starter-kit/.venv/bin/python tools/fuzz.py bots/final --states 5000
-# upload bots/final NOW
+../starter-kit/.venv/bin/python skills/sequoia-launch/scripts/gate.py bots/final --tables 30
+# GATE: PASS -> upload bots/final NOW (human go)
 
 # after RULES.md is read and VARIANTS entry added:
 ../starter-kit/.venv/bin/python tools/gen_variant_tables.py tools/core_agent.py --samples 400000
 ../starter-kit/.venv/bin/python tools/build.py
-../starter-kit/.venv/bin/python tools/fuzz.py bots/final --states 20000
+../starter-kit/.venv/bin/python skills/sequoia-launch/scripts/gate.py bots/final
 ../starter-kit/.venv/bin/python practice.py bots/final --tables 50
 ```
 
@@ -105,8 +113,9 @@ stable under fuzz.
    blinds; `vs_shover="doc"` (conservative vs constant shovers); adapt to stations and
    min-raisers. Reset with the table.
 
-Locked `final` knobs (edit via `PROFILES["final"]` / top-level `SETTINGS` in
-`tools/core_agent.py`, then `tools/build.py`):
+Locked `final` knobs. The float ones are in the top-level `SETTINGS` table of
+`tools/core_agent.py`, which overrides `PROFILES["final"]`: change them in `SETTINGS`,
+then `tools/build.py`. The rest are in `PROFILES["final"]`:
 
 ```text
 track + adapt {steal, shover, station, minraise}
@@ -138,6 +147,9 @@ Allowed imports: stdlib, `poker_agent_sdk`, and the kit's listed scientific stac
 Never `poker_engine` / `pokerkit`.
 
 ## Validation gates before any upload
+
+`skills/sequoia-launch/scripts/gate.py bots/final` prints `GATE: PASS`. It runs all four
+below, plus decision timing against the limit, memory growth and the upload-test imitation:
 
 1. Kit or `poker-agent check` / `tools/build.py --check` passes.
 2. `tools/fuzz.py bots/final` — **zero** exceptions and illegal actions.

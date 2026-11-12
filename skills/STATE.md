@@ -1,7 +1,7 @@
 # STATE: hand-off from sequoia-launch to mid-round-iterate
 
-Updated: 2026-11-12, before the event (no clock running). Machine: MacBook M5, Python 3.12.15.
-Repo at `8f76ac0` plus uncommitted work (the launch skill, 12 added zoo bots).
+Updated: 2026-11-12 16:40, before the event (no clock running). Machine: MacBook M5, Python 3.12.15.
+Repo: `main`, the readiness commit on top of `3cff4e7` (adds `SETTINGS`), pushed.
 **Every number below is from the unofficial mini simulator, not from the kit.**
 Template: `sequoia-launch/templates/STATE.md`.
 
@@ -30,7 +30,9 @@ call_margin=0.05, bubble_margin=0.08, push_scale=0.9, points_tight=0.08,
 threebet=0.03, call_raise=0.08,
 ```
 
-Everything else comes from `_BASE` in the same file.
+Everything else comes from `_BASE` in the same file. The 13 float knobs (these, plus
+`hu_open=0.65` from `_BASE`) are repeated in the `SETTINGS` table below the profiles with the
+same values. `SETTINGS` is applied last, so it overrides the profile: change a knob there.
 
 ## Gate
 
@@ -41,11 +43,11 @@ rules card not filled).
 - fuzz: 20,000 states, 0 bad; 0 exceptions raised inside the bot on 10,000 clean states
 - `tools/fuzz.py`: 5,000 states, no failures
 - timing, 20,000 decisions in-process: p50 18 µs, p99 37 (allowed 250), p99.9 42 (allowed
-  500), max 77, 0 over 1,000 µs
+  500), max 60, 0 over 1,000 µs
 - memory: largest blob 96 bytes over a 250-hand busy table (allowed 16,384)
 - tables: 300 over 3 line-ups, 0 failed decisions of 32,081
 - upload-test imitation (no time bank): 0 of 3,000 failed
-- `agent.py` 69,417 bytes; import 0.010 s
+- `agent.py` 70,036 bytes; import 0.010 s
 
 Also PASS with cards probed from the mini rulesets `irish`, `discard_reveal` and `short_deck`
 (timing p99 73, 40 and 38 µs).
@@ -72,9 +74,10 @@ n = 1,000 tables per line-up per bot. Par is 12.5. Speed: 13,500 tables per minu
 A/B difference at 2.8 standard errors: 0.31 points in 5 minutes, 0.22 in 10, 0.13 in 30; by
 hand `2.8 x 21 / sqrt(tables per bot)`.
 
-Variant rulesets on the mini simulator, `final` against `starter`, all line-ups, n = 1,800
-per bot: irish 32.45 ± 0.48 against 12.19 ± 0.12; short_deck 24.69 ± 0.42 against
-14.75 ± 0.41; discard_reveal 26.25 ± 0.45 against 17.93 ± 0.18. Zero failed decisions.
+Variant rulesets on the mini simulator, `final` against `starter`, all nine line-ups,
+`--tables 300`, seed `gauntlet`, n = 2,700 per bot (re-measured 2026-11-12 16:33): irish
+31.58 ± 0.42 against 10.62 ± 0.17; short_deck 24.24 ± 0.41 against 16.02 ± 0.30;
+discard_reveal 25.68 ± 0.35 against 18.21 ± 0.33. Zero failed decisions.
 
 Promotion rule in force: difference over all line-ups above 2 standard errors on one seed and
 still positive on a fresh seed; zero failed decisions; gate PASS.
@@ -92,10 +95,10 @@ None yet.
   unusual per-table payouts, its ICM is approximate.
 - An unknown phase gets the automatic choice. Whether the kit counts that as a failed decision
   for an action that needs `cards` is unknown until the kit is in hand.
-- `skills/mid-round-iterate` compares against `bots/final_prev`, which does not exist until
-  someone copies it (`cp -a bots/final bots/final_prev`). Its `ai_field` line-up was added to
-  `tools/bench.py` on 2026-11-12 and runs (`final` 30.43 ± 1.09 against `starter`
-  26.70 ± 1.12, 400 tables).
+- `tools/field_fit.py --sweep` and `tools/bench.py` play the mini simulator only, and
+  `bench.py` plays hold'em only. `skills/mid-round-iterate` therefore promotes on
+  `gauntlet.py bots/final --vs vN` and `gate.py`, which follow the kit and the variant. The
+  sweep's rows are hints from our own ruleset, not kit numbers.
 - `tools/field_report.py`'s reader for the organizers' history format is a guess.
 - `starter` fails `tools/fuzz.py`'s repeat-call check because it bluffs with the global
   `random`. It is an opponent, not an upload, so this only matters if someone uploads it.
@@ -104,7 +107,7 @@ None yet.
 
 1. After the first hand histories: `tools/field_report.py --inspect`, fix `kit_hands`, then
    the report. Everything else follows from what the field is.
-2. `tools/field_fit.py --sweep --bot bots/final` against the look-alike field.
+2. `tools/field_fit.py --sweep --bot bots/final --variant <mini_name>` against the look-alike field.
 3. If the field looks like zoo field 1 or 4 (strong bots), `points_tight` and `call_margin`
    are the first knobs; if it looks like zoo field 3 (weak first drafts), `steal_widen`.
 4. If practice runs show many 2nd and 3rd places and few firsts: `hu_open` up.
@@ -116,3 +119,14 @@ None yet.
   and the repo's tools, moved it to `skills/sequoia-launch/`, added the 12 weak zoo bots from
   the overnight branch. Nothing uploaded. Pre-written code is allowed (Henry, 2026-11-12).
   Still open: whether there is an upload command (assume the team page in a browser).
+- 2026-11-12 16:20 to 16:40, readiness check: every command and identifier in the three
+  skills cross-checked against the code. Two faults fixed. (1) `tools/core_agent.py` had no
+  `SETTINGS` table, so `field_fit.py --sweep --bot bots/final` exited; ported from PR #10
+  (same values as the profile: the `--seed parity` gauntlet was identical before and after,
+  and `--seed baseline` reproduces 24.55 ± 0.19 against 18.99 ± 0.16). (2)
+  `mid-round-iterate` promoted on `tools/bench.py`, which plays hold'em on the mini
+  simulator only; it now promotes on `gauntlet.py --vs vN` and `gate.py`, with the launch
+  skill's promotion rule and upload checklist. Gate re-run on the rebuilt bot: PASS. The
+  mid-round commands were run once on the mini `irish` ruleset in a scratch copy; reading a
+  real hand-history file is still untested. PR #10 stays open (shim path order, hiding
+  `zoo/_template` in the practice page).

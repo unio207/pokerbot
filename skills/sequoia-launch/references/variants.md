@@ -27,15 +27,16 @@ Never edit `bots/*/agent.py`: they are stamped from the core, and the gate fails
 
 | Family | Signs in the Rules Card | Copy this `VARIANTS` entry | Simulator class | Converted `final` against `starter` on the mini ruleset |
 | --- | --- | --- | --- | --- |
-| More hole cards, discard or select phase | `hole_cards` 3 or 4, a phase other than `betting` | `irish` (discard two of four) or `discard_reveal` (discard one, expose one) | `Irish`, `DiscardReveal` | irish +20.26 ± 0.53; discard_reveal +8.32 ± 0.48 |
+| More hole cards, discard or select phase | `hole_cards` 3 or 4, a phase other than `betting` | `irish` (discard two of four) or `discard_reveal` (discard one, expose one) | `Irish`, `DiscardReveal` | irish +20.96 ± 0.41; discard_reveal +7.47 ± 0.42 |
 | Exactly two hole cards play | four cards, no extra phase, RULES.md says two must play | `omaha` | `Omaha` | not run this session |
-| Changed deck or hand ranking | `deck_cards` under 52, ranking notes | `short_deck` (detected by `state.config.variant` only: nothing in the state marks it) | `ShortDeck`, `rank_five(low_straight=, flush_beats_full_house=)` | short_deck +9.94 ± 0.38 |
+| Changed deck or hand ranking | `deck_cards` under 52, ranking notes | `short_deck` (detected by `state.config.variant` only: nothing in the state marks it) | `ShortDeck`, `rank_five(low_straight=, flush_beats_full_house=)` | short_deck +8.21 ± 0.39 |
 | Bidding or extra information | a `bid`-like phase with an amount, `Seat.shown_cards` | `auction` | `Auction` | not run this session |
 | Changed betting only (pot-limit, fixed-limit, antes) | same cards and phases, different `legal_actions` ranges or `BlindLevel.ante` | none needed: every raise is clamped to the legal range by `legal` | none | not run |
 | Something else | | `holdem` stays the fallback; write `phases` handlers first | | |
 
-Differences are points per table over all gauntlet line-ups, same seeds, n = 1,800 tables per
-bot, `gauntlet.py bots/final --vs starter --tables 300`. They compare two different bots, so
+Differences are points per table over all nine gauntlet line-ups, same seeds, n = 2,700
+tables per bot, `gauntlet.py bots/final --vs starter --tables 300` (re-measured 2026-11-12
+16:33 with the 23-bot zoo). They compare two different bots, so
 they show that the variant code runs and scores, not the size of the conversion gain. The
 repo's own measure of that gain is 30.9 against 17.3 for the unconverted bot (`irish`, 300
 tables, `docs/event-day-setup.md`).

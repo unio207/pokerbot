@@ -136,7 +136,8 @@ sweeps belong to `mid-round-iterate`, after hand histories exist.
 `$PY $K/gauntlet.py bots/final --vs v0` as soon as the conversion builds. Record points/table
 ± error with n, tables/min, and the detectable-difference lines. Details and the promotion
 rule: `references/measure-and-upload.md`. On the mini simulator `tools/bench.py` does a
-finer per-table paired comparison; the gauntlet is the one that also runs on the kit.
+finer per-table paired comparison, hold'em only; the gauntlet is the one that plays the
+variant and also runs on the kit.
 
 ## Stage 7: upload
 

@@ -71,7 +71,7 @@ def main() -> None:
     extra = (["--payouts", *map(str, card["config"]["payouts"]), "--workers", "1", *common.mini_args(card, engine)]
              if engine == "mini" else [])  # fmt: skip
     bots = [common.bot_dir(options.bot)] + ([common.bot_dir(options.vs)] if options.vs else [])
-    print(f"runner: {engine}" + ("   (UNOFFICIAL mini simulator: hold'em only)" if engine == "mini" else "")
+    print(f"runner: {engine}" + (f"   (UNOFFICIAL mini simulator: {card['variant'].get('mini_name') or 'holdem'})" if engine == "mini" else "")
           + f"   seed {options.seed}   payouts {card['config']['payouts']}   jobs {options.jobs}")  # fmt: skip
 
     began = time.time()

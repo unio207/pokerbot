@@ -53,6 +53,11 @@ There is no test suite. The checks are `gate.py`, `tools/fuzz.py` and `tools/bot
 - Skills: `skills/sequoia-launch` (variant announced to active bot, on a clock),
   `skills/competition-build` (the short checklist), `skills/mid-round-iterate` (between
   rounds). Research index: `skills/RESEARCH_NOTES.md`.
+- `/sequoia-launch`, `/competition-build` and `/mid-round-iterate` work only after the
+  skills are linked, once per clone (`.claude/` is ignored by git):
+  `mkdir -p .claude/skills && for s in sequoia-launch competition-build mid-round-iterate; do ln -sfn ../../skills/$s .claude/skills/$s; done`
+- The 13 float knobs of `final` are in `SETTINGS` in `tools/core_agent.py`, which overrides
+  `PROFILES["final"]`. Change them there; `tools/field_fit.py --sweep` reads the same table.
 
 ## Rules for this repo
 

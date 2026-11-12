@@ -17,11 +17,12 @@ $PY $K/gauntlet.py bots/final                             # one bot: points/tabl
   the difference comes from the ten batch differences and is what the verdict uses.
 - **Promotion rule:** the difference over all line-ups is above 2 standard errors, and still
   positive on a fresh seed; zero failed decisions; the gate passes. Otherwise the incumbent
-  stays. `skills/mid-round-iterate` states the same bar as about +1 point over 1,600 tables.
+  stays. `skills/mid-round-iterate` uses this same rule.
 - With the kit installed the gauntlet plays the kit's engine; without it, the mini simulator
   (and the ruleset named in the card's `variant.mini_name`).
 - On the mini simulator, `tools/bench.py` is the finer instrument: it differences per-table
-  points and reports latency. It does not run on the kit.
+  points and reports latency. It plays hold'em only and does not run on the kit, so it is
+  never the go/no-go for a converted bot.
 - Parallel runner calls (`--jobs`, default half the cores) slow each decision. If failed
   decisions appear only under load on the kit, rerun with `--jobs 1` before believing them.
 
@@ -36,7 +37,7 @@ difference detectable at 2.8 standard errors (5% false alarm, 80% power):
 | --- | --- | --- |
 | 5 min | 33,750 | 0.31 |
 | 10 min | 67,500 | 0.22 |
-| 30 min | 202,501 | 0.13 |
+| 30 min | 202,500 | 0.13 |
 
 **These are mini-simulator speeds.** The kit runs each bot in a sandboxed process and will be
 slower by an unknown factor; `gauntlet.py` prints the same three lines for whatever machine

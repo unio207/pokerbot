@@ -17,8 +17,8 @@ payouts, anything drawn per table. Open questions that are still open.
 
 ## Knobs in the active version
 
-Copy the constants block from the top of the active `agent.py`, plus `HOLE_CARDS`,
-`PLAY_RULE`, `KEEP`, `SHORT_DECK` from the variant block.
+Copy `PROFILES["final"]` and the `SETTINGS` table from `tools/core_agent.py` as built into
+the active version, and name the `VARIANTS` entry the conversion added or changed.
 
 ## Gate
 

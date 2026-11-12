@@ -32,8 +32,10 @@ Win chance needed to call an all-in against one opponent, by ICM
 
 ## Card says, knob answers
 
-Knobs are keys of `PROFILES["final"]` (or `_BASE`) in `tools/core_agent.py`. Change one, run
-`tools/build.py`, then `gauntlet.py bots/final --vs vN`.
+Every knob named in this table is in the `SETTINGS` table of `tools/core_agent.py`, which
+overrides `PROFILES["final"]`: change it there, or the change does nothing. Knobs not in
+`SETTINGS` are keys of `PROFILES["final"]` (or `_BASE`). Change one, run `tools/build.py`,
+then `gauntlet.py bots/final --vs vN`.
 
 | The Rules Card says | Check first | Knob to test |
 | --- | --- | --- |
