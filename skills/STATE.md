@@ -49,6 +49,12 @@ rules card not filled).
 - upload-test imitation (no time bank): 0 of 3,000 failed
 - `agent.py` 70,036 bytes; import 0.010 s
 
+On the build machine (2 cores, Python 3.12.3, mini simulator, 2026-11-12 16:45), same commit:
+**GATE: PASS** in 15 s. Timing there: hold'em p50 44 µs, p99 81, p99.9 93, max 156; with the
+`irish` card p99 157, p99.9 172, max 608; with the `discard_reveal` card p99 90, p99.9 102,
+max 152. The build machine is about 2.4 times slower than the Mac per decision, and a
+four-card discard handler already uses 157 of the 250 µs our p99 margin allows.
+
 Also PASS with cards probed from the mini rulesets `irish`, `discard_reveal` and `short_deck`
 (timing p99 73, 40 and 38 µs).
 
@@ -130,3 +136,12 @@ None yet.
   mid-round commands were run once on the mini `irish` ruleset in a scratch copy; reading a
   real hand-history file is still untested. PR #10 stays open (shim path order, hiding
   `zoo/_template` in the practice page).
+- 2026-11-12 16:38 to 17:06, dry run and build machine. A fresh agent followed
+  `sequoia-launch` on the sealed `rehearsal` variant in a scratch copy (mini simulator as
+  the kit). It was cut off by a network error at T+27, with the conversion built and `v1/`
+  made. Measured afterwards on what it left: build check ok; `GATE: PASS`, 0 failed
+  decisions of 34,669, p99 42 µs; converted 26.13 ± 0.44 against unconverted `v0`
+  23.29 ± 0.69, +2.84 ± 0.72 (n = 900 per bot, one seed). The build machine was synced to
+  `96575d3` and passes the gate (numbers under "Gate"). The copy command in the skills is
+  now `rsync` with excludes; `starter-kit/` is ignored by git; the skills' `PY=` line also
+  finds a kit unpacked inside the repo.

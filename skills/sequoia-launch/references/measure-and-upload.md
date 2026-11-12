@@ -55,7 +55,7 @@ prepares; the human clicks.
    upload is `vN/agent.py`: one file, no zip needed.
 3. `$PY $K/gate.py bots/final` prints `GATE: PASS`. Then on the build machine, whose timing is
    the one that counts:
-   `scp -r ../pokerbot no-limit-2026-build:work/` and
+   `rsync -a --exclude .git --exclude .claude --exclude starter-kit --exclude __pycache__ ./ no-limit-2026-build:work/pokerbot/` and
    `ssh no-limit-2026-build 'cd ~/work/pokerbot && ../starter-kit/.venv/bin/python skills/sequoia-launch/scripts/gate.py bots/final'`.
 4. State to the human: the file path, what changed since the active version, the gate line,
    the gauntlet difference with its error and n. Ask for the go.

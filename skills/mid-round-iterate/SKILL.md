@@ -62,7 +62,7 @@ repo). The build machine is for the gate's timing.
 
 ```bash
 K=skills/sequoia-launch/scripts
-PY=python3.12; [ -x ../starter-kit/.venv/bin/python ] && PY=../starter-kit/.venv/bin/python
+PY=python3.12; for k in starter-kit ../starter-kit; do [ -x $k/.venv/bin/python ] && PY=$k/.venv/bin/python; done
 # The ruleset the mini simulator plays for the announced variant (set in stage 3 of the launch):
 V=$($PY -c "import json;print(json.load(open('rules_card.json'))['variant'].get('mini_name') or 'holdem')")
 

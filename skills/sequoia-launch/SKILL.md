@@ -17,7 +17,7 @@ kit at `~/work/starter-kit`). Set once per shell:
 
 ```bash
 K=skills/sequoia-launch/scripts
-PY=python3.12; [ -x ../starter-kit/.venv/bin/python ] && PY=../starter-kit/.venv/bin/python
+PY=python3.12; for k in starter-kit ../starter-kit; do [ -x $k/.venv/bin/python ] && PY=$k/.venv/bin/python; done
 ```
 
 The scripts find the kit by themselves (`practice.find_kit`) and print which runner they
@@ -73,7 +73,9 @@ Run `$PY $K/clock.py` at every stage boundary and before every upload.
    runs its smoke test. Do not duplicate its steps. Claude Code runs on the Mac, so have the
    kit locally too: unzip `starter-kit.zip` beside this repo and build its `.venv` (the
    skill's local step). The build machine's copy is for timing.
-3. Copy the repo to the build machine: `scp -r ../pokerbot no-limit-2026-build:work/`.
+3. Copy the repo to the build machine (it has a copy already; this updates it, and leaves
+   out git history, session files and a kit unpacked inside the repo):
+   `rsync -a --exclude .git --exclude .claude --exclude starter-kit --exclude __pycache__ ./ no-limit-2026-build:work/pokerbot/`
 4. `mkdir v0 && cp bots/final/agent.py v0/` then `$PY $K/gate.py v0 --tables 30`.
 5. Decide the first upload:
    - the gate passes on the kit with 0 failed decisions: upload `v0/agent.py` (the unchanged
