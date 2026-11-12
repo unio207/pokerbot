@@ -68,7 +68,9 @@ simulator on native Windows.
    If that ever changes: the kit's `agent.py` is the base, the
    ladder to rebuild is the strategy spec in `skills/competition-build/SKILL.md`, and this
    skill is used as knowledge only.
-2. Uploads go through the team page in a browser. The setup skill shows the site has an API
+2. Reading works with the API key: `scripts/portal.py` gets the competition record, our
+   uploads, health and rounds from the endpoints the team page itself loads (checked
+   2026-11-12 17:55; `announcements` answers 403 to the key). Uploads go through the team page in a browser. The setup skill shows the site has an API
    (`/api/auth/api-key`, `/api/teams/<team>/machine`), but no upload endpoint is documented
    anywhere we have read. Look in the kit's `README.md` and `AGENTS.md` for one; do not guess.
 3. `poker-agent play` prints `bots.<name>#<index>` (`--seed` itself is confirmed) with `average_points`,

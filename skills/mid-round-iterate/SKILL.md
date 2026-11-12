@@ -19,6 +19,8 @@ Start from `skills/STATE.md`, written by `sequoia-launch`: the active version `v
 baseline, tables per minute, the upload-to-ready time. Append one line there per upload and
 per practice run. Measuring and uploading use the launch skill's scripts and its checklist
 (`skills/sequoia-launch/references/measure-and-upload.md`): one gate, one promotion rule.
+`python3.12 skills/sequoia-launch/scripts/portal.py` reads round results, each round's weight,
+upload states and health from the portal, so check it before and after every upload.
 
 ## When to use
 

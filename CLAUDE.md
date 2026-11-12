@@ -41,6 +41,7 @@ python3.12 ui/server.py                                # practice page at http:/
 K=skills/sequoia-launch/scripts
 python3.12 $K/gate.py bots/final                       # safety gate: PASS or FAIL
 python3.12 $K/gauntlet.py bots/final --vs starter      # A/B on the same seeds, ± error
+python3.12 $K/portal.py                                # read-only: variant, uploads, health, rounds
 ```
 
 There is no test suite. The checks are `gate.py`, `tools/fuzz.py` and `tools/bot_tests.py`.

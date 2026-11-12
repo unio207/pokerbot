@@ -1,7 +1,8 @@
 # STATE: hand-off from sequoia-launch to mid-round-iterate
 
-Updated: 2026-11-12 16:40, before the event (no clock running). Machine: MacBook M5, Python 3.12.15.
-Repo: `main`, the readiness commit on top of `3cff4e7` (adds `SETTINGS`), pushed.
+Updated: 2026-11-12 17:50, before the event (no clock running). Machine: MacBook M5, Python 3.12.15.
+Repo: `main`, pushed; the commit holding this file follows `a678c37`. The bot itself
+(`tools/core_agent.py`, `bots/`) has not changed since `96575d3`, the commit that added `SETTINGS`.
 **Every number below is from the unofficial mini simulator, not from the kit.**
 Template: `sequoia-launch/templates/STATE.md`.
 
@@ -108,6 +109,14 @@ None yet.
 - `tools/field_report.py`'s reader for the organizers' history format is a guess.
 - `starter` fails `tools/fuzz.py`'s repeat-call check because it bluffs with the global
   `random`. It is an opponent, not an upload, so this only matters if someone uploads it.
+- `zoo/claude_exploiter_1` against `final`, same seeds (`gauntlet.py zoo/claude_exploiter_1
+  --vs bots/final --mini --tables 300 --seed exploiter`, hold'em, n = 2,700 per bot,
+  2026-11-12 17:45): overall -0.63 ± 0.32, not detectable. By line-up the exploiter is ahead
+  where the opponents are the strong AI-written bots (zoo field 1 +4.85 ± 0.88, zoo field 2
+  +6.47 ± 1.19) and against seven starters (+4.27 ± 1.06), and far behind in the aggressive
+  field (-14.15 ± 1.89) and the mixed field (-6.53 ± 1.36). It is not an upload candidate as
+  it stands: it fails `tools/fuzz.py`'s repeat-call check (it draws from the global `random`),
+  so the gate fails, and it is not converted through `tools/core_agent.py`.
 
 ## First experiments to try
 
@@ -118,6 +127,9 @@ None yet.
 2. `tools/field_fit.py --sweep --bot bots/final --variant <mini_name>` against the look-alike field.
 3. If the field looks like zoo field 1 or 4 (strong bots), `points_tight` and `call_margin`
    are the first knobs; if it looks like zoo field 3 (weak first drafts), `steal_widen`.
+   Zoo fields 1 and 2 are also where `zoo/claude_exploiter_1` beat `final` by 5 to 6 points
+   (see "Known weaknesses"), so there is room there. Which of its behaviours earns that is
+   not measured: let the sweep say, and do not swap the upload to the zoo bot.
 4. If practice runs show many 2nd and 3rd places and few firsts: `hu_open` up.
 
 ## Log
@@ -155,3 +167,10 @@ None yet.
   0 rounds. The Format page matches the template Rules Card on every value. Getting started
   confirms `poker-agent play --seed`, and says the kit ships a hand-history sample and reader.
   The API key file exists locally. Not opened: Account settings, the portal's chat.
+- 2026-11-12 17:55, portal API. The saved key can read the competition record, our uploads,
+  health and the rounds list (`skills/sequoia-launch/scripts/portal.py`, read-only). The
+  competition record for `Pittsburgh` says `round_weighting: "fibonacci"`, not the 1x to 6x of
+  the Format page's default table: the late rounds weigh even more than planned for. Variant
+  still null at 17:55. The organizers' setup skill is unchanged (version 2026-11-05.2). The
+  public rules page still names Astra and Codex as the assistants teams may use; the portal's
+  Getting started page names Claude Code as well.

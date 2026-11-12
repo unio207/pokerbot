@@ -31,7 +31,10 @@ rulesets in `zoo/variants/`, never the kit's engine.
 2. **No active bot at a snapshot scores zero.** A legal bot goes up first; every later upload
    only has to beat it.
 3. **Rounds weigh 1x to 6x.** Rounds 4 to 6 are 15/21 of the score. A broken late upload costs
-   far more than a missed early improvement, so nothing uploads without the gate.
+   far more than a missed early improvement, so nothing uploads without the gate. The
+   Pittsburgh competition record says `round_weighting: "fibonacci"` (`portal.py`, 2026-11-12
+   17:55), not the Format page's default. If that is 1, 1, 2, 3, 5, 8, rounds 4 to 6 are 16/20
+   and round 6 alone is 8/20. Read each round's real weight from `portal.py` once rounds exist.
 4. **Memory resets per table and seats are anonymous.** Adaptation lives inside one table.
 5. **Results lag a round.** Decisions rest on the gate, the gauntlet and practice runs.
 6. **Converting to the variant is the largest measured gain** (`docs/event-day-setup.md`: 30.9
@@ -55,6 +58,21 @@ Run `$PY $K/clock.py` at every stage boundary and before every upload.
 | 7 Upload | each version | `vN/` copy, upload, confirmation | ready, active, clean | a bad auto-activated bot |
 | 8 Practice runs | every 10 min | one line per run in STATE.md | counters read | flying blind |
 | 9 Hand-off | T+52 to 60 | `skills/STATE.md` | `mid-round-iterate` can start from it | losing the state between skills |
+
+## Reading the portal
+
+`$PY $K/portal.py` prints, with the saved API key (read-only, never printed, Mac only):
+
+- **competition:** `variant` and `variant_announced_at` (the exact T+0: pass its local time to
+  `clock.py start HH:MM`), `frozen`, `round_weighting`;
+- **uploads:** every submission and its state, so "ready and active" is checked here after
+  each upload instead of asking the human;
+- **health:** decisions, missed decisions, restarts and errors per run (stage 8);
+- **rounds and practice runs:** results as they complete, and whatever links they carry.
+
+Run it at every stage boundary. Uploading and switching the active bot stay with the human on
+the team page: no upload endpoint is documented, and none is to be guessed. If a round entry
+carries a hand-history link, ask the human before downloading it.
 
 ## Stage 0: before the day
 
