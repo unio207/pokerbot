@@ -11,9 +11,19 @@ disable-model-invocation: true
 
 # Mid-round iterate (No Limit 2026)
 
-Improve the already-uploaded `bots/final` between round snapshots. Scout lightly in
-rounds 1–3; spend changes on rounds **4–6** (~**71%** of final score). Never experiment
-without a rollback. Architecture rewrites belong in `competition-build`, not here.
+Improve the already-uploaded `bots/final` between round snapshots. This is where most of the
+score is won. Never experiment without a rollback. Architecture rewrites belong in
+`competition-build`, not here.
+
+Rounds weigh fibonacci (`round_weighting` in `portal.py`; 1, 2, 3, 5, 8, 13 by Henry's reading,
+total 32: round 6 is 13 times round 1 and 41% of the score). Two consequences:
+
+- **Gains: ship early.** A change active from round k counts in every round after it: 31/32
+  of the weight from round 2, 29 from 3, 26 from 4, 21 from 5, 13 from 6. The same +0.5
+  points per table is worth 2.4 times as much shipped for round 2 as for round 6. Every
+  window that ends without a promoted change is lost score: do not hold changes back to scout.
+- **Risk: lock down late.** A broken bot costs 13/32 in round 6 and 8/32 in round 5. Those two
+  windows take only changes that clear the stricter bar under "Round posture".
 
 Start from `skills/STATE.md`, written by `sequoia-launch`: the active version `vN`, the
 baseline, tables per minute, the upload-to-ready time. Append one line there per upload and
@@ -35,12 +45,28 @@ Do **not** wait for the previous round's official score: results often lag into 
 
 | Fact | Implication |
 | --- | --- |
-| Round starts every +20 min; weights 1×…6× | Early rounds are scouting; late rounds are the prize |
+| Snapshots at T+60, 80, …, 160; weights fibonacci | A gain is worth more the earlier it lands; a failure costs more the later it lands |
 | Snapshot at round start | Upload before the next start or it misses that round |
 | No active bot → zero for the round | Always keep a ready, previously good upload selectable |
 | 1 ms / never-fail | Prefer knob tweaks over new logic; fuzz after every edit |
 | Seats anonymized; memory per table | Field reads are population habits, not named opponents across tables |
 | ≥5,000 tables/scored round | Small gains count there; `gauntlet.py` prints the smallest difference its A/B can detect (about `2.8 x 21 / sqrt(tables per bot)`) |
+
+## Every window (20 minutes; S is the snapshot that just happened)
+
+One change per window, measured, uploaded by S+15. Run `$PY $K/clock.py` at each step.
+
+| Time | Step |
+| --- | --- |
+| S+0 to 2 | `portal.py`: the round that just started is the active version's first real health. Missed decisions or restarts above 0: switch back first, then fix. New hand histories listed: ask the human to download the subset. |
+| S+2 to 7 | Pick one change. With a history: the report and the sweep below. Before any history exists (round results lag): the sweep with `--field` set to the zoo bots of the line-up the field most resembles, so the first windows after the build are not idle. |
+| S+7 to 13 | `gauntlet.py bots/final --vs vN`, then the fresh seed, in the background. One measuring job at a time. |
+| S+13 to 15 | `gate.py bots/final` on the Mac, then on the build machine. |
+| by S+15 | The human's go and the upload; `portal.py` shows it ready and active. After S+15 no upload unless the active bot is failing. |
+
+If the A/B cannot finish by S+13 at the size it needs (the kit is slower than the mini
+simulator), the change waits one window rather than shipping unmeasured: one window later it
+still earns most of its value (26 of 29 from round 4 instead of 3).
 
 ## Loop checklist (after each history download)
 
@@ -124,18 +150,23 @@ If a promoted bot looks broken in the next practice run or fails fuzz after a ho
 
 ## Round posture
 
-### Rounds 1–3 (scout)
+### Windows before rounds 2 to 4 (the value)
 
-- Fix parser / `kit_hands` once.
+- Ship every change that passes the promotion rule, one per window. This is where a gain
+  counts the most rounds.
+- Fix parser / `kit_hands` once, if the launch did not.
 - Learn the field: dead seats, shove rate, stations, raise frequency.
-- At most light `SETTINGS` moves (steal widen, vs-shover-related margins, open size).
-- Do not overfit to one history file.
+- `SETTINGS` moves first (steal widen, vs-shover margins, open size); do not overfit to one
+  history file.
 
-### Rounds 4–6 (ship)
+### Windows before rounds 5 and 6 (the risk)
 
-- Upload the best promoted `bots/final` before each heavily weighted snapshot.
-- No live architecture experiments without rollback already staged.
-- Prefer stability: a never-fail good bot beats a clever flaky one (errors are check/fold).
+- The promotion rule plus: positive on **two** fresh seeds, the gate passed on the build
+  machine, and the active version shows 0 missed decisions and 0 restarts in the round in
+  progress.
+- `SETTINGS` changes only; no new logic.
+- In doubt, keep the bot that is clean in the current round: a never-fail good bot beats a
+  clever flaky one (errors are check/fold).
 
 ## What to tune vs what not to touch
 

@@ -30,11 +30,12 @@ rulesets in `zoo/variants/`, never the kit's engine.
    upload and embedded in `tools/core_agent.py`.
 2. **No active bot at a snapshot scores zero.** A legal bot goes up first; every later upload
    only has to beat it.
-3. **Rounds weigh 1x to 6x.** Rounds 4 to 6 are 15/21 of the score. A broken late upload costs
-   far more than a missed early improvement, so nothing uploads without the gate. The
-   Pittsburgh competition record says `round_weighting: "fibonacci"` (`portal.py`, 2026-11-12
-   17:55), not the Format page's default. If that is 1, 1, 2, 3, 5, 8, rounds 4 to 6 are 16/20
-   and round 6 alone is 8/20. Read each round's real weight from `portal.py` once rounds exist.
+3. **Rounds weigh fibonacci** (`round_weighting` in `portal.py`; 1, 2, 3, 5, 8, 13 by Henry's
+   reading, total 32: round 6 is 13 times round 1). A gain counts in every round after it
+   lands, so most of the score is won by iterating after the build (`mid-round-iterate`); the
+   build hour's job is a converted, safe bot and a working hand-history reader. A failure
+   costs more the later it lands (round 6 is 41%), so nothing uploads without the gate. Read
+   each round's real weight from `portal.py` once rounds exist.
 4. **Memory resets per table and seats are anonymous.** Adaptation lives inside one table.
 5. **Results lag a round.** Decisions rest on the gate, the gauntlet and practice runs.
 6. **Converting to the variant is the largest measured gain** (`docs/event-day-setup.md`: 30.9
@@ -180,6 +181,12 @@ replaces a failing bot; a round-1 version should be active by T+48.
 After each one, read missed decisions, restarts, errors, average, places. The table in
 `references/measure-and-upload.md` says what each triggers. One line per run in STATE.md.
 
+Practice runs are the only real-platform evidence before round 1 and are too noisy to A/B
+(standard error about 0.6 per run). If one offers a hand history, ask the human to download
+the subset and run `tools/field_report.py` on it during the build: it is the first read of
+the real field, and it lets the first window after T+60 ship a change instead of waiting for
+round 1's lagging history.
+
 ## Stage 9 (T+52 to 60): hand off
 
 Fill `skills/STATE.md` from `templates/STATE.md`: active version, the `final` profile's knobs,
@@ -196,7 +203,7 @@ Never shrink: an active bot (stage 1) and the gate before any upload (stage 4).
 | T+30 and no simulator class yet | skip it: write the `VARIANTS` entry with `phases` handlers only, reuse the nearest family's tables, test on the kit |
 | T+40 and the conversion does not beat `v0` | ship phase handlers only (no failed decisions), keep hold'em scoring; tables later |
 | T+45 and the gate still fails | stop changing the bot; the active bot stays; find the failing check's cause, nothing else |
-| T+48 and no measured improvement | upload nothing more before round 1; round 1 is 1/21 |
+| T+48 and no measured improvement | upload nothing more before round 1; round 1 is 1/32 |
 | the kit will not install locally | work on the build machine over SSH; if that fails too, upload the kit's `agent.py` by hand and tell the organizers |
 | gate tables are slow on the kit | `--tables 30`; never drop the fuzz or timing parts |
 

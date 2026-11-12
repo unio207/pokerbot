@@ -28,7 +28,7 @@ Prefer the event **Format** page / kit docs over older notes. Pittsburgh default
 | Blind increases | Every **20** hands |
 | Hand cap | **250** (ICM split of remaining points at cap) |
 | Points (default) | **50 / 30 / 20**, 4th–8th = 0 — read `state.config.payouts` |
-| Rounds | 6 scored, weights **1×…6×** (~**71%** on rounds 4–6) |
+| Rounds | 6 scored, weights **fibonacci** (1, 2, 3, 5, 8, 13: round 6 is 41%; a gain shipped early counts in every later round) |
 | Iterations | ≥ **5,000** tables per scored round; practice ~1,000 / 10 min (uncounted) |
 | Decision limit | **1 ms**; error / timeout / illegal → check if free, else fold |
 | Memory | Empty each table; seats anonymized — only in-table stats |

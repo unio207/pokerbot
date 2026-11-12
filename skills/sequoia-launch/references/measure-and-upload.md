@@ -80,8 +80,10 @@ upload per 30 s. Until the first upload is timed, allow 5 minutes:
 - **Round 1:** the last practice run that can show a problem before the T+60 snapshot starts
   around T+50. A version meant for round 1 should be active by **T+48**; anything later goes
   in unseen by any practice run and needs a clean gate on the build machine instead.
-- **Rounds 4 to 6** (15/21 of the score): only versions that passed the promotion rule. There
-  are no practice runs after the build, so the gauntlet and the gate are the only evidence.
+- **Rounds 2 to 6:** only versions that passed the promotion rule; rounds 5 and 6 (21/32 of
+  the score) also need two fresh seeds, the build-machine gate, and a clean current round
+  (`skills/mid-round-iterate`, "Round posture"). There are no practice runs after the build,
+  so the gauntlet, the gate and the health of the round in progress are the only evidence.
 
 ## Reading a practice run or a round result (stage 8)
 
