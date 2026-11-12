@@ -130,3 +130,36 @@ Paired `bots/final` minus `starter` (same tables):
 | irish | +23.36 | 1.05 |
 | auction | +11.74 | 1.05 |
 | discard_reveal | +12.65 | 1.11 |
+
+## Mock tournament, 2026-11-12
+
+A mock of the official event on the **unofficial** mini simulator, for 10 top bots, in 3 variants drawn at
+random (seed `mock1`, from `holdem`, `omaha`, `short_deck`, `auction`, `discard_reveal`; `irish` excluded):
+`short_deck`, `holdem`, `auction`. Raw results: `mock-tournament-2026-11-12.json.gz`
+(`{seed, iters, variants, res: {variant: {round: {bot: [[points, place, failures, decisions], ...]}}}}`).
+The script that ran it is not in the repo.
+
+- **Format** (per `docs/official-format.md`): 6 rounds weighted 1x to 6x, 5,000 iterations per round, 8 seats,
+  2,000 chips, blinds up every 20 hands, 250-hand cap, 50/30/20. Each iteration seats every bot once with
+  random seats: 2 tables, the second topped up with bots not already seated, whose finishes do not score.
+  Score = sum of round average times weight; par is 12.5 x 21 = 262.5. The standard error is 2-3 points.
+- **Field:** `bots/final`, `icm_survival`, `steal_heavy`, `chart_nash`, `adaptive`, and zoo `claude_exploiter_1`,
+  `codex_adaptive_icm_1`, `codex_shove_aware_1`, `claude_shark_1`, `codex_rubric_pressure_icm_1`.
+
+| # | bot | short_deck | holdem | auction | mean |
+|--|--|--:|--:|--:|--:|
+| 1 | `zoo/claude_exploiter_1` | 343.5 | 345.1 | 587.4 | 425.3 |
+| 2 | `zoo/claude_shark_1` | 254.2 | 266.8 | 338.9 | 286.7 |
+| 3 | `bots/final` | 283.6 | 283.0 | 225.3 | 264.0 |
+| 4 | `bots/icm_survival` | 283.0 | 279.0 | 222.4 | 261.5 |
+| 5 | `bots/adaptive` | 283.5 | 263.6 | 216.3 | 254.5 |
+| 6 | `bots/chart_nash` | 275.8 | 261.5 | 213.4 | 250.2 |
+| 7 | `bots/steal_heavy` | 260.5 | 264.8 | 210.0 | 245.1 |
+| 8 | `zoo/codex_adaptive_icm_1` | 221.3 | 237.1 | 230.1 | 229.5 |
+| 9 | `zoo/codex_shove_aware_1` | 213.5 | 220.3 | 214.4 | 216.1 |
+| 10 | `zoo/codex_rubric_pressure_icm_1` | 207.4 | 202.7 | 162.1 | 190.7 |
+
+`zoo/claude_exploiter_1` won all three variants (about 16.5 points per table in `short_deck` and `holdem`, about
+28 in `auction`). `bots/final` was the best `bots/` profile in `short_deck` and `holdem` and 4th in `auction`.
+No bot failed a decision. Caveats: the `bots/` profiles were tuned on this simulator, and the exploiter
+reads opponents, which suits a mixed field.
