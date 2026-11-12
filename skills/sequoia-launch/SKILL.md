@@ -99,7 +99,11 @@ Done when the team page shows an active bot. If this is not true at T+10, nothin
 5. Ask the human only when a rule is ambiguous **and** the two readings need different code.
    Write other doubts in `open_questions` and take the reading the kit's example bots imply.
 
-Done when no field in the card still says DEFAULTS and the ruleset file exists.
+Done when `variant` and `config` in the card come from the probe, `limits` and `schedule`
+have been checked against the kit's docs (the probe cannot see them and leaves the
+template's values without a marker), and the ruleset file exists. If the probe prints
+"config differs between tables", payouts or blinds are drawn per table: read
+`config_observed` in the card.
 
 ## Stage 3 (T+18 to 38): convert
 

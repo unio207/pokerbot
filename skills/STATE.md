@@ -138,8 +138,10 @@ None yet.
   `zoo/_template` in the practice page).
 - 2026-11-12 16:38 to 17:06, dry run and build machine. A fresh agent followed
   `sequoia-launch` on the sealed `rehearsal` variant in a scratch copy (mini simulator as
-  the kit). It was cut off by a network error at T+27, with the conversion built and `v1/`
-  made. Measured afterwards on what it left: build check ok; `GATE: PASS`, 0 failed
+  the kit). By its own clock: Rules Card at T+2:14, conversion at T+4:40, gate PASS at
+  T+4:55, fresh-seed confirmation +2.82 ± 0.22 at T+5:36, `v1/` at T+5:55; then a network
+  error cut it off before the hand-off stage. No command in the skill failed as written.
+  Measured afterwards by the main session on what it left: build check ok; `GATE: PASS`, 0 failed
   decisions of 34,669, p99 42 µs; converted 26.13 ± 0.44 against unconverted `v0`
   23.29 ± 0.69, +2.84 ± 0.72 (n = 900 per bot, one seed). The build machine was synced to
   `96575d3` and passes the gate (numbers under "Gate"). The copy command in the skills is

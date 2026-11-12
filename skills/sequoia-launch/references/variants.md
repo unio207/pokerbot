@@ -68,8 +68,12 @@ $PY tools/gen_variant_tables.py tools/core_agent.py --samples 400000    # 30.7 s
 $PY tools/build.py
 ```
 
-It remeasures every variant's tables; keep only the new variant's lines in the diff if the
-others should stay. It needs the simulator class. Without one (behind the clock), reuse the
+It remeasures every variant's tables, so the other variants' values change slightly too
+(`_SHORT_TABLE`, `_DISCARD_FIT`, `_OMAHA_FIT` and the like). Leave them on the day: same
+precision, not played that night, and restoring them costs clock (the dry run of
+2026-11-12 lost time doing it by hand). Adding the job means four edits in
+`tools/gen_variant_tables.py`: the worker, the job list, the output values, the docstring.
+It needs the simulator class. Without one (behind the clock), reuse the
 nearest family's fit and marks and say so in STATE.md.
 
 ## Runtime cost

@@ -137,8 +137,10 @@ decisions and the bot's error handler switched off.
    python3.12 tools/gen_variant_tables.py tools/core_agent.py --samples 400000
    ```
 
-   This remeasures every variant's tables; keep only the new variant's lines if the
-   others should stay as they were.
+   This remeasures every variant's tables, so the values of the other variants change
+   slightly too. On the day leave them: they are measured to the same precision, the bot
+   never plays those rulesets that night, and there is no command to restore them. Do
+   not spend clock on it.
 5. **Rebuild and check.**
 
    ```bash
