@@ -52,7 +52,10 @@ played for each failed decision). What each number triggers: `measure-and-upload
 ## The kit (as reported; first use is the test)
 
 `poker-agent check <agent.py>`, `poker-agent play <bot dirs...> --tables N --no-history`
-(prints a JSON summary; `--seed` is assumed by our tools and not confirmed), `poker-agent pack`.
+(prints a JSON summary per seat; `--seed` replays the same randomness, confirmed on the
+Getting started page on 2026-11-12; the JSON key names are still unconfirmed), `poker-agent pack`.
+`play` always gives the 100 ms bank and the upload test gives none. The kit's `hand-history/`
+holds a sample in the round download format and a streaming reader.
 Kit folder: `agent.py` template, `examples/check_or_fold`, `examples/min_raiser`, `sdk/`,
 `RULES.md`, `README.md`, `AGENTS.md`, hand-history samples. `poker-agent check` rejects imports
 of `poker_engine` and `pokerkit`. The kit needs Python 3.12 exactly and does not run its
@@ -68,7 +71,7 @@ simulator on native Windows.
 2. Uploads go through the team page in a browser. The setup skill shows the site has an API
    (`/api/auth/api-key`, `/api/teams/<team>/machine`), but no upload endpoint is documented
    anywhere we have read. Look in the kit's `README.md` and `AGENTS.md` for one; do not guess.
-3. `poker-agent play` accepts `--seed` and prints `bots.<name>#<index>` with `average_points`,
+3. `poker-agent play` prints `bots.<name>#<index>` (`--seed` itself is confirmed) with `average_points`,
    `places`, `failed_decisions`. If not, `gauntlet.py` and `gate.py` stop with the runner's
    output: fix the two parsing lines there.
 4. The blind ladder after 10/20. The mini simulator's ladder is a guess; `probe.py` reads the

@@ -111,8 +111,10 @@ None yet.
 
 ## First experiments to try
 
-1. After the first hand histories: `tools/field_report.py --inspect`, fix `kit_hands`, then
-   the report. Everything else follows from what the field is.
+1. During the build: `tools/field_report.py --inspect` on the sample in the kit's
+   `hand-history/` folder, fix `kit_hands`. After the first round's histories (take the
+   smaller subset): the report with `--hero "Team Allow It"`. Everything else follows from
+   what the field is.
 2. `tools/field_fit.py --sweep --bot bots/final --variant <mini_name>` against the look-alike field.
 3. If the field looks like zoo field 1 or 4 (strong bots), `points_tight` and `call_margin`
    are the first knobs; if it looks like zoo field 3 (weak first drafts), `steal_widen`.
@@ -147,3 +149,9 @@ None yet.
   `96575d3` and passes the gate (numbers under "Gate"). The copy command in the skills is
   now `rsync` with excludes; `starter-kit/` is ignored by git; the skills' `PY=` line also
   finds a kit unpacked inside the repo.
+- 2026-11-12 17:30 to 17:40, team portal read in Henry's Chrome (read-only). Team `Team Allow
+  It`, 2 of 2 members, build box `pittsburgh-team-116` at the address in `~/.ssh/config`, 0
+  submissions, no active bot, uploads closed until the announcement; 145 teams, 0 bots ready,
+  0 rounds. The Format page matches the template Rules Card on every value. Getting started
+  confirms `poker-agent play --seed`, and says the kit ships a hand-history sample and reader.
+  The API key file exists locally. Not opened: Account settings, the portal's chat.

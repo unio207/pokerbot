@@ -139,6 +139,12 @@ sweeps belong to `mid-round-iterate`, after hand histories exist.
 
 ## Stage 6: gauntlet and baseline
 
+While a gauntlet runs, fix the hand-history reader once, before any round exists: the kit's
+`hand-history/` folder holds a sample in the download format, so run
+`$PY tools/field_report.py --inspect <kit>/hand-history/<sample file>` and adjust `kit_hands`
+in `tools/field_report.py` until the report parses it. Our name in the files is the team
+name, `Team Allow It`.
+
 `$PY $K/gauntlet.py bots/final --vs v0` as soon as the conversion builds. Record points/table
 ± error with n, tables/min, and the detectable-difference lines. Details and the promotion
 rule: `references/measure-and-upload.md`. On the mini simulator `tools/bench.py` does a

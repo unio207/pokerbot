@@ -66,7 +66,10 @@ PY=python3.12; for k in starter-kit ../starter-kit; do [ -x $k/.venv/bin/python 
 # The ruleset the mini simulator plays for the announced variant (set in stage 3 of the launch):
 V=$($PY -c "import json;print(json.load(open('rules_card.json'))['variant'].get('mini_name') or 'holdem')")
 
-# 1. Understand the file once
+# 1. Understand the file once. The kit's hand-history/ folder has a sample in this same format
+#    (and a streaming reader): if the launch did not already fix kit_hands on it, do that first.
+#    <our name> is the team name, "Team Allow It". The team page offers the full set or a
+#    smaller subset: take the subset.
 $PY tools/field_report.py --inspect history.jsonl.gz
 # If no hands parse: edit kit_hands in tools/field_report.py to match --inspect, re-run.
 
