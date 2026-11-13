@@ -58,7 +58,7 @@ One change per window, measured, uploaded by S+15. Run `$PY $K/clock.py` at each
 
 | Time | Step |
 | --- | --- |
-| S+0 to 2 | `portal.py`: the round that just started is the active version's first real health. Missed decisions or restarts above 0: switch back first, then fix. New hand histories listed: ask the human to download the subset. |
+| S+0 to 2 | `portal.py`: the round that just started is the active version's first real health. Missed decisions or restarts above 0: switch back first, then fix. New hand histories listed: ask the human to download about 5,000 hands (see step 1 of the commands). |
 | S+2 to 7 | Pick one change. With a history: the report and the sweep below. Before any history exists (round results lag): the sweep with `--field` set to the zoo bots of the line-up the field most resembles, so the first windows after the build are not idle. |
 | S+7 to 13 | `gauntlet.py bots/final --vs vN`, then the fresh seed, in the background. One measuring job at a time. |
 | S+13 to 15 | `gate.py bots/final` on the Mac, then on the build machine. |
@@ -96,8 +96,12 @@ V=$($PY -c "import json;print(json.load(open('rules_card.json'))['variant'].get(
 
 # 1. Understand the file once. The kit's hand-history/ folder has a sample in this same format
 #    (and a streaming reader): if the launch did not already fix kit_hands on it, do that first.
-#    <our name> is the team name, "Team Allow It". The team page offers the full set or a
-#    smaller subset: take the subset.
+#    <our name> is the team name, "Team Allow It". The download lets you choose how many
+#    hands: ask for about 5,000. Seats are anonymous, so the report measures population
+#    rates; a 30% rate over 5,000 chances has a standard error of sqrt(0.3 x 0.7 / 5,000),
+#    under 1 point. More only if the report counts fewer than about 200 chances for a stat
+#    you need (that stat's error is then above 3 points); more hands cost download and
+#    parse time inside the window.
 $PY tools/field_report.py --inspect history.jsonl.gz
 # If no hands parse: edit kit_hands in tools/field_report.py to match --inspect, re-run.
 

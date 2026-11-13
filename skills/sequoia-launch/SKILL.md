@@ -107,7 +107,8 @@ Done when the team page shows an active bot. If this is not true at T+10, nothin
 
 ## Stage 2 (T+10 to 18): Rules Card
 
-1. `$PY $K/probe.py` plays 6 tables with a probe bot and writes `rules_card.json` with the
+1. `TMPDIR=/tmp $PY $K/probe.py` (the kit runs bots with a clean environment, so the probe bot
+   writes to `/tmp`) plays 6 tables with a probe bot and writes `rules_card.json` with the
    real `state.config`, phases, legal actions per phase and card counts.
 2. Read the kit's `RULES.md`, `README.md`, `AGENTS.md`. Correct `variant`, `limits`,
    `schedule` in the card by hand. `references/rules.md` lists what we assumed before the kit.
@@ -183,7 +184,8 @@ After each one, read missed decisions, restarts, errors, average, places. The ta
 
 Practice runs are the only real-platform evidence before round 1 and are too noisy to A/B
 (standard error about 0.6 per run). If one offers a hand history, ask the human to download
-the subset and run `tools/field_report.py` on it during the build: it is the first read of
+about 5,000 hands (the download lets you choose; `mid-round-iterate` says why that many) and run
+`tools/field_report.py` on them during the build: it is the first read of
 the real field, and it lets the first window after T+60 ship a change instead of waiting for
 round 1's lagging history.
 

@@ -11,10 +11,10 @@ field and what to change in our bot (the knobs are in PROFILES in tools/core_age
 
 Formats. `--simulate` plays tables on our mini simulator and reads its replay records;
 that path is tested. A file is read as JSON lines (gzip or plain), and `kit_hands` below
-turns its records into hands. **The organizers' file format was not available when this
-was written**, so `kit_hands` is a best guess at common field names. On the day: run
-`--inspect` on a real file, compare with what `kit_hands` expects, and fix that one
-function. Everything after it only needs hands in this shape:
+turns its records into hands. It reads the organizers' download format, checked against
+the kit's `hand-history/sample.jsonl.gz` (same table and hand counts as the kit's
+`read.py`). If a real file differs, run `--inspect` on it and fix that one function.
+Everything after it only needs hands in this shape:
 
     {"table": id, "hand": n, "big_blind": 20, "names": {seat: name}, "stacks": {seat: chips at start},
      "events": [(kind, seat, amount, cards), ...]}   kinds as in poker_agent_sdk.Event
@@ -67,58 +67,36 @@ def as_event(raw):
 
 
 def kit_hands(records) -> list[dict]:
-    """BEST GUESS at the organizers' format: fix this on the day after `--inspect`.
+    """Hands from the organizers' download (the kit's hand-history/README.md has the format).
 
-    Assumes each record is one hand (or one table holding a list of hands under "hands"),
-    with its events under "events", "actions", "history" or "log", and seat names under
-    "names", "players", "seats" or "bots" (a dict seat -> name, a list of names, or a list
-    of dicts with "seat" and "name"/"team"/"bot").
+    Line 1 is a header whose `entries` give entry id -> team name. Then, per table, a public
+    record (`iteration`, `table`, `seats` = entry id by seat, `hands`) and a private
+    `{"you": ...}` record, which is not needed here. A hand has `blinds` [small, big, ante],
+    `stacks_before` by seat (0 = busted) and `events`. Events pass through unchanged: a
+    `board` event is the new cards of one board, with the board number (1 or 2) in amount;
+    kinds the analysis does not use (`discard`, `prize_*`, anything new) are skipped there.
     """
-    hands = []
-    for index, record in enumerate(records):
+    teams, hands = {}, []
+    for record in records:
         if not isinstance(record, dict):
             continue
-        inner = first(record, "hands")
-        if isinstance(inner, list):
-            for hand in kit_hands(inner):
-                hand["table"] = first(record, "table", "table_id", "id", default=index)
-                if not hand["names"]:
-                    hand["names"] = seat_names(first(record, "names", "players", "seats", "bots"))
-                hands.append(hand)
+        if isinstance(record.get("entries"), list):  # the header
+            teams = {entry["entry_id"]: str(entry["team_name"]) for entry in record["entries"]}
+            twice = {name for name, count in Counter(teams.values()).items() if count > 1}
+            teams = {entry: f"{name}#{entry[-4:]}" if name in twice else name for entry, name in teams.items()}
             continue
-        raw_events = first(record, "events", "actions", "history", "log")
-        if not isinstance(raw_events, list):
+        if not isinstance(record.get("hands"), list):  # the private record
             continue
-        events = [event for event in map(as_event, raw_events) if event]
-        blinds = first(record, "blinds", default=None)
-        big_blind = first(record, "big_blind", "bb") or (blinds[-1] if isinstance(blinds, (list, tuple)) and blinds else
-                                                         first(blinds, "big_blind", "bb") if isinstance(blinds, dict) else 0)  # fmt: skip
-        if not big_blind:
-            big_blind = max((amount for kind, _, amount, _ in events if kind == "blind"), default=20)
-        stacks = first(record, "stacks", "start", "starting_stacks", default={})
-        if isinstance(stacks, list):
-            stacks = dict(enumerate(stacks))
-        hands.append({
-            "table": first(record, "table", "table_id", default=0), "hand": first(record, "hand", "hand_number", default=index),
-            "big_blind": int(big_blind), "names": seat_names(first(record, "names", "players", "seats", "bots")),
-            "stacks": {int(seat): chips for seat, chips in (stacks or {}).items()}, "events": events,
-        })  # fmt: skip
+        table = (record.get("iteration", 0), record.get("table", 0))  # table numbers repeat in every iteration
+        names = {seat: teams.get(entry, str(entry)) for seat, entry in enumerate(record.get("seats") or [])}
+        for hand in record["hands"]:
+            blinds = hand.get("blinds") or []
+            hands.append({
+                "table": table, "hand": hand.get("hand", 0), "big_blind": int(blinds[1]) if len(blinds) > 1 else 20,
+                "names": names, "stacks": dict(enumerate(hand.get("stacks_before") or [])),
+                "events": [event for event in map(as_event, hand.get("events") or []) if event],
+            })  # fmt: skip
     return hands
-
-
-def seat_names(raw) -> dict:
-    if isinstance(raw, dict):
-        return {int(seat): str(first(name, "name", "team", "bot", default=name) if isinstance(name, dict) else name)
-                for seat, name in raw.items() if str(seat).lstrip("-").isdigit()}  # fmt: skip
-    if isinstance(raw, list):
-        names = {}
-        for index, item in enumerate(raw):
-            if isinstance(item, dict):
-                names[int(first(item, "seat", "index", default=index))] = str(first(item, "name", "team", "bot", default=index))
-            else:
-                names[index] = str(item)
-        return names
-    return {}
 
 
 def inspect(records, limit=3, depth=4) -> None:

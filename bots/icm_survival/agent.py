@@ -39,6 +39,8 @@ Rules every bot must follow (same as the competition):
 Nothing here is random: the same state and memory always give the same action.
 """
 
+import functools
+
 import poker_agent_sdk
 from poker_agent_sdk import Action, GameState
 
@@ -113,18 +115,71 @@ def holdem_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
     """Best five of two private cards and the board (best two-card combination otherwise)."""
     cards = state.cards
     if len(cards) == 2:
-        if P["post"] == "bucket":
-            key, draw = _bucket(cards, state.board)
-            value = (_BUCKET_T if facing else _BUCKET_R).get(key)
-            if value is not None:
-                return value, draw
-        return _made_strength(cards, state.board), _has_draw(cards, state.board)
+        return _pair_strength(cards, state.board, facing)
     best, draw = 0.0, False
     for i, a in enumerate(cards):
         for b in cards[i + 1 :]:
             best = max(best, _made_strength((a, b), state.board))
             draw = draw or _has_draw((a, b), state.board)
     return best, draw
+
+
+def _pair_strength(hole, board, facing: bool) -> tuple[float, bool]:
+    """Two private cards on one board: the measured equity bucket, else the rough estimate."""
+    if P["post"] == "bucket":
+        key, draw = _bucket(hole, board)
+        value = (_BUCKET_T if facing else _BUCKET_R).get(key)
+        if value is not None:
+            return value, draw
+    return _made_strength(hole, board), _has_draw(hole, board)
+
+
+def double_board_strength(hole, boards, facing: bool) -> tuple[float, bool]:
+    """Two private cards scored on each board and averaged: each board pays half the pot,
+    so the mean of the two equities is the share of the pot we expect."""
+    scores = [_pair_strength(hole, board, facing) for board in boards]
+    return sum(score for score, _ in scores) / len(scores), any(draw for _, draw in scores)
+
+
+def double_board_keep(cards, boards, facing: bool = False) -> tuple[float, bool, tuple]:
+    """(strength, draw, the two indices kept): the pair of our cards with the most equity
+    summed over the boards. The same pair has to play on every board."""
+    best = (-1.0, False, (0, 1))
+    for i in range(len(cards) - 1):
+        for j in range(i + 1, len(cards)):
+            score, draw = double_board_strength((cards[i], cards[j]), boards, facing)
+            if score > best[0]:
+                best = (score, draw, (i, j))
+    return best
+
+
+def _boards(state: GameState) -> list:
+    """Both boards of a double-board table (RULES.md: state.variant["boards"]), once dealt."""
+    variant = getattr(state, "variant", None)
+    boards = variant.get("boards") if isinstance(variant, dict) else None
+    if not isinstance(boards, (list, tuple)) or len(boards) != 2:
+        return []
+    return [tuple(board) for board in boards if len(board) >= 3]
+
+
+def pittsburgh_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
+    """Kit RULES.md (double_board_turn_discard): three cards until the discard after the
+    turn, two on the river, two boards. Before the discard we are worth the pair we would keep."""
+    cards, boards = state.cards, _boards(state)
+    if len(boards) != 2 or len(cards) not in (2, 3):
+        return holdem_postflop(state, facing)
+    if len(cards) == 2:
+        return double_board_strength(cards, boards, facing)
+    return double_board_keep(cards, boards, facing)[:2]
+
+
+def pittsburgh_discard(state: GameState) -> Action:
+    """Throw away one of three cards: `cards=(index,)` of the card that is not kept."""
+    cards, boards = state.cards, _boards(state)
+    if len(cards) != 3 or not boards:
+        return automatic(state)
+    keep = double_board_keep(cards, boards)[2]
+    return Action("discard", cards=(3 - keep[0] - keep[1],))
 
 
 def discard_reveal_preflop(state: GameState) -> tuple[float, float]:
@@ -307,6 +362,10 @@ def _entry(detect, phases: dict, preflop_score, postflop_score) -> dict:
 
 
 VARIANTS = {
+    "double_board_turn_discard": _entry(  # the kit's name; the portal calls it "pittsburgh"
+        lambda state: isinstance(getattr(state, "variant", None), dict) and "boards" in state.variant,
+        {"discard": pittsburgh_discard}, discard_reveal_preflop, pittsburgh_postflop,
+    ),  # fmt: skip
     "irish": _entry(  # four cards before the flop; the two kept afterwards play as hold'em
         lambda state: state.phase == "discard",
         {"discard": irish_discard}, irish_preflop, holdem_postflop,
@@ -1003,8 +1062,14 @@ def _seat(state: GameState, number):
 
 
 def _big_blind_seat(state: GameState):
-    blinds = [event.seat for event in state.history if event.kind == "blind"]
-    return blinds[-1] if blinds else None
+    """Heads-up the kit posts the big blind first and the small blind last, so the last blind
+    event is not the big blind: take the one that posted the full big blind."""
+    blinds = [event for event in state.history if event.kind == "blind"]
+    if not blinds:
+        return None
+    full = [event.seat for event in blinds if event.amount == state.blinds.big_blind]
+    # shortcut: a big blind all-in for less than the small blind picks the wrong seat (rare)
+    return full[-1] if full else max(blinds, key=lambda event: event.amount).seat
 
 
 def _seats_behind(state: GameState) -> list:
@@ -1077,6 +1142,11 @@ def hand_rank(cards, short: bool = False) -> tuple:
 
     `short` is the 36-card ranking: a flush (6) beats a full house (5), ace low in A-6-7-8-9.
     """
+    return _hand_rank(tuple(cards), short)
+
+
+@functools.lru_cache(maxsize=64)  # pure; three kept pairs share each board's rank. Small: a big cache slows the garbage collector
+def _hand_rank(cards: tuple, short: bool) -> tuple:
     low = 9 if short else 5
     ranks = sorted((_RANK[card[0]] for card in cards), reverse=True)
     by_suit: dict[str, list[int]] = {}
@@ -1179,7 +1249,12 @@ def _made_strength(hole, board, short: bool = False) -> float:
 
 def _draws(hole, board, short: bool = False) -> tuple[bool, int]:
     """(four to a flush using a hole card, straight draw: 2 open-ended, 1 gutshot, 0 none)."""
-    cards = tuple(hole) + tuple(board)
+    return _draws_of(tuple(hole), tuple(board), short)
+
+
+@functools.lru_cache(maxsize=64)  # pure; strength and the draw flag both ask for it
+def _draws_of(hole: tuple, board: tuple, short: bool) -> tuple[bool, int]:
+    cards = hole + board
     flush_draw = any(
         sum(card[1] == suit for card in cards) == 4 and any(card[1] == suit for card in hole)
         for suit in "cdhs"

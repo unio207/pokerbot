@@ -1,25 +1,56 @@
 # STATE: hand-off from sequoia-launch to mid-round-iterate
 
-Updated: 2026-11-12 17:50, before the event (no clock running). Machine: MacBook M5, Python 3.12.15.
-Repo: `main`, pushed; the commit holding this file follows `a678c37`. The bot itself
-(`tools/core_agent.py`, `bots/`) has not changed since `96575d3`, the commit that added `SETTINGS`.
-**Every number below is from the unofficial mini simulator, not from the kit.**
+Updated: 2026-11-12 19:03 (T+50), during the Pittsburgh regional. Clock: T+0 = 18:13 (portal
+`variant_announced_at` 23:13:58Z). Round 1 snapshot at T+60 = 19:13. Machine: MacBook M5, kit
+at `../starter-kit` (its `.venv`, Python 3.12); build machine synced by `rsync`, kit at
+`~/work/starter-kit`.
+Repo: `main`, **nothing committed since `2f9741d`**: the conversion is in the working tree
+(`tools/core_agent.py`, `bots/`, `tools/field_report.py`, `skills/sequoia-launch/scripts/gate.py`,
+`zoo/variants/double_board_turn_discard.md`). `v0/`, `v1/` and `rules_card.json` are ignored by git.
+**Numbers below are from the organizers' kit unless a line says mini.**
 Template: `sequoia-launch/templates/STATE.md`.
 
 ## Active bot
 
 | Version | File | Uploaded at | Active | What it is |
 | --- | --- | --- | --- | --- |
-| v0 | `bots/final/agent.py` (no `v0/` copy made yet) | not uploaded: uploads open at the announcement | no | the `final` profile, unconverted, stamped from `tools/core_agent.py` (`tools/build.py --check` passes) |
+| v0 | `v0/agent.py`, 70,036 bytes | 18:20:31 (T+7:31), submission `7e4d8e8e` | no (rollback target) | the `final` profile, unconverted: scores board 1 only, lets the platform discard its lowest card |
+| v1 | `v1/agent.py`, 73,246 bytes, sha256 `2df6cc1cf4e70d03...` | 18:30:54 (T+17:54), submission `920a2429` | no | `final` converted to Pittsburgh (this session's conversion) |
+| v2 | `v2/agent.py`, 75,994 bytes | 18:43:35, submission `066139f9` | no | Vedaant's conversion (`db_*` functions, his v3a, branch `pittsburgh-v2`), uploaded by Henry; not built from this core |
+| v3 | `v3/agent.py`, 73,364 bytes, sha256 `5f7235d541933e20...` | 18:52:04, submission `393c48a3` | no | v1 plus the looser preflop bundle; played practice 3 as a field test |
+| v4 | `v4/agent.py`, 73,673 bytes, sha256 `11f2e107c0d62c6d...` | 18:58:00, submission `d55b4134` | **yes** | v1 plus the heads-up big-blind fix; identical to `bots/final/agent.py` (`cmp`) |
 
-Upload to ready: not measured. Rollback target: none yet.
+Upload to ready: under 60 s both times (v1 was ready and active at the first portal read, 56 s
+after upload; not timed more finely). Rollback target: v1, on the team page (the active switch, not a re-upload).
 
 ## Variant
 
-Not announced. No Rules Card yet (`rules_card.json` absent, so the scripts use
-`sequoia-launch/templates/rules_card.json`: hold'em, 8 players, 2,000 chips, 10/20, 20 hands
-per level, cap 250, payouts 50/30/20, 1 ms, 100 ms bank, 64 KB). `VARIANTS` in the core has
-entries for irish, discard_reveal, omaha, auction, short_deck and holdem.
+Pittsburgh, kit name `double_board_turn_discard`, portal name `pittsburgh`. Ruleset:
+`zoo/variants/double_board_turn_discard.md`. Rules Card: `rules_card.json`, from `probe.py` on
+the kit plus `RULES.md`, `README.md`, `AGENTS.md` and the engine source.
+
+- Three hole cards through preflop, flop and turn betting. Two boards; `state.board` is board
+  1, `state.variant["boards"]` holds both.
+- `discard` phase after turn betting when two or more players remain:
+  `Action("discard", cards=(i,))`, `i` the index of the card thrown away. A failure discards
+  the lowest card.
+- Showdown per board with the two kept cards; each board wins half of every pot.
+- Table settings equal the template: 8 players, 2,000 chips, 10/20, 20 hands per level, cap
+  250, payouts 50/30/20, 1 ms, 100 ms bank, 64 KB.
+- Side prizes (raw counts over scored rounds, no points): scoops and rivers seen. Not chased.
+
+What the conversion is (`tools/core_agent.py`, the `double_board_turn_discard` entry, first in
+`VARIANTS`):
+
+- `detect`: `"boards" in state.variant`, so it holds whichever name the platform sends.
+- `double_board_strength(hole, boards, facing)`: two cards scored per board with the hold'em
+  code (`_pair_strength`, split out of `holdem_postflop`), averaged.
+- `double_board_keep(cards, boards)`: the pair with the most strength summed over both boards.
+  The discard handler throws away the third card; flop and turn strength is that pair's.
+- Preflop: `discard_reveal_preflop` (three cards, best two), unchanged.
+- `hand_rank` and `_draws` are memoised (`lru_cache`, 64 entries): three pairs share each
+  board's rank. 4,096 entries made the garbage collector pause for 1 to 2 ms; keep it small.
+- No mini-simulator class for this game. `--mini` plays hold'em: every measurement is on the kit.
 
 ## Knobs in the active version (`PROFILES["final"]`, `tools/core_agent.py`)
 
@@ -31,106 +62,156 @@ call_margin=0.05, bubble_margin=0.08, push_scale=0.9, points_tight=0.08,
 threebet=0.03, call_raise=0.08,
 ```
 
-Everything else comes from `_BASE` in the same file. The 13 float knobs (these, plus
-`hu_open=0.65` from `_BASE`) are repeated in the `SETTINGS` table below the profiles with the
-same values. `SETTINGS` is applied last, so it overrides the profile: change a knob there.
+Unchanged from before the event. Everything else comes from `_BASE` (`value_bet=0.80`,
+`medium_bet=0.60`, `call_edge=0.12`, `post="basic"`). The 13 float knobs are repeated in
+`SETTINGS`, applied last: change a knob there.
 
 ## Gate
 
-`gate.py bots/final`, runner mini, SDK stand-in, template card: **GATE: PASS** (one warning:
-rules card not filled).
+`gate.py bots/final --tables 30`, runner kit, SDK kit, card `rules_card.json`: **GATE: PASS** on
+both machines, on the file that is v1 (table below) and again on v4 (build machine: p50 137 µs,
+p99 191, p99.9 211, max 288, 90 kit tables with 0 failed decisions). `gate.py` now deals a second board into
+`state.variant["boards"]` when the card shows a two-board game; before that its fuzz and timing
+never reached the new code.
 
-- build check: `bots/` match `tools/core_agent.py`
-- fuzz: 20,000 states, 0 bad; 0 exceptions raised inside the bot on 10,000 clean states
-- `tools/fuzz.py`: 5,000 states, no failures
-- timing, 20,000 decisions in-process: p50 18 µs, p99 37 (allowed 250), p99.9 42 (allowed
-  500), max 60, 0 over 1,000 µs
-- memory: largest blob 96 bytes over a 250-hand busy table (allowed 16,384)
-- tables: 300 over 3 line-ups, 0 failed decisions of 32,081
-- upload-test imitation (no time bank): 0 of 3,000 failed
-- `agent.py` 70,036 bytes; import 0.010 s
+| Check | Mac | Build machine |
+| --- | --- | --- |
+| fuzz legality, 20,000 states | 0 bad | 0 bad |
+| hidden exceptions, 10,000 clean states | 0 | 0 |
+| timing, 20,000 decisions, µs | p50 64, p99 88, p99.9 99, max 117 | p50 137, p99 193 (allowed 250), p99.9 212 (allowed 500), max 249 |
+| kit tables | 90 over 3 line-ups, 0 failed | 90 over 3 line-ups, 0 failed |
 
-On the build machine (2 cores, Python 3.12.3, mini simulator, 2026-11-12 16:45), same commit:
-**GATE: PASS** in 15 s. Timing there: hold'em p50 44 µs, p99 81, p99.9 93, max 156; with the
-`irish` card p99 157, p99.9 172, max 608; with the `discard_reveal` card p99 90, p99.9 102,
-max 152. The build machine is about 2.4 times slower than the Mac per decision, and a
-four-card discard handler already uses 157 of the 250 µs our p99 margin allows.
+Memory: largest blob 96 bytes (allowed 16,384). `agent.py` 73,246 bytes, import 0.010 s. The
+upload-test imitation is skipped on the kit (its `play` always gives the time bank).
 
-Also PASS with cards probed from the mini rulesets `irish`, `discard_reveal` and `short_deck`
-(timing p99 73, 40 and 38 µs).
+Failed decisions under load: the gauntlet (5 kit jobs at once on the Mac) logged 3, 2 and 2
+failed decisions in three runs, each time on one bot only and once on v1 while the candidate
+had 0. The one that could be located replayed with 0 failures alone, twice. The platform
+logged 0 missed of 416,771. Treat a handful in a gauntlet as load, and a failure in `gate.py`
+(which plays its tables alone) as real.
 
 ## Gauntlet baseline
 
-`gauntlet.py bots/final --vs starter --tables 1000 --seed baseline`, runner mini, 5 jobs,
-payouts 50/30/20, hold'em, 10 batches of 100 tables per line-up.
+`gauntlet.py bots/final --vs v0 --tables 100`, runner kit, 5 jobs, payouts 50/30/20, nine
+line-ups, n = 900 tables per bot per seed. Par is 12.5.
 
-| Line-up | `final` | `starter` | Difference |
+| Seed | v1 | v0 | v1 minus v0 |
 | --- | --- | --- | --- |
-| mixed field | 29.50 ± 0.53 | 19.71 ± 0.56 | +9.79 ± 0.69 |
-| passive field | 47.08 ± 0.38 | 40.65 ± 0.58 | +6.43 ± 0.62 |
-| aggressive field | 30.14 ± 0.47 | 14.16 ± 0.20 | +15.98 ± 0.43 |
-| seven starters | 15.04 ± 0.42 | 12.50 | +2.54 ± 0.42 |
-| four of you, four starters | 14.84 ± 0.14 | 12.50 | +2.33 ± 0.14 |
-| zoo field 1 (claude_*, 2 codex) | 16.08 ± 0.45 | 12.95 ± 0.42 | +3.13 ± 0.61 |
-| zoo field 2 (codex, gpt) | 20.47 ± 0.66 | 17.31 ± 0.68 | +3.16 ± 0.63 |
-| zoo field 3 (gpt) | 30.96 ± 0.70 | 27.76 ± 0.40 | +3.20 ± 0.86 |
-| zoo field 4 (gpt, wraps to claude) | 16.89 ± 0.55 | 13.40 ± 0.52 | +3.49 ± 0.54 |
-| all line-ups, equal weight (n = 9,000) | 24.55 ± 0.19 | 18.99 ± 0.16 | +5.56 ± 0.22 |
+| `convert` | 25.17 ± 0.27 | not recorded | +2.42 ± 0.69 |
+| `convert2` | 26.89 ± 0.71 | 23.31 ± 0.46 | +3.58 ± 0.74 |
 
-n = 1,000 tables per line-up per bot. Par is 12.5. Speed: 13,500 tables per minute. Detectable
-A/B difference at 2.8 standard errors: 0.31 points in 5 minutes, 0.22 in 10, 0.13 in 30; by
-hand `2.8 x 21 / sqrt(tables per bot)`.
+Seed `convert2` by line-up (n = 100 tables per bot per line-up):
 
-Variant rulesets on the mini simulator, `final` against `starter`, all nine line-ups,
-`--tables 300`, seed `gauntlet`, n = 2,700 per bot (re-measured 2026-11-12 16:33): irish
-31.58 ± 0.42 against 10.62 ± 0.17; short_deck 24.24 ± 0.41 against 16.02 ± 0.30;
-discard_reveal 25.68 ± 0.35 against 18.21 ± 0.33. Zero failed decisions.
+| Line-up | v1 | v0 | Difference |
+| --- | --- | --- | --- |
+| mixed field | 33.30 ± 2.51 | 29.50 ± 2.39 | +3.80 ± 1.70 |
+| passive field | 40.40 ± 1.36 | 35.80 ± 2.11 | +4.60 ± 2.22 |
+| aggressive field | 30.20 ± 1.42 | 29.50 ± 1.34 | +0.70 ± 1.20 |
+| seven starters | 26.80 ± 1.65 | 19.60 ± 0.86 | +7.20 ± 1.44 |
+| four of you, four starters | 17.77 ± 0.49 | 16.60 ± 0.50 | +1.18 ± 0.65 |
+| zoo field 1 | 16.30 ± 2.00 | 18.10 ± 1.99 | -1.80 ± 2.49 |
+| zoo field 2 | 27.00 ± 1.73 | 18.90 ± 1.21 | +8.10 ± 1.48 |
+| zoo field 3 | 31.70 ± 1.44 | 29.00 ± 1.65 | +2.70 ± 1.90 |
+| zoo field 4 | 18.50 ± 1.84 | 12.80 ± 1.75 | +5.70 ± 2.16 |
+
+**v4, the active version, against v1** (`gauntlet.py v4 --vs v1`): 28.08 ± 0.25 against 26.31 ± 0.33,
++1.77 ± 0.25, positive in all nine line-ups (seed `hu1`, n = 2,700 per bot); 27.79 ± 0.58 against
+26.43 ± 0.68, +1.36 ± 0.28 (seed `hu2`, n = 900). The number a candidate has to beat is v4's.
+
+v1 as the incumbent in two earlier runs, n = 2,700 tables: 26.83 ± 0.23 (seed `river1`) and
+26.94 ± 0.27 (seed `bet1`).
+
+Speed: 1,200 tables per minute on the Mac (kit, 5 jobs). `--tables 300` for both bots takes
+3.7 minutes and gives a standard error of 0.20 to 0.23 on the difference. Detectable at 2.8
+standard errors: 1.06 points in 5 minutes, 0.75 in 10, 0.43 in 30.
 
 Promotion rule in force: difference over all line-ups above 2 standard errors on one seed and
-still positive on a fresh seed; zero failed decisions; gate PASS.
+still positive on a fresh seed; `gate.py` PASS.
+
+Before the event, mini simulator, hold'em, for reference only: `final` 24.55 ± 0.19 against
+`starter` 18.99 ± 0.16 (n = 9,000). Not comparable with the kit numbers above.
+
+## Tried during the build and not shipped
+
+| Change | Result against v1 (kit, n = 2,700 per bot) | Decision |
+| --- | --- | --- |
+| River strength refit to measured pot share (`-0.152 + 1.195 x strength`) | -0.14 ± 0.23, seed `river1` | reverted |
+| `value_bet` 0.80 to 0.70 and `medium_bet` 0.60 to 0.52 | +0.31 ± 0.20, seed `bet1`; mixed field -1.93 ± 0.64, seven starters +1.50 ± 1.07 | reverted; candidate, needs more tables |
+| Looser preflop bundle (v3): `threebet` 0.06, `call_raise` 0.14, `hu_open` 0.80, `points_tight` 0.03, `bubble_margin` 0.04, opens x 1.25 | -1.49 ± 0.40, seed `loose1`; negative in eight of nine line-ups. Measured with the big-blind bug still in | reverted; re-measure piece by piece on v4 |
+| Vedaant's conversion (v2) in place of this one | +0.07 ± 0.35, seed `ved1`. Timing on the Mac p99 250 µs against 88 (no memo) | not adopted; ideas to port one at a time |
+| Preflop refit from Monte Carlo | not run as an A/B: the borrowed fit is within 0.004 of the measured share in the top seven deciles and 0.016 to 0.022 low in the bottom two | not worth a window |
+
+Monte Carlo behind those (heads-up, both hands keep the pair the bot keeps, scripts in the
+session scratchpad, not in the repo): preflop n = 800,000; postflop n = 400,000 per street.
+Flop and turn strength is within 0.04 of the real pot share in every decile. The river
+overrates weak hands (predicted 0.30 is 0.18, 0.37 is 0.29) against a random hand, yet
+correcting it did not score.
 
 ## Practice runs and rounds
 
-None yet.
+| Run | Time | Bot | Decisions | Missed | Restarts | Errors | Points, place |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| practice 1 | 18:34:34 | v1 | 416,771 | 0 | 0 | none | 15.95 ± 0.68, 32nd of 82 that played; 1st 11.4%, 2nd 22.3%, 3rd 17.8% |
+| practice 2 | 18:45:01 | v2 | 803,861 | 0 | 0 | none | 14.47 ± 0.45, 43rd of 100; 1st 7.5%, 2nd 23.3%, 3rd 18.6% |
+| practice 3 | 18:54:04 | v3 | 1,551,886 | 0 | 0 | none | not read yet |
+
+Health columns are from `portal.py`. Points and places are Vedaant's, from the hand histories
+(relayed, not re-derived here). Practice 1 had 146 entries, 64 forfeits, 2,500 tables; the runs
+grow (5,000, then 10,000 tables). Field read from practice 1 and 2: the top teams win about a
+third of their tables, play 19 to 32% of hands and fold to raises 67 to 81%; we played 15 to
+16% and folded 88 to 89%, all of it with the big-blind bug below.
 
 ## Known weaknesses
 
-- The zoo's strong bots: `final` scores 16.08 and 16.89 in the line-ups with the `claude_*`
-  and `codex_*` strategy bots, against 29 to 47 in the hand-written fields. A field of
-  prepared teams is where points are scarce.
-- `_icm_me` prices only the first three payout places. With four or more places paid, or
-  unusual per-table payouts, its ICM is approximate.
-- An unknown phase gets the automatic choice. Whether the kit counts that as a failed decision
-  for an action that needs `cards` is unknown until the kit is in hand.
-- `tools/field_fit.py --sweep` and `tools/bench.py` play the mini simulator only, and
-  `bench.py` plays hold'em only. `skills/mid-round-iterate` therefore promotes on
-  `gauntlet.py bots/final --vs vN` and `gate.py`, which follow the kit and the variant. The
-  sweep's rows are hints from our own ruleset, not kit numbers.
-- `tools/field_report.py`'s reader for the organizers' history format is a guess.
-- `starter` fails `tools/fuzz.py`'s repeat-call check because it bluffs with the global
-  `random`. It is an opponent, not an upload, so this only matters if someone uploads it.
-- `zoo/claude_exploiter_1` against `final`, same seeds (`gauntlet.py zoo/claude_exploiter_1
-  --vs bots/final --mini --tables 300 --seed exploiter`, hold'em, n = 2,700 per bot,
-  2026-11-12 17:45): overall -0.63 ± 0.32, not detectable. By line-up the exploiter is ahead
-  where the opponents are the strong AI-written bots (zoo field 1 +4.85 ± 0.88, zoo field 2
-  +6.47 ± 1.19) and against seven starters (+4.27 ± 1.06), and far behind in the aggressive
-  field (-14.15 ± 1.89) and the mixed field (-6.53 ± 1.36). It is not an upload candidate as
-  it stands: it fails `tools/fuzz.py`'s repeat-call check (it draws from the global `random`),
-  so the gate fails, and it is not converted through `tools/core_agent.py`.
+- Fixed in v4, present in v0 to v3: `_big_blind_seat` took the last `blind` event, but heads-up
+  the kit posts the big blind first (small blind last in 13,786 of 13,967 heads-up hands in our
+  kit histories). On the button heads-up the bot thought it was the big blind, so `hu_open`
+  never applied. Every heads-up or tightness measurement before v4 is suspect.
+- A big blind all-in for less than the small blind still picks the wrong seat (rare).
+- Every strength number is hold'em's, averaged over two boards. Thresholds (`value_bet`,
+  `medium_bet`, `call_edge`, the 0.88 raise) were tuned for one board; averaged strength
+  reaches 0.80 rarely (top flop decile averages 0.74), so the bot value-bets less than in
+  hold'em.
+- The draw flag is true with a draw on either board, though that draw wins half a pot.
+- Before the discard the hand is scored as the pair it would keep now; the option to choose
+  after the turn is not priced.
+- Opponents hold three cards and keep their best two: nothing models that their ranges are
+  stronger than hold'em ranges.
+- Timing headroom on the build machine: p99 193 of our 250 µs margin. Anything that adds work
+  per pair or per board needs `gate.py` there first.
+- `zoo field 1` (the strong `claude_*` bots) is the one line-up where v1 did not beat v0
+  (-1.80 ± 2.49, n = 100).
+- `tools/field_fit.py --sweep` and `tools/bench.py` play the mini simulator, which cannot
+  deal this game: use `gauntlet.py bots/final --vs v1` on the kit for every decision.
+- `tools/field_report.py` reads the download format now, but its hand types and advice were
+  set on hold'em: "maniac" and "station" trigger easily with three-card ranges, shown hands are
+  the kept pair, and filler seats count like scored seats.
+- `probe.py` on the kit needs `TMPDIR=/tmp` (bots run with a clean environment, so the probe
+  bot writes to `/tmp`). It rewrites `rules_card.json`: the hand-filled fields would be lost.
+- `_icm_me` prices only the first three payout places.
 
 ## First experiments to try
 
-1. During the build: `tools/field_report.py --inspect` on the sample in the kit's
-   `hand-history/` folder, fix `kit_hands`. After the first round's histories (take the
-   smaller subset): the report with `--hero "Team Allow It"`. Everything else follows from
-   what the field is.
-2. `tools/field_fit.py --sweep --bot bots/final --variant <mini_name>` against the look-alike field.
-3. If the field looks like zoo field 1 or 4 (strong bots), `points_tight` and `call_margin`
-   are the first knobs; if it looks like zoo field 3 (weak first drafts), `steal_widen`.
-   Zoo fields 1 and 2 are also where `zoo/claude_exploiter_1` beat `final` by 5 to 6 points
-   (see "Known weaknesses"), so there is room there. Which of its behaviours earns that is
-   not measured: let the sweep say, and do not swap the upload to the zoo bot.
-4. If practice runs show many 2nd and 3rd places and few firsts: `hu_open` up.
+Judge each on `gauntlet.py bots/final --vs v4` on the kit and on the share of 1st places in the
+next practice run. Vedaant's ranked list (GitHub issues #12 and #13, branch `research/pittsburgh`):
+
+0. Practice 3's and practice 4's results for v3 and v4: does the heads-up fix lift the 1st-place
+   share (11.4% and 7.5% before)? Heads-up button fold rate was 75% against the field's 33%.
+0. `hu_open` and `push_scale` again, now that the bug is fixed; then wider opens and `call_raise`
+   one at a time; then `points_tight` and `bubble_margin` down.
+0. His half-pot veto (`db_floor`: do not fold a hand that is near the nuts on one board to a big
+   bet) and dropping the draw-only call. His v3a with both plus a calibration read +0.62 ± 0.27
+   and +0.34 ± 0.31 against his own v1.
+1. Henry, 18:25: port `zoo/claude_exploiter_1`'s postflop read into the core (PR #11's mock
+   tournament on the mini simulator had it about 3 points per table ahead of `final` against
+   the strong AI-written bots, hold'em). Judge it on the zoo line-ups' rows of
+   `gauntlet.py bots/final --vs v1`, on the kit.
+2. Hand histories: about 5,000 hands from the first practice run or round,
+   `tools/field_report.py <file> --hero "Team Allow It"`. What the field is decides the rest.
+3. The betting-threshold candidate (`value_bet` 0.70, `medium_bet` 0.52 in `SETTINGS`): rerun
+   with `--tables 600` on a fresh seed. It lost in the mixed field and gained against starters,
+   so check the field report first.
+4. `call_edge` and `points_tight` if the field is strong; `steal_widen` if it is weak.
 
 ## Log
 
@@ -174,3 +255,19 @@ None yet.
   still null at 17:55. The organizers' setup skill is unchanged (version 2026-11-05.2). The
   public rules page still names Astra and Codex as the assistants teams may use; the portal's
   Getting started page names Claude Code as well.
+- 2026-11-12 18:13 to 18:45, the launch (T+0 to T+32). Variant on the portal at 18:13:58.
+  Kit installed on both machines; `v0` gated on the kit and uploaded at T+7:31. `probe.py`
+  needed `TMPDIR=/tmp`. Conversion written at T+8: two helpers, a discard handler, a
+  `VARIANTS` entry, no simulator class. Its first timing on the build machine was p99 250 µs
+  for the scoring alone; a memo on `hand_rank` and `_draws` brought it to 165. Against `v0`:
+  +2.42 ± 0.69 and +3.58 ± 0.74 on two seeds. `v1` uploaded at T+17:54, clean in practice 1
+  (0 missed of 416,771). `gate.py` taught to deal two boards. `tools/field_report.py`'s reader
+  fixed against the kit sample by a subagent (64 hands, 13 tables, equal to the kit's
+  `read.py`). Two changes tried against `v1` and not shipped (table above). Someone else ran
+  `gate.py bots/final` on the build machine at 18:23 while I was timing there.
+- 2026-11-12 18:45 to 19:03 (T+32 to T+50). Henry uploaded Vedaant's bot as v2 (clean in practice
+  2); it measured equal to v1 (+0.07 ± 0.35). The looser bundle went up as v3 for practice 3 as a
+  field test while its A/B ran: -1.49 ± 0.40, reverted. Vedaant found the heads-up big-blind bug
+  (issue #13); confirmed on our kit histories, fixed, v4 gated and uploaded at 18:58, +1.77 ± 0.25
+  and +1.36 ± 0.28 against v1 on two seeds. `v0/` to `v4/` are ignored by git: `bots/final` in this
+  commit is v4; v1 is v4 without the `_big_blind_seat` change; v3 is v1 with the bundle above.

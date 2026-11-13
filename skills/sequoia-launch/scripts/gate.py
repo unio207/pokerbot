@@ -90,6 +90,12 @@ class States:
                 phase = rng.choice(("select", "discard", "bid", "mystery"))  # a phase the bot may not know
                 kinds = [phase]
         dealt = rng.sample(self.deck, hole + board_count)
+        field = {}
+        if "boards" in ((self.variant.get("state_variant_field") or [{}])[0] or {}):  # a two-board game
+            second = rng.sample([card for card in self.deck if card not in dealt], board_count)
+            field = {"boards": [list(dealt[hole:]), second], "discarded": []}
+            if not clean and rng.random() < 0.3:  # a field the bot must survive, not understand
+                field = rng.choice(({}, {"boards": "??"}, {"boards": [second]}, {"boards": [[], second[:2]]}))
         to_call = rng.choice((0, 0, rng.randint(1, max(1, me.stack if clean else 2 * me.stack))))
         if phase == "betting":  # betting amounts are built here; a shape's kinds matter only for other phases
             legal = [sdk.LegalAction("fold"), sdk.LegalAction("call")] if to_call else [sdk.LegalAction("check")]
@@ -123,7 +129,7 @@ class States:
             button=rng.randrange(players), blind_level=0, blinds=sdk.BlindLevel(small, big),
             hands_until_next_level=rng.randint(1, config["hands_per_level"]),
             players_remaining=sum(seat.status != "busted" for seat in seats), bust_order=(), config=table,
-            variant={}, phase=phase, time_bank_ms=float(config["time_bank_ms"]),
+            variant=field, phase=phase, time_bank_ms=float(config["time_bank_ms"]),
         )  # fmt: skip
 
 
