@@ -1,0 +1,11 @@
+first-in opens: us 76879 (mean size 2.81 bb), named teams 44269 (mean size 3.32 bb)
+after the open                           us: share  bb each   adds | top: share  bb each   adds
+everyone folds                               36.7%     1.47   0.54 |     38.7%     1.48   0.57
+re-raised: we fold                           27.7%    -2.37  -0.65 |     21.5%    -2.81  -0.60
+re-raised: we continue                       15.1%     3.43   0.52 |     21.8%     3.95   0.86
+called: all-in or no flop decision            0.8%     0.04   0.00 |      1.2%    -0.97  -0.01
+called: we bet or raise the flop             11.6%     4.64   0.54 |      9.1%     4.22   0.38
+called: we check the flop                     2.7%     0.06   0.00 |      3.0%     0.18   0.01
+called: we fold the flop to a bet             2.4%    -2.30  -0.05 |      1.7%    -2.33  -0.04
+called: we call a flop bet                    3.1%     1.60   0.05 |      3.0%     1.69   0.05
+bb per open                                                   0.94 |                       1.22

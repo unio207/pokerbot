@@ -1,0 +1,6 @@
+header keys ['entries', 'tournament_id', 'you'] entries 146 we are Team Allow It
+table keys ['board_count', 'fillers', 'hands', 'iteration', 'payouts', 'seats', 'table', 'variant'] | hand keys ['blinds', 'button', 'cards', 'equity_after', 'equity_before', 'events', 'hand', 'stacks_after', 'stacks_before'] | you keys ['automatic', 'cards', 'iteration', 'private_events', 'seat', 'table']
+tables 10097 hands 1523614  points/table 11.80 ± 0.16
+places: {1: '917 (9.1%)', 2: '1373 (13.6%)', 3: '1603 (15.9%)', 'out of the points': '6204 (61.4%)'}
+heads-up button: n 22863 {'call': '1.7%', 'fold': '25.8%', 'no action': '2.4%', 'raise': '70.1%'}
+heads-up big blind: n 22639 {'call': '12.8%', 'check': '3.1%', 'fold': '47.9%', 'no action': '25.5%', 'raise': '10.7%'}

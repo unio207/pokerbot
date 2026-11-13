@@ -1,0 +1,37 @@
+us  : seats   8777, reached heads-up  30.0%, won it  65.0% (n 2634)  by starting chip share: 35 to 65% 59% (n 1064); over 65% 84% (n 1118); under 35% of the chips 32% (n 452)
+top : seats   5591, reached heads-up  35.0%, won it  54.6% (n 1956)  by starting chip share: 35 to 65% 52% (n 816); over 65% 84% (n 610); under 35% of the chips 25% (n 530)
+rest: seats  55653, reached heads-up  22.7%, won it  46.1% (n 12620)  by starting chip share: 35 to 65% 48% (n 4982); over 65% 78% (n 3427); under 35% of the chips 18% (n 4211)
+--- us: on the button, first action by effective stack (bb)
+   <=6    n   2743  fold    1%  call    6%  raise    0%  shove   93%
+   6-10   n   3798  fold    2%  call    0%  raise    0%  shove   98%
+   10-15  n   5509  fold   13%  call    0%  raise   53%  shove   34%
+   15-25  n   6001  fold   15%  call    0%  raise   85%  shove    0%
+   >25    n   2661  fold   13%  call    0%  raise   87%  shove    0%
+--- us: in the big blind against a raise or a shove
+   <=6    vs raise n    126  fold   21%  call   10%  raise   68%
+   <=6    vs shove n   1801  fold   17%  call   83%  raise    0%
+   6-10   vs raise n    330  fold    9%  call    3%  raise   88%
+   6-10   vs shove n   2504  fold   53%  call   47%  raise    0%
+   10-15  vs raise n   1402  fold   10%  call    3%  raise   87%
+   10-15  vs shove n   2503  fold   67%  call   33%  raise    0%
+   15-25  vs raise n   3109  fold   16%  call    3%  raise   81%
+   15-25  vs shove n    966  fold   72%  call   28%  raise    0%
+   >25    vs raise n   1768  fold   28%  call   15%  raise   57%
+   >25    vs shove n    134  fold   84%  call   16%  raise    0%
+--- top: on the button, first action by effective stack (bb)
+   <=6    n   1851  fold    3%  call    6%  raise    7%  shove   84%
+   6-10   n   3093  fold    8%  call    2%  raise   13%  shove   77%
+   10-15  n   4218  fold   21%  call    5%  raise   27%  shove   47%
+   15-25  n   4036  fold   17%  call    5%  raise   57%  shove   20%
+   >25    n   1860  fold   13%  call    4%  raise   82%  shove    1%
+--- top: in the big blind against a raise or a shove
+   <=6    vs raise n     95  fold   11%  call   12%  raise   78%
+   <=6    vs shove n   1302  fold   24%  call   76%  raise    0%
+   6-10   vs raise n    203  fold   13%  call    3%  raise   83%
+   6-10   vs shove n   2275  fold   51%  call   49%  raise    0%
+   10-15  vs raise n   1229  fold   11%  call    5%  raise   83%
+   10-15  vs shove n   1777  fold   68%  call   32%  raise    0%
+   15-25  vs raise n   2396  fold   13%  call    6%  raise   81%
+   15-25  vs shove n    465  fold   75%  call   25%  raise    0%
+   >25    vs raise n   1283  fold   22%  call   15%  raise   62%
+   >25    vs shove n     60  fold   92%  call    8%  raise    0%

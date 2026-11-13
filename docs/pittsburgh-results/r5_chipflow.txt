@@ -1,0 +1,27 @@
+hands dealt with 4+ players alive: us 750062, top ten 516656
+situation                                    us: share  bb/hand  bb/100 | top: share  bb/hand  bb/100
+BB: call a raise                                  1.3%    -0.23    -0.3 |      1.2%     0.21     0.2
+BB: check                                         0.5%     0.38     0.2 |      0.3%     0.14     0.0
+BB: fold to raise                                 8.8%    -1.00    -8.8 |      8.7%    -1.00    -8.7
+BB: no decision (walk or all-in before us)        1.3%     0.50     0.6 |      1.3%     0.50     0.6
+BB: raise unraised pot                            0.1%     2.64     0.2 |      0.2%     1.11     0.2
+BB: re-raise                                      3.7%     1.30     4.8 |      4.3%     1.10     4.7
+SB, deep: open raise                              2.8%     0.27     0.7 |      2.5%     0.15     0.4
+SB, deep: re-raise                                2.0%     1.52     3.1 |      2.0%     1.43     2.9
+SB, short: open raise                             0.5%     0.58     0.3 |      0.6%     0.50     0.3
+SB, short: re-raise                               0.3%     1.17     0.3 |      0.3%     0.80     0.2
+SB: call a raise                                  0.3%     1.24     0.4 |      0.4%     0.97     0.4
+SB: fold first in                                 0.8%    -0.50    -0.4 |      1.0%    -0.50    -0.5
+SB: fold to raise                                 8.7%    -0.50    -4.4 |      8.9%    -0.50    -4.4
+SB: limp                                          0.1%     0.33     0.0 |      0.1%    -0.12    -0.0
+SB: no decision (walk or all-in before us)        0.0%     0.05     0.0 |      0.0%     0.02     0.0
+other, deep: open raise                          10.5%     0.80     8.4 |      9.3%     0.99     9.2
+other, deep: re-raise                             1.3%     1.91     2.5 |      1.3%     2.88     3.8
+other, short: open raise                          1.7%     0.88     1.5 |      1.4%     0.86     1.2
+other, short: re-raise                            0.2%     1.26     0.3 |      0.2%     1.17     0.2
+other: call a raise                               0.5%    -0.02    -0.0 |      0.3%     1.12     0.3
+other: fold first in                             37.1%     0.00     0.0 |     38.2%     0.00     0.0
+other: fold to raise                             17.4%     0.00     0.0 |     17.4%     0.00     0.0
+other: limp                                       0.0%     0.24     0.0 |      0.3%     1.28     0.4
+other: no decision (walk or all-in before us)      0.0%     0.33     0.0 |      0.0%     0.25     0.0
+TOTAL bb per 100 hands                                              9.4 |                        11.3

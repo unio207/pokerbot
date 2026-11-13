@@ -50,7 +50,7 @@ There is no test suite. The checks are `gate.py`, `tools/fuzz.py` and `tools/bot
 
 - Pittsburgh regional played (variant `double_board_turn_discard`, portal name `pittsburgh`):
   37th of 112, total 468.31; rounds 12.40, 11.64, 12.31, 13.04, 15.37, 15.96 points per table.
-  `bots/final` is the round 6 bot (80,989 bytes, submission `eb6caf1a`). Details: `skills/STATE.md`.
+  `bots/final` is the round 6 bot (80,989 bytes, submission `eb6caf1a`). Results: `docs/pittsburgh-results.md`. Details: `skills/STATE.md`.
 - Judge strategy on the platform's results (`portal.get("tournaments/<id>/results")`) and on
   the real hand histories (`tools/history/`), from the first practice run. The kit gauntlet
   scored the round 1 bot at 28 where the field scored it 12.4: use it for crashes and timing only.

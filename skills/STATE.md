@@ -11,6 +11,8 @@ uploaded file is on branch `uploads`. The history readers are in `tools/history/
 `v971/`, `hand-history/` and `rules_card.json` are ignored by git.
 **Numbers below are from the organizers' kit unless a line says mini.**
 Template: `sequoia-launch/templates/STATE.md`.
+Results of every run, our standing after each round and the six-round history tables:
+[`docs/pittsburgh-results.md`](../docs/pittsburgh-results.md).
 
 ## Active bot
 
@@ -266,7 +268,7 @@ next practice run. Vedaant's ranked list (GitHub issues #12 and #13, branch `res
 Round 6 (`268dab24`, multiplier 13) finished at 21:05:06 with `eb6caf1a` (the v971 file): 2,510,126
 decisions, 0 missed, 0 restarts. Result: **15.96 ± 0.28, 21st of 112**, firsts 19.5%, field median
 13.71 (mean of the 56th and 57th), best 18.42, 5th 17.90, 10th 17.18. Final standings: 37th,
-468.31 (48th with 260.80 before it; 71st after round 3).
+468.31 (48th with 260.80 before it; 71st after round 2).
 The totals fit multipliers 1, 2, 3, 5, 8, 13 although the portal's `weight` field reads 1 to 6.
 
 v971 against v96 on the platform: 15.96 against 15.37, but the field median rose from 13.28 to
