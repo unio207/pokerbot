@@ -139,6 +139,7 @@ Before the event, mini simulator, hold'em, for reference only: `final` 24.55 ± 
 | `value_bet` 0.80 to 0.70 and `medium_bet` 0.60 to 0.52 | +0.31 ± 0.20, seed `bet1`; mixed field -1.93 ± 0.64, seven starters +1.50 ± 1.07 | reverted; candidate, needs more tables |
 | Looser preflop bundle (v3): `threebet` 0.06, `call_raise` 0.14, `hu_open` 0.80, `points_tight` 0.03, `bubble_margin` 0.04, opens x 1.25 | -1.49 ± 0.40, seed `loose1`; negative in eight of nine line-ups. Measured with the big-blind bug still in | reverted; re-measure piece by piece on v4 |
 | Vedaant's conversion (v2) in place of this one | +0.07 ± 0.35, seed `ved1`. Timing on the Mac p99 250 µs against 88 (no memo) | not adopted; ideas to port one at a time |
+| `hu_open` 0.65 to 0.80 on v4 (`v5/`) | -0.17 ± 0.23 against v4, seed `huopen1`; zoo field 1 -2.03 ± 0.67, aggressive field +0.70 ± 0.22 | dropped |
 | Preflop refit from Monte Carlo | not run as an A/B: the borrowed fit is within 0.004 of the measured share in the top seven deciles and 0.016 to 0.022 low in the bottom two | not worth a window |
 
 Monte Carlo behind those (heads-up, both hands keep the pair the bot keeps, scripts in the
@@ -153,7 +154,8 @@ correcting it did not score.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | practice 1 | 18:34:34 | v1 | 416,771 | 0 | 0 | none | 15.95 ± 0.68, 32nd of 82 that played; 1st 11.4%, 2nd 22.3%, 3rd 17.8% |
 | practice 2 | 18:45:01 | v2 | 803,861 | 0 | 0 | none | 14.47 ± 0.45, 43rd of 100; 1st 7.5%, 2nd 23.3%, 3rd 18.6% |
-| practice 3 | 18:54:04 | v3 | 1,551,886 | 0 | 0 | none | not read yet |
+| practice 3 | 18:54:04 | v3 | 1,551,886 | 0 | 0 | none | not read |
+| practice 4 | 19:04:02 | v4 | 1,509,669 | 0 | 0 | none | 13.06 ± 0.17 over 10,479 tables; 1st 9.9%, 2nd 15.4%, 3rd 17.4%, out of the points 57.3% (our own read of the download) |
 
 Health columns are from `portal.py`. Points and places are Vedaant's, from the hand histories
 (relayed, not re-derived here). Practice 1 had 146 entries, 64 forfeits, 2,500 tables; the runs
@@ -163,6 +165,11 @@ third of their tables, play 19 to 32% of hands and fold to raises 67 to 81%; we 
 
 ## Known weaknesses
 
+- Practice 4, v4, from the history (`hand-history/practice4/`, 169 MB, 1,571,390 hands): heads-up on
+  the button it raises 67.8% and folds 27.4% (n = 30,979; the fold rate was 75% before the fix).
+  Heads-up in the big blind it folds 49.0%, calls 12.6% and raises 4.7% (n = 30,567): the next
+  place to look. 9.9% firsts against about a third for the top teams. Scores are not comparable
+  across practice runs: forfeits fell from 64 to 39, so fewer dead seats.
 - Fixed in v4, present in v0 to v3: `_big_blind_seat` took the last `blind` event, but heads-up
   the kit posts the big blind first (small blind last in 13,786 of 13,967 heads-up hands in our
   kit histories). On the button heads-up the bot thought it was the big blind, so `hu_open`
