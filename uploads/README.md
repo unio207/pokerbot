@@ -14,6 +14,9 @@ The exact files uploaded to the team page, by submission id. Sizes match the por
 | `v9_fc9b02c4` | `fc9b02c4` | 73,949 | 19:29:05 | v7 plus `final`'s `open` table: small blind 0.45 to 0.70, button 0.40 to 0.55, cutoff 0.28 to 0.33 | nothing (active 19:29 to 19:33) |
 | `v11_469e96f5` | `469e96f5` | 74,862 | 19:33:57 | v9 plus a first draft of the big-blind re-raises (`bb_reraise`), a call with any pair in the big blind, heads-up call of an all-in of 10 bb or less with any ace, king or pair, wider shoves first in at 5 bb or less | round 2 (19:34): 11.64 ± 0.23 |
 | `v90_f4025ac6` | `f4025ac6` | 45,312 | 19:43:06 | the launch session's port of `zoo/claude_exploiter_1` with Pittsburgh handlers, not built from `tools/core_agent.py` | practice 6 (19:45): 11.02 ± 0.50 |
-| `v13_1b9ad55e` | `1b9ad55e` | 73,996 | 19:48:33 | v4 plus postflop only: flop and turn calls need 0.10 more strength, a draw alone calls at 0.20 or less, `value_bet` 0.70, `medium_bet` 0.52, `cbet_air` 0.6, raise a flop or turn bet at 0.78. No v7, v9 or v11 change | active from 19:48, round 3 (19:53) |
+| `v13_1b9ad55e` | `1b9ad55e` | 73,996 | 19:48:33 | v4 plus postflop only: flop and turn calls need 0.10 more strength, a draw alone calls at 0.20 or less, `value_bet` 0.70, `medium_bet` 0.52, `cbet_air` 0.6, raise a flop or turn bet at 0.78. No v7, v9 or v11 change | round 3 (19:55): 12.31 ± 0.22 |
+| `v91_e140891a` | `e140891a` | 74,507 | 19:56:16 | v13 plus nine lines of lighter re-raises against one raise (p2's build; big blind 0.15, small blind 0.12, others 0.06, times 0.6 when it is a shove) | practice 7 (20:06): 12.78 ± 0.32 |
+| `v17_20a9e4ae` | `20a9e4ae` | 75,006 | 20:12:48 | v13 plus the endgame package (heads-up button 0.90, heads-up big blind reshoves the top half and calls short all-ins with the top half, wider shoves three-handed, `points_tight` 0) | round 4 (20:15) |
+| `v94_881d49d6` | `881d49d6` | 79,563 | 20:22:21 | v13 plus p2's `_cloned()` preflop (v93 with round 1's top-ten frequencies) plus the one-board lock rule | practice 8, active from 20:22 |
 
 Measurements: `skills/STATE.md` on `main`.
