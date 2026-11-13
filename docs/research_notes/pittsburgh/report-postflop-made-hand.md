@@ -76,3 +76,49 @@ First in, ≤10bb:
 - Observational: inside a class we choose which hands to bet or call, so differences overstate what the rest would earn. Signs are consistent across all classes and both streets, which is the real evidence.
 - "Two pair" includes one of our cards pairing a paired board. River classes are not reported: after the discard I can't tell which two cards we kept unless the hand was shown.
 - Bet-size and fold-equity numbers (how often the field folds to each size) follow as a comment.
+
+---
+
+## Follow-up comment: bet sizing and fold equity
+
+Bet-sizing and fold-equity half (same 25,003 tables; field = everyone else at our tables). Eq = tournament-equity points per hand for the bettor.
+
+**Opening bets after the flop, heads-up pots**
+
+| Street | Bet freq us / top 5 | Our usual size | Top 5 usual size | Field folds to 34–50% / 51–75% / 76–100% pot (break-even 32 / 39 / 48%) |
+|---|---|---|---|---|
+| Flop | 40.5% (n=123,602) / 50.9% | 51–75% pot (75% of bets) | 34–50% (50%), 51–75% (37%) | 32 / 41 / 51% — a pure bluff breaks even or better |
+| Turn | 42.1% / 42.9% | 51–75% | 34–50% and 51–75% | 23 / 29 / 39% — does not |
+| River | 38.6% / 36.4% | 51–75%, all-in 30% | 34–50%, 51–75% | 25 / 33 / 43% — does not |
+
+In pots with 3+ players no size clears break-even on any street (flop 51–75%: everyone folds 19%).
+
+**Flop c-bet**
+
+| | Frequency | Everyone folds | Result betting | Result checking |
+|---|---|---|---|---|
+| Us | 49.8% (n=68,590) | 39% | +1.08 | −0.09 |
+| Top 5 | 61.4% (n=37,708) | 39% | +0.86 | −0.14 |
+| Field | 60.7% | 40% | +0.97 | −0.05 |
+
+The top 5 bet 34–50% pot 55% of the time and get the same folds as our 51–75%.
+
+**Re-raises at >20bb (not all-in)**
+
+| | Size | Everyone folds | Result |
+|---|---|---|---|
+| Us | 2.5–3.5× the open (n=13,940) | 49% | +1.26 |
+| Top 5 | 2.5–3.5× (n=20,296) / 3.5–5× (n=9,039) | 64% / 62% | +0.51 / +0.49 |
+| Field | 2.5–3.5× | 54% | +0.69 |
+
+Field opener folds to a re-raise: under 2.5× 51%, 2.5–3.5× 62%, 3.5–5× 68%. Re-raise shoves: everyone folds 65%, +0.75.
+
+**Open size at >20bb, result per open (us 2.0bb / 2.5bb)**: early +0.34 / +0.10, cutoff +0.19 / +0.10, button +0.20 / +0.09, small blind +0.15 / +0.06. The field folds only 3–5 points less often to 2.0bb than to 2.5bb.
+
+**Recommendations**
+1. Open 2.0bb in every seat at >20bb.
+2. C-bet heads-up flops 60%+ at 40–50% pot.
+3. Do not bluff the turn or river, or any pot with 3+ players; bet those for value.
+4. Re-raise to about 3× the open, far more often; the field's opener folds 62%.
+
+Caveats: results per attempt are tied to hand strength (we bet and re-raise a tighter range, hence our higher figures); the 2.0 vs 2.5bb gap may partly reflect which hands the bot picks for each size; the pot ledger was not reconciled against stacks; break-even ignores equity when called, so it understates bluffs.
