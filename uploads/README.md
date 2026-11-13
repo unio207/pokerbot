@@ -17,6 +17,8 @@ The exact files uploaded to the team page, by submission id. Sizes match the por
 | `v13_1b9ad55e` | `1b9ad55e` | 73,996 | 19:48:33 | v4 plus postflop only: flop and turn calls need 0.10 more strength, a draw alone calls at 0.20 or less, `value_bet` 0.70, `medium_bet` 0.52, `cbet_air` 0.6, raise a flop or turn bet at 0.78. No v7, v9 or v11 change | round 3 (19:55): 12.31 ± 0.22 |
 | `v91_e140891a` | `e140891a` | 74,507 | 19:56:16 | v13 plus nine lines of lighter re-raises against one raise (p2's build; big blind 0.15, small blind 0.12, others 0.06, times 0.6 when it is a shove) | practice 7 (20:06): 12.78 ± 0.32 |
 | `v17_20a9e4ae` | `20a9e4ae` | 75,006 | 20:12:48 | v13 plus the endgame package (heads-up button 0.90, heads-up big blind reshoves the top half and calls short all-ins with the top half, wider shoves three-handed, `points_tight` 0) | round 4 (20:15) |
-| `v94_881d49d6` | `881d49d6` | 79,563 | 20:22:21 | v13 plus p2's `_cloned()` preflop (v93 with round 1's top-ten frequencies) plus the one-board lock rule | practice 8, active from 20:22 |
+| `v94_881d49d6` | `881d49d6` | 79,563 | 20:22:21 | v13 plus p2's `_cloned()` preflop (v93 with round 1's top-ten frequencies) plus the one-board lock rule | practice 8 (20:26): 14.90 ± 0.38 |
+| `v96_25276ffb` | `25276ffb` | 79,712 | 20:31:12 | p2's build on the v94 file: round 3's top-ten tables, `icm_scale` 0, `points_tight` 0, `bubble_margin` 0, `call_margin` 0.02, `push_scale` 1.1, shares times 1.1 with three or fewer left | round 5 (20:35): 15.37 ± 0.28, 21st of 112 |
+| `v971_2f1d6444` | `2f1d6444`, uploaded again at 20:52:17 as `eb6caf1a` (same 80,989 bytes) | 80,989 | 20:45:55 | p2's v96 with the preflop percentile from the measured three-card pot share, no 1.1 multiplier, `call_margin` 0.05, `push_scale` 0.9, opens of 2.3 bb; equals `bots/final/agent.py` built from the core | round 6 (20:55), as `eb6caf1a` |
 
 Measurements: `skills/STATE.md` on `main`.
