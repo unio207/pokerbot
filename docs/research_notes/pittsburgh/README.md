@@ -1,6 +1,11 @@
 # Pittsburgh regional, 2026-11-12: research notes
 
-Latest addition: [tournament 242e19e4 review](report-242e19e4.md), covering all
+Latest addition: [tournament 3c389150 review](report-3c389150.md): heads-up wins
+rose from 30.1% to 48.6%, while early-table losses offset part of the gain.
+[Artifacts and cached comparison](results/3c389150/README.md) cover all 10,003
+tables returned by the first-10,000 request.
+
+Previous addition: [tournament 242e19e4 review](report-242e19e4.md), covering all
 10,000 tables, improved early-table results, zero automatic fallbacks, and the
 remaining heads-up weakness. [Results and reproduction instructions](results/242e19e4/README.md)
 include cached aggregates and a streaming audit measured at 16 seconds.

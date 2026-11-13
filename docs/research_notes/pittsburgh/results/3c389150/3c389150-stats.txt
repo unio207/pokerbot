@@ -1,0 +1,270 @@
+tables 10003 teams seen 112
+{'blind': 2905496, 'raise': 2113273, 'fold': 6132089, 'win': 1642338, 'stack': 7946654, 'call': 921903, 'board': 2549274, 'check': 645594, 'discard': 770656, 'prize_rivers_seen': 770656, 'show': 700749, 'prize_scoops': 155464}
+OUR RANK (among teams at our tables) 54/112
+  1 Pluto                  n=  623 pts= 21.12±0.79 places 23.6% 18.5% 18.9% 9.3% 10.6% 7.4% 6.7% 5.0%
+  2 Cold Decks             n=  656 pts= 18.57±0.80 places 23.9% 12.7% 14.0% 10.1% 10.7% 11.1% 8.7% 8.8%
+  3 LLinusLLoveBot         n=  681 pts= 18.56±0.81 places 26.0% 11.6% 10.4% 7.5% 9.4% 12.8% 12.0% 10.3%
+  4 Poker is all you need  n=  672 pts= 18.15±0.79 places 23.2% 14.3% 11.3% 10.1% 10.1% 7.0% 10.1% 13.8%
+  5 Hold Em Trophies       n=  625 pts= 18.03±0.82 places 22.6% 14.1% 12.6% 13.4% 10.2% 12.6% 7.2% 7.2%
+  6 Claude Mythos 5.5      n=  628 pts= 17.80±0.81 places 22.1% 14.2% 12.4% 10.4% 11.6% 11.8% 9.4% 8.1%
+  7 PHASEONE10841          n=  627 pts= 17.80±0.82 places 22.5% 13.6% 12.4% 12.0% 11.5% 9.7% 9.9% 8.5%
+  8 AEPi AK                n=  640 pts= 17.67±0.81 places 22.3% 15.0% 10.0% 12.0% 8.4% 10.2% 11.4% 10.6%
+  9 Cheng Theory           n=  624 pts= 17.21±0.79 places 18.9% 17.6% 12.3% 13.0% 11.9% 10.4% 8.5% 7.4%
+ 10 Chansey                n=  660 pts= 16.82±0.79 places 21.4% 13.8% 10.0% 8.6% 10.8% 12.1% 14.2% 9.1%
+ 11 T1 Faker               n=  628 pts= 16.67±0.81 places 20.9% 13.7% 10.7% 6.7% 11.0% 14.8% 12.3% 10.0%
+ 12 All in                 n=  620 pts= 16.58±0.80 places 20.0% 12.9% 13.5% 12.7% 11.3% 12.6% 9.5% 7.4%
+ 54 Team Allow It          n=10003 pts= 13.12±0.17 places 11.7% 12.4% 17.7% 16.9% 12.9% 11.4% 9.6% 7.4%
+110 Superintelligence      n=  619 pts=  2.39±0.31 places 0.3% 3.6% 5.8% 13.9% 18.6% 20.5% 17.9% 19.4%
+111 The Monsters           n=  629 pts=  1.56±0.27 places 0.8% 1.4% 3.7% 4.6% 9.4% 14.0% 25.8% 40.4%
+112 Brian meow meow Bi     n=  566 pts=  1.47±0.30 places 1.2% 1.8% 1.6% 2.7% 5.1% 9.9% 25.8% 51.9%
+
+== equity points per table by stage (sum = pts - 12.5), and per 100 hands
+US pts/table 13.12 hands/table 107.0
+   5-8  hands/tbl   85.5 eq/tbl  +0.48 eq/100h  +0.56 bb/100    +0.4
+        BTN n= 127794 eq/tbl  +1.40 eq/100h +10.94
+        SB  n= 127375 eq/tbl  -1.03 eq/100h  -8.13
+        BB  n= 127356 eq/tbl  -3.42 eq/100h -26.82
+        oth n= 472579 eq/tbl  +3.53 eq/100h  +7.47
+   3-4  hands/tbl   17.7 eq/tbl  -0.17 eq/100h  -0.94 bb/100    -6.7
+        BTN n=  49552 eq/tbl  +1.73 eq/100h +34.89
+        SB  n=  49455 eq/tbl  -0.33 eq/100h  -6.74
+        BB  n=  49029 eq/tbl  -2.73 eq/100h -55.75
+        oth n=  28598 eq/tbl  +1.17 eq/100h +40.98
+   HU   hands/tbl    3.8 eq/tbl  +0.31 eq/100h  +8.06 bb/100   +13.5
+        SB  n=  19146 eq/tbl  +0.26 eq/100h +13.80
+        BB  n=  19078 eq/tbl  +0.04 eq/100h  +2.30
+TOP5 pts/table 18.87 hands/table 109.1
+   5-8  hands/tbl   84.7 eq/tbl  +4.05 eq/100h  +4.78 bb/100   +12.5
+        BTN n=  40951 eq/tbl  +1.63 eq/100h +12.94
+        SB  n=  40883 eq/tbl  -0.12 eq/100h  -0.97
+        BB  n=  41109 eq/tbl  -1.18 eq/100h  -9.34
+        oth n= 152790 eq/tbl  +3.72 eq/100h  +7.93
+   3-4  hands/tbl   18.6 eq/tbl  +1.80 eq/100h  +9.68 bb/100   +15.5
+        BTN n=  17090 eq/tbl  +1.47 eq/100h +27.98
+        SB  n=  16881 eq/tbl  +0.40 eq/100h  +7.68
+        BB  n=  17220 eq/tbl  -0.97 eq/100h -18.32
+        oth n=   9320 eq/tbl  +0.90 eq/100h +31.50
+   HU   hands/tbl    5.9 eq/tbl  +0.52 eq/100h  +8.90 bb/100   +16.7
+        SB  n=   9538 eq/tbl  +0.32 eq/100h +10.82
+        BB  n=   9558 eq/tbl  +0.21 eq/100h  +6.99
+FIELD pts/table 12.41 hands/table 98.2
+   5-8  hands/tbl   79.5 eq/tbl  -0.07 eq/100h  -0.09 bb/100    -0.1
+        BTN n= 819705 eq/tbl  +1.06 eq/100h  +9.01
+        SB  n= 820124 eq/tbl  -0.86 eq/100h  -7.32
+        BB  n= 820143 eq/tbl  -2.76 eq/100h -23.56
+        oth n=3104493 eq/tbl  +2.49 eq/100h  +5.63
+   3-4  hands/tbl   14.3 eq/tbl  +0.02 eq/100h  +0.17 bb/100    +1.2
+        BTN n= 281640 eq/tbl  +1.10 eq/100h +27.32
+        SB  n= 281737 eq/tbl  -0.19 eq/100h  -4.80
+        BB  n= 282163 eq/tbl  -1.50 eq/100h -37.23
+        oth n= 156797 eq/tbl  +0.62 eq/100h +27.62
+   HU   hands/tbl    4.4 eq/tbl  -0.04 eq/100h  -0.99 bb/100    -1.7
+        SB  n= 154911 eq/tbl  +0.09 eq/100h  +4.25
+        BB  n= 154979 eq/tbl  -0.14 eq/100h  -6.24
+
+== outcome classes: eq/table (share of hands)
+5-8  novol            US  82.7%  -3.73/tbl    -5.3/100h | TOP5  77.1%  -1.75/tbl    -2.7/100h | FIELD  76.7%  -2.68/tbl    -4.4/100h
+5-8  pre_only         US   6.5%  +0.32/tbl    +5.7/100h | TOP5  12.0%  +2.30/tbl   +22.6/100h | FIELD  10.1%  +0.87/tbl   +10.8/100h
+5-8  allin_pre_shove  US   3.8%  +2.83/tbl   +86.4/100h | TOP5   4.2%  +2.17/tbl   +60.7/100h | FIELD   3.6%  +1.70/tbl   +59.7/100h
+5-8  allin_pre_call   US   0.2%  +0.36/tbl  +236.0/100h | TOP5   0.3%  +0.33/tbl  +119.4/100h | FIELD   0.5%  +0.16/tbl   +37.7/100h
+5-8  post_agg         US   3.9%  +2.24/tbl   +67.2/100h | TOP5   3.2%  +1.93/tbl   +71.2/100h | FIELD   4.3%  +2.28/tbl   +66.7/100h
+5-8  post_call        US   0.8%  -1.15/tbl  -165.0/100h | TOP5   0.6%  -0.45/tbl   -86.7/100h | FIELD   1.6%  -1.52/tbl  -119.8/100h
+5-8  post_passive     US   2.1%  -0.39/tbl   -22.2/100h | TOP5   2.5%  -0.49/tbl   -23.5/100h | FIELD   3.2%  -0.87/tbl   -34.3/100h
+3-4  novol            US  69.7%  -2.63/tbl   -21.4/100h | TOP5  59.9%  -1.36/tbl   -12.2/100h | FIELD  63.2%  -1.60/tbl   -17.6/100h
+3-4  pre_only         US   5.0%  -0.08/tbl    -8.7/100h | TOP5  13.3%  +0.77/tbl   +31.2/100h | FIELD  10.4%  +0.21/tbl   +14.2/100h
+3-4  allin_pre_shove  US  17.8%  +2.22/tbl   +70.7/100h | TOP5  14.9%  +1.61/tbl   +58.3/100h | FIELD  14.0%  +1.24/tbl   +61.7/100h
+3-4  allin_pre_call   US   1.0%  +0.29/tbl  +158.1/100h | TOP5   1.7%  +0.36/tbl  +110.6/100h | FIELD   2.1%  +0.15/tbl   +52.5/100h
+3-4  post_agg         US   2.7%  +0.52/tbl  +109.3/100h | TOP5   3.5%  +0.63/tbl   +95.2/100h | FIELD   3.5%  +0.45/tbl   +90.1/100h
+3-4  post_call        US   0.5%  -0.19/tbl  -210.0/100h | TOP5   0.6%  -0.20/tbl  -194.8/100h | FIELD   1.2%  -0.27/tbl  -156.3/100h
+3-4  post_passive     US   3.3%  -0.29/tbl   -50.9/100h | TOP5   6.1%  -0.01/tbl    -0.7/100h | FIELD   5.6%  -0.17/tbl   -20.8/100h
+HU   novol            US  33.2%  -0.29/tbl   -22.9/100h | TOP5  33.2%  -0.39/tbl   -20.3/100h | FIELD  44.0%  -0.58/tbl   -29.5/100h
+HU   pre_only         US   9.8%  -0.02/tbl    -6.7/100h | TOP5  16.6%  -0.05/tbl    -4.8/100h | FIELD  12.1%  -0.03/tbl    -6.1/100h
+HU   allin_pre_shove  US  38.0%  +0.47/tbl   +32.6/100h | TOP5  26.5%  +0.51/tbl   +33.0/100h | FIELD  24.1%  +0.35/tbl   +32.7/100h
+HU   allin_pre_call   US   4.4%  +0.10/tbl   +58.7/100h | TOP5   4.5%  +0.16/tbl   +61.1/100h | FIELD   4.2%  +0.10/tbl   +53.9/100h
+HU   post_agg         US   4.1%  +0.10/tbl   +66.6/100h | TOP5   7.1%  +0.27/tbl   +65.1/100h | FIELD   5.1%  +0.16/tbl   +71.9/100h
+HU   post_call        US   0.7%  -0.02/tbl   -87.2/100h | TOP5   0.8%  -0.04/tbl   -77.7/100h | FIELD   1.6%  -0.06/tbl   -89.8/100h
+HU   post_passive     US   9.8%  -0.03/tbl    -7.8/100h | TOP5  11.3%  +0.05/tbl    +8.3/100h | FIELD   9.0%  +0.02/tbl    +4.4/100h
+
+== HU
+US reach 23.7% won 48.6% avg share 0.42 effbb 13.4 | lead win 76.5% n=842 behind win 33.2% n=1526
+   btn e<=10 fold  7.4% limp  3.0% raise  0.0% shove 89.6% (n=8148)
+   bb vs raise e<=10 fold 25.9% call 32.2% raise  0.0% shove 41.8% (n=999)
+   bb vs shove e<=10 fold 50.9% call 49.1% (n=4903)
+   bb vs limp  e<=10 check 73.5% raise  0.0% shove 26.5% (n=554)
+   btn e10-25 fold  8.5% limp  0.0% raise 40.3% shove 51.1% (n=9171)
+   bb vs raise e10-25 fold 20.4% call 32.2% raise  0.0% shove 47.4% (n=3961)
+   bb vs shove e10-25 fold 66.0% call 34.0% (n=2614)
+   bb vs limp  e10-25 check 84.4% raise  3.7% shove 11.9% (n=672)
+   btn e>25 fold  3.8% limp  0.0% raise 96.2% shove  0.0% (n=1465)
+   bb vs raise e>25 fold 24.7% call 29.0% raise 46.3% shove  0.0% (n=984)
+   bb vs shove e>25 fold 81.0% call 19.0% (n=21)
+   bb vs limp  e>25 check 88.1% raise 11.9% shove  0.0% (n=109)
+TOP5 reach 37.1% won 62.8% avg share 0.56 effbb 14.2 | lead win 76.9% n=724 behind win 41.6% n=485
+   btn e<=10 fold  9.9% limp  5.8% raise 18.0% shove 66.2% (n=3630)
+   bb vs raise e<=10 fold 15.3% call 20.9% raise  5.3% shove 58.5% (n=301)
+   bb vs shove e<=10 fold 36.2% call 63.8% (n=2384)
+   bb vs limp  e<=10 check 34.5% raise  9.1% shove 56.3% (n=252)
+   btn e10-25 fold 16.6% limp 10.0% raise 51.7% shove 21.8% (n=5075)
+   bb vs raise e10-25 fold 13.7% call  5.8% raise 25.6% shove 55.0% (n=1876)
+   bb vs shove e10-25 fold 69.3% call 30.7% (n=1670)
+   bb vs limp  e10-25 check 40.2% raise 43.1% shove 16.7% (n=306)
+   btn e>25 fold 12.4% limp 10.7% raise 75.4% shove  1.5% (n=654)
+   bb vs raise e>25 fold 17.3% call 11.8% raise 64.9% shove  6.0% (n=485)
+   bb vs shove e>25 fold 76.9% call 23.1% (n=13)
+   bb vs limp  e>25 check 40.5% raise 57.1% shove  2.4% (n=42)
+FIELD reach 24.6% won 50.2% avg share 0.51 effbb 14.0 | lead win 70.5% n=8965 behind win 28.2% n=8277
+   btn e<=10 fold 19.7% limp  7.8% raise 12.7% shove 59.8% (n=67786)
+   bb vs raise e<=10 fold 46.7% call 28.7% raise  2.2% shove 22.3% (n=7591)
+   bb vs shove e<=10 fold 57.3% call 42.7% (n=42952)
+   bb vs limp  e<=10 check 43.1% raise 14.6% shove 42.2% (n=3340)
+   btn e10-25 fold 23.3% limp  6.8% raise 41.6% shove 28.2% (n=71855)
+   bb vs raise e10-25 fold 39.8% call 22.7% raise  8.6% shove 28.9% (n=29660)
+   bb vs shove e10-25 fold 74.4% call 25.6% (n=22344)
+   bb vs limp  e10-25 check 51.8% raise 29.2% shove 19.0% (n=4238)
+   btn e>25 fold 23.5% limp  7.4% raise 66.7% shove  2.4% (n=11750)
+   bb vs raise e>25 fold 43.2% call 30.0% raise 21.8% shove  5.1% (n=8263)
+   bb vs shove e>25 fold 82.6% call 17.4% (n=264)
+   bb vs limp  e>25 check 61.1% raise 37.5% shove  1.4% (n=761)
+
+== non-HU preflop
+5-8 d<=10   US    unopened: fold 68.1% limp  1.4% raise  0.0% shove 30.5% (n=43009)
+5-8 d<=10   US    vs raise: fold 87.6% call  7.1% raise  0.0% shove  5.2% (n=39806)
+5-8 d<=10   TOP5  unopened: fold 60.5% limp  2.2% raise  3.6% shove 33.7% (n=5609)
+5-8 d<=10   TOP5  vs raise: fold 72.8% call 10.5% raise  0.1% shove 16.6% (n=4850)
+5-8 d<=10   FIELD unopened: fold 65.5% limp  4.1% raise  3.7% shove 26.6% (n=205944)
+5-8 d<=10   FIELD vs raise: fold 81.1% call 12.4% raise  0.3% shove  6.1% (n=184160)
+5-8 d10-20  US    unopened: fold 77.2% limp  0.2% raise  9.9% shove 12.6% (n=76721)
+5-8 d10-20  US    vs raise: fold 88.1% call  7.8% raise  0.0% shove  4.1% (n=69208)
+5-8 d10-20  TOP5  unopened: fold 73.8% limp  0.9% raise 19.1% shove  6.2% (n=18454)
+5-8 d10-20  TOP5  vs raise: fold 75.4% call  5.7% raise  6.5% shove 12.3% (n=16005)
+5-8 d10-20  FIELD unopened: fold 69.6% limp  3.1% raise 17.5% shove  9.8% (n=399185)
+5-8 d10-20  FIELD vs raise: fold 81.6% call  8.9% raise  1.6% shove  7.8% (n=350008)
+5-8 d>20    US    unopened: fold 77.3% limp  0.2% raise 22.0% shove  0.5% (n=323088)
+5-8 d>20    US    vs raise: fold 89.8% call  7.5% raise  2.1% shove  0.6% (n=290836)
+5-8 d>20    TOP5  unopened: fold 77.9% limp  1.3% raise 19.5% shove  1.3% (n=121215)
+5-8 d>20    TOP5  vs raise: fold 77.7% call  2.8% raise 16.4% shove  3.1% (n=105144)
+5-8 d>20    FIELD unopened: fold 72.6% limp  2.4% raise 24.3% shove  0.8% (n=2309237)
+5-8 d>20    FIELD vs raise: fold 82.1% call  9.0% raise  7.4% shove  1.5% (n=2028182)
+3-4 d<=10   US    unopened: fold 49.6% limp  3.7% raise  0.0% shove 46.7% (n=35906)
+3-4 d<=10   US    vs raise: fold 87.6% call  8.8% raise  0.0% shove  3.6% (n=32016)
+3-4 d<=10   TOP5  unopened: fold 52.6% limp  2.3% raise  4.6% shove 40.5% (n=6436)
+3-4 d<=10   TOP5  vs raise: fold 70.0% call 18.8% raise  0.1% shove 11.1% (n=5602)
+3-4 d<=10   FIELD unopened: fold 54.5% limp  4.7% raise  4.1% shove 36.7% (n=141099)
+3-4 d<=10   FIELD vs raise: fold 76.9% call 17.8% raise  0.2% shove  5.2% (n=122017)
+3-4 d10-20  US    unopened: fold 57.5% limp  0.3% raise 11.5% shove 30.6% (n=30175)
+3-4 d10-20  US    vs raise: fold 83.7% call 12.6% raise  0.0% shove  3.7% (n=26561)
+3-4 d10-20  TOP5  unopened: fold 55.8% limp  1.3% raise 25.5% shove 17.4% (n=10924)
+3-4 d10-20  TOP5  vs raise: fold 69.7% call 12.4% raise  7.0% shove 10.8% (n=9113)
+3-4 d10-20  FIELD unopened: fold 52.9% limp  2.5% raise 23.5% shove 21.1% (n=167113)
+3-4 d10-20  FIELD vs raise: fold 75.4% call 14.7% raise  1.7% shove  8.3% (n=142134)
+3-4 d>20    US    unopened: fold 53.5% limp  0.2% raise 35.7% shove 10.7% (n=23852)
+3-4 d>20    US    vs raise: fold 85.7% call 11.8% raise  0.8% shove  1.7% (n=19752)
+3-4 d>20    TOP5  unopened: fold 50.4% limp  1.4% raise 37.8% shove 10.4% (n=14127)
+3-4 d>20    TOP5  vs raise: fold 57.7% call 11.8% raise 20.9% shove  9.6% (n=11054)
+3-4 d>20    FIELD unopened: fold 48.0% limp  2.4% raise 39.1% shove 10.5% (n=208494)
+3-4 d>20    FIELD vs raise: fold 69.7% call 16.8% raise  7.5% shove  6.1% (n=167364)
+
+== RFI by position (us vs top5), raise+shove %
+5-8 d<=10 oth US 25.9% limp  1.1% n=31907 | TOP5 29.1% limp  2.1% n=4123
+5-8 d<=10 BTN US 38.6% limp  1.7% n=6697 | TOP5 52.5% limp  1.7% n=833
+5-8 d<=10 SB US 60.3% limp  1.7% n=3205 | TOP5 78.8% limp  3.9% n=490
+5-8 d10-20 oth US 17.4% limp  0.0% n=59448 | TOP5 17.4% limp  0.8% n=13971
+5-8 d10-20 BTN US 35.0% limp  0.0% n=9641 | TOP5 41.8% limp  0.7% n=2610
+5-8 d10-20 SB US 56.4% limp  0.4% n=5223 | TOP5 74.8% limp  2.5% n=1379
+5-8 d>20 oth US 17.5% limp  0.0% n=259995 | TOP5 15.1% limp  0.9% n=97408
+5-8 d>20 BTN US 42.4% limp  0.0% n=29457 | TOP5 40.9% limp  1.7% n=12042
+5-8 d>20 SB US 57.5% limp  0.1% n=15785 | TOP5 70.8% limp  2.8% n=6628
+3-4 d<=10 oth US 28.0% limp  3.0% n=11599 | TOP5 24.1% limp  1.3% n=1849
+3-4 d<=10 BTN US 48.6% limp  4.5% n=16203 | TOP5 41.3% limp  2.0% n=2972
+3-4 d<=10 SB US 72.1% limp  2.8% n=7571 | TOP5 78.6% limp  3.8% n=1513
+3-4 d10-20 oth US 23.4% limp  0.0% n=9192 | TOP5 23.8% limp  0.7% n=3270
+3-4 d10-20 BTN US 42.2% limp  0.0% n=13553 | TOP5 40.3% limp  0.9% n=4926
+3-4 d10-20 SB US 67.3% limp  0.6% n=6956 | TOP5 72.7% limp  2.8% n=2586
+3-4 d>20 oth US 30.5% limp  0.0% n=7807 | TOP5 27.2% limp  0.9% n=4201
+3-4 d>20 BTN US 48.6% limp  0.0% n=10194 | TOP5 47.1% limp  0.8% n=6308
+3-4 d>20 SB US 64.5% limp  0.4% n=5434 | TOP5 77.2% limp  2.9% n=3377
+
+== bust
+US bust by hand/20: 0:2.8% 20:3.4% 40:5.7% 60:11.2% 80:15.7% 100:18.3% 120:18.4% 140:9.7% 160:2.8% 180:0.2% 200:0.0% 220:0.0% 240:0.0%
+   mode: 5-8/allin_pre_shove 35.1% 3-4/allin_pre_shove 29.0% HU/allin_pre_shove 9.4% 5-8/post_agg 7.2% 3-4/allin_pre_call 4.7% 3-4/novol 4.1% 5-8/allin_pre_call 3.4% HU/allin_pre_call 3.3% 5-8/novol 1.3% 3-4/post_agg 1.2% HU/novol 0.8% HU/post_agg 0.2%
+TOP5 bust by hand/20: 0:3.4% 20:4.8% 40:5.6% 60:10.1% 80:12.0% 100:13.5% 120:13.8% 140:10.3% 160:2.5% 180:0.2% 200:0.0% 220:0.0% 240:0.0%
+   mode: 5-8/allin_pre_shove 35.1% 3-4/allin_pre_shove 20.4% HU/allin_pre_shove 10.0% 3-4/allin_pre_call 8.2% 5-8/allin_pre_call 7.9% HU/allin_pre_call 6.8% 5-8/post_agg 5.6% 5-8/post_call 1.7% 3-4/post_agg 1.0% HU/post_agg 0.8% 3-4/novol 0.7% 3-4/post_call 0.6%
+FIELD bust by hand/20: 0:5.1% 20:7.1% 40:9.1% 60:12.6% 80:14.2% 100:14.0% 120:13.0% 140:8.6% 160:3.0% 180:0.5% 200:0.0% 220:0.0% 240:0.0%
+   mode: 5-8/allin_pre_shove 28.7% 3-4/allin_pre_shove 14.1% 5-8/allin_pre_call 12.7% 5-8/post_agg 8.4% 3-4/allin_pre_call 7.3% HU/allin_pre_shove 7.3% 5-8/post_call 6.0% HU/allin_pre_call 4.1% 3-4/novol 3.3% 5-8/novol 3.1% HU/novol 1.8% 3-4/post_call 1.1%
+
+== our cards
+   hu_btn_cards ('e10-25', 'A') shove 58% raise 42% (n=1745)
+   hu_btn_cards ('e10-25', 'J-') shove 40% raise 36% fold 24% (n=3208)
+   hu_btn_cards ('e10-25', 'K') shove 57% raise 43% (n=1502)
+   hu_btn_cards ('e10-25', 'Q') shove 57% raise 43% (n=1185)
+   hu_btn_cards ('e10-25', 'pair') shove 56% raise 44% (n=1531)
+   hu_btn_cards ('e<=10', 'A') shove 97% limp 3% (n=1653)
+   hu_btn_cards ('e<=10', 'J-') shove 76% fold 21% limp 3% (n=2808)
+   hu_btn_cards ('e<=10', 'K') shove 97% limp 3% (n=1355)
+   hu_btn_cards ('e<=10', 'Q') shove 96% limp 4% fold 0% (n=1017)
+   hu_btn_cards ('e<=10', 'pair') shove 97% limp 3% (n=1315)
+   hu_btn_cards ('e>25', 'A') raise 100% (n=254)
+   hu_btn_cards ('e>25', 'J-') raise 89% fold 11% (n=521)
+   hu_btn_cards ('e>25', 'K') raise 100% (n=211)
+   hu_btn_cards ('e>25', 'Q') raise 100% (n=220)
+   hu_btn_cards ('e>25', 'pair') raise 100% (n=259)
+   hu_bb_cards ('call', 'e10-25', 'A') check 75% shove 25% (n=137)
+   hu_bb_cards ('call', 'e10-25', 'J-') check 100% (n=229)
+   hu_bb_cards ('call', 'e10-25', 'K') check 100% (n=106)
+   hu_bb_cards ('call', 'e10-25', 'Q') check 100% (n=81)
+   hu_bb_cards ('call', 'e10-25', 'pair') check 40% shove 39% raise 21% (n=119)
+   hu_bb_cards ('call', 'e<=10', 'A') shove 50% check 50% (n=117)
+   hu_bb_cards ('call', 'e<=10', 'J-') check 100% (n=179)
+   hu_bb_cards ('call', 'e<=10', 'K') check 82% shove 18% (n=83)
+   hu_bb_cards ('call', 'e<=10', 'Q') check 97% shove 3% (n=74)
+   hu_bb_cards ('call', 'e<=10', 'pair') shove 70% check 30% (n=101)
+   hu_bb_cards ('call', 'e>25', 'A') check 95% raise 5% (n=21)
+   hu_bb_cards ('call', 'e>25', 'J-') check 100% (n=34)
+   hu_bb_cards ('call', 'e>25', 'K') check 100% (n=17)
+   hu_bb_cards ('call', 'e>25', 'Q') check 100% (n=13)
+   hu_bb_cards ('call', 'e>25', 'pair') check 50% raise 50% (n=24)
+   hu_bb_cards ('raise', 'e10-25', 'A') shove 97% call 3% fold 1% (n=702)
+   hu_bb_cards ('raise', 'e10-25', 'J-') fold 54% call 45% shove 1% (n=1423)
+   hu_bb_cards ('raise', 'e10-25', 'K') shove 67% call 32% fold 1% (n=607)
+   hu_bb_cards ('raise', 'e10-25', 'Q') call 54% shove 41% fold 5% (n=571)
+   hu_bb_cards ('raise', 'e10-25', 'pair') shove 81% call 17% fold 1% (n=658)
+   hu_bb_cards ('raise', 'e<=10', 'A') shove 82% call 18% fold 0% (n=201)
+   hu_bb_cards ('raise', 'e<=10', 'J-') fold 62% call 37% shove 1% (n=364)
+   hu_bb_cards ('raise', 'e<=10', 'K') shove 62% call 34% fold 5% (n=143)
+   hu_bb_cards ('raise', 'e<=10', 'Q') call 51% shove 36% fold 14% (n=140)
+   hu_bb_cards ('raise', 'e<=10', 'pair') shove 74% call 23% fold 3% (n=151)
+   hu_bb_cards ('raise', 'e>25', 'A') raise 99% call 1% (n=172)
+   hu_bb_cards ('raise', 'e>25', 'J-') fold 63% call 35% raise 2% (n=376)
+   hu_bb_cards ('raise', 'e>25', 'K') raise 69% call 30% fold 1% (n=138)
+   hu_bb_cards ('raise', 'e>25', 'Q') call 58% raise 38% fold 4% (n=143)
+   hu_bb_cards ('raise', 'e>25', 'pair') raise 83% call 17% (n=155)
+   hu_bb_cards ('raise_ai', 'e10-25', 'A') call 74% fold 26% (n=502)
+   hu_bb_cards ('raise_ai', 'e10-25', 'J-') fold 100% call 0% (n=913)
+   hu_bb_cards ('raise_ai', 'e10-25', 'K') fold 61% call 39% (n=384)
+   hu_bb_cards ('raise_ai', 'e10-25', 'Q') fold 93% call 7% (n=344)
+   hu_bb_cards ('raise_ai', 'e10-25', 'pair') call 73% fold 27% (n=471)
+   hu_bb_cards ('raise_ai', 'e<=10', 'A') call 88% fold 12% (n=939)
+   hu_bb_cards ('raise_ai', 'e<=10', 'J-') fold 88% call 12% (n=1700)
+   hu_bb_cards ('raise_ai', 'e<=10', 'K') call 60% fold 40% (n=752)
+   hu_bb_cards ('raise_ai', 'e<=10', 'Q') fold 64% call 36% (n=666)
+   hu_bb_cards ('raise_ai', 'e<=10', 'pair') call 80% fold 20% (n=846)
+   hu_bb_cards ('raise_ai', 'e>25', 'A') call 60% fold 40% (n=5)
+   hu_bb_cards ('raise_ai', 'e>25', 'J-') fold 100% (n=7)
+   hu_bb_cards ('raise_ai', 'e>25', 'K') fold 100% (n=5)
+   hu_bb_cards ('raise_ai', 'e>25', 'Q') fold 100% (n=2)
+   hu_bb_cards ('raise_ai', 'e>25', 'pair') fold 50% call 50% (n=2)
+   vsraise_cards ('d10-20', 'A') fold 81% call 18% shove 1% (n=17703)
+   vsraise_cards ('d10-20', 'J-') fold 99% call 1% (n=34027)
+   vsraise_cards ('d10-20', 'K') fold 89% call 11% shove 0% (n=15076)
+   vsraise_cards ('d10-20', 'Q') fold 95% call 5% (n=12564)
+   vsraise_cards ('d10-20', 'pair') fold 60% shove 22% call 18% (n=16399)
+   vsraise_cards ('d<=10', 'A') fold 83% call 14% shove 3% (n=13363)
+   vsraise_cards ('d<=10', 'J-') fold 98% call 1% shove 0% (n=25353)
+   vsraise_cards ('d<=10', 'K') fold 89% call 10% shove 1% (n=11428)
+   vsraise_cards ('d<=10', 'Q') fold 94% call 5% shove 1% (n=9340)
+   vsraise_cards ('d<=10', 'pair') fold 65% shove 21% call 14% (n=12338)
+   vsraise_cards ('d>20', 'A') fold 89% call 11% raise 0% shove 0% (n=57223)
+   vsraise_cards ('d>20', 'J-') fold 100% call 0% (n=110997)
+   vsraise_cards ('d>20', 'K') fold 98% call 2% (n=48421)
+   vsraise_cards ('d>20', 'Q') fold 99% call 1% (n=40418)
+   vsraise_cards ('d>20', 'pair') fold 55% call 30% raise 11% shove 4% (n=53529)
