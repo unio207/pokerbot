@@ -1,12 +1,14 @@
 # STATE: hand-off from sequoia-launch to mid-round-iterate
 
-Updated: 2026-11-12 19:03 (T+50), during the Pittsburgh regional. Clock: T+0 = 18:13 (portal
-`variant_announced_at` 23:13:58Z). Round 1 snapshot at T+60 = 19:13. Machine: MacBook M5, kit
-at `../starter-kit` (its `.venv`, Python 3.12); build machine synced by `rsync`, kit at
-`~/work/starter-kit`.
-Repo: `main`, **nothing committed since `2f9741d`**: the conversion is in the working tree
-(`tools/core_agent.py`, `bots/`, `tools/field_report.py`, `skills/sequoia-launch/scripts/gate.py`,
-`zoo/variants/double_board_turn_discard.md`). `v0/`, `v1/` and `rules_card.json` are ignored by git.
+Updated: 2026-11-13 09:15, after the Pittsburgh regional (2026-11-12, T+0 = 18:13, six rounds
+19:14 to 21:05). **Final: 37th of 112 scoring teams, total 468.31** (1st 598.3, 5th 565.1, 10th
+542.3, 20th 498.9, 30th 476.8). Rounds: 12.40, 11.64, 12.31, 13.04, 15.37, 15.96 at multipliers
+1, 2, 3, 5, 8, 13. Machine: MacBook M5, kit at `../starter-kit` (its `.venv`, Python 3.12); build
+machine synced by `rsync`, kit at `~/work/starter-kit`.
+Repo: `main` holds the round 6 bot: `bots/final/agent.py` is byte-identical to the upload
+(`v971`, 80,989 bytes, submission `eb6caf1a`), built from `tools/core_agent.py` (`2cf2468`). Every
+uploaded file is on branch `uploads`. The history readers are in `tools/history/`. `v0/` to
+`v971/`, `hand-history/` and `rules_card.json` are ignored by git.
 **Numbers below are from the organizers' kit unless a line says mini.**
 Template: `sequoia-launch/templates/STATE.md`.
 
@@ -262,9 +264,15 @@ next practice run. Vedaant's ranked list (GitHub issues #12 and #13, branch `res
 ## What moved the score, and what to do first next time (p2, the launch session, 21:10)
 
 Round 6 (`268dab24`, multiplier 13) finished at 21:05:06 with `eb6caf1a` (the v971 file): 2,510,126
-decisions, 0 missed, 0 restarts. Its results were still held by the organizers at 21:05; the
-standings showed five rounds (48th, 260.80; 40th 269.63, 30th 282.92, 20th 298.89, 5th 336.31).
+decisions, 0 missed, 0 restarts. Result: **15.96 ± 0.28, 21st of 112**, firsts 19.5%, field median
+13.71 (mean of the 56th and 57th), best 18.42, 5th 17.90, 10th 17.18. Final standings: 37th,
+468.31 (48th with 260.80 before it; 71st after round 3).
 The totals fit multipliers 1, 2, 3, 5, 8, 13 although the portal's `weight` field reads 1 to 6.
+
+v971 against v96 on the platform: 15.96 against 15.37, but the field median rose from 13.28 to
+13.71, so above the median it is +2.25 against +2.09, the same rank (21st) in both rounds, and a
+difference of +0.16 inside the margins (± 0.28 each). The ranking fix and the 2.3 bb opens are
+not shown to have added anything; they did not cost anything either.
 
 **The method that worked.** Stream the real hand histories (one file per run, about 150 MB) and
 compare us with that run's ten best teams, spot by spot. Every finding below came from that;
@@ -275,7 +283,7 @@ none came from the kit gauntlet.
 | 1 | Every calling line lost (a call of a raise outside the blinds -1.55 bb, a call of a flop bet after opening -1.07); the top ten re-raised 4.2% of hands, we 1.1% | v91: re-raise one raise with the top 15% / 12% / 6% (big blind, small blind, others) | 12.78 against v13's 12.31; -0.13 against the median, was -0.98 |
 | 2 | The gap to first was all first places (9% against 26%); heads-up we won 38%, the top ten 65%, and folded the big blind two to three times as often | `_cloned()`: the top ten's measured preflop frequencies by players left, seats behind and stack depth, used as percentile thresholds | v94: 14.90, 37th, 17.3% firsts, heads-up 57.9% |
 | 3 | By round 3 the top ten re-raised and called shoves far more than in round 1 and opened tighter; survival margins steer us to 2nd to 4th | v96: round 3's tables, `icm_scale`, `points_tight`, `bubble_margin` 0 | round 5: 15.37, 21st, 20.0% firsts, heads-up 65.0% (top ten 54.6%) |
-| 4 | Our ranking (best two cards) is wrong by up to 12 points of equity: 9-9-2 is 0.603 not 0.721, A-K-Q 0.603 not 0.651, A-7-2 0.489 not 0.588 (12,000 deals each). Our opens lose 2.89 bb when re-raised, the top ten's 2.35 | v971: percentile from the by-class three-card fit (`pittsburgh_preflop`, `_PITT_MARKS`), opens of 2.3 bb | round 6, held |
+| 4 | Our ranking (best two cards) is wrong by up to 12 points of equity: 9-9-2 is 0.603 not 0.721, A-K-Q 0.603 not 0.651, A-7-2 0.489 not 0.588 (12,000 deals each). Our opens lose 2.89 bb when re-raised, the top ten's 2.35 | v971: percentile from the by-class three-card fit (`pittsburgh_preflop`, `_PITT_MARKS`), opens of 2.3 bb | round 6: 15.96, 21st, 19.5% firsts (+2.25 above the median; v96 was +2.09) |
 
 **Still open after round 5** (us against that round's top ten, 4+ players): +9.4 against +11.3 bb per
 100 hands. Re-raised after opening and continuing: +2.44 bb against +4.76 (that decision still runs
@@ -290,11 +298,24 @@ finished run's scores are on `portal.get("tournaments/<id>/results")` within sec
 **Side prizes** (scoops and rivers seen, raw counts): we are near the median on both (round 5:
 1.82 scoops per table, 56th of 112; 8.89 rivers seen, 47th). One team sees 20 to 23 rivers per table.
 
-**Where the analysis scripts are.** Not in the repo: in the launch session's scratchpad,
-`/private/tmp/claude-501/-Users-zou-Desktop-pokerbot/a445c7bc-433c-41df-889a-4f7fbf35b113/scratchpad/`
-(`freq2.py` frequency tables, `chipflow.py`, `opens.py`, `headsup.py`, `field_deep.py`, `prizes.py`).
-The histories are in `hand-history/` (ignored by git). The cloned tables themselves are in
-`v971/agent.py` (ignored by git) and, in their round 1 and round 3 forms, in the core's `_cloned()`.
+**Where the analysis scripts are.** `tools/history/`, standard library only, each one streaming
+pass over a team download (about 10 s for 10,000 tables of a practice run, 90 s for a round's
+150 MB). Run as `python3.12 -I tools/history/<script>.py <history.jsonl.gz> ["<team name>" ...]`;
+the names are the teams to compare with, taken from that run's results.
+
+| Script | Prints |
+| --- | --- |
+| `run_stats.py` | our points per table, places, heads-up button and big-blind actions |
+| `field_deep.py` | every team's style and results at our tables, and how we bust |
+| `freq2.py` | the named teams' preflop frequencies by players left, seats behind and stack depth: the source of `_cloned()`'s tables |
+| `chipflow.py` | chips won or lost per preflop situation, bb per 100 hands, us against the named teams |
+| `opens.py` | what happens after a first-in open (folds, re-raised, called, flop lines) |
+| `headsup.py` | how often heads-up is reached and won, by starting chip share and stack depth |
+| `prizes.py` | scoops and rivers seen per table, every team ranked |
+
+The histories are in `hand-history/` (ignored by git; rounds 1, 3 and 5, part of 2, practice 4,
+6, 7 and 8; round 6's was not downloaded). The preflop equity checks (`hand_check.py`,
+`pre_mc.py`) stayed in the launch session's scratchpad: they load ignored `vNN` folders.
 
 ## Log
 

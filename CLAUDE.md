@@ -48,9 +48,12 @@ There is no test suite. The checks are `gate.py`, `tools/fuzz.py` and `tools/bot
 
 ## Current state (2026-11-12)
 
-- `bots/final` passes the gate on the mini simulator; 24.55 ± 0.19 points per table over
-  nine line-ups (n = 9,000, par 12.5). Details: `skills/STATE.md`.
-- Nothing has run against the real kit. The variant is not announced.
+- Pittsburgh regional played (variant `double_board_turn_discard`, portal name `pittsburgh`):
+  37th of 112, total 468.31; rounds 12.40, 11.64, 12.31, 13.04, 15.37, 15.96 points per table.
+  `bots/final` is the round 6 bot (80,989 bytes, submission `eb6caf1a`). Details: `skills/STATE.md`.
+- Judge strategy on the platform's results (`portal.get("tournaments/<id>/results")`) and on
+  the real hand histories (`tools/history/`), from the first practice run. The kit gauntlet
+  scored the round 1 bot at 28 where the field scored it 12.4: use it for crashes and timing only.
 - Skills: `skills/sequoia-launch` (variant announced to active bot, on a clock),
   `skills/competition-build` (the short checklist), `skills/mid-round-iterate` (between
   rounds). Research index: `skills/RESEARCH_NOTES.md`.
