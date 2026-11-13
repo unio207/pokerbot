@@ -162,15 +162,23 @@ def _boards(state: GameState) -> list:
     return [tuple(board) for board in boards if len(board) >= 3]
 
 
+_ONE_BOARD = 0.0  # best single-board strength of the pair we keep; set by pittsburgh_postflop
+
+
 def pittsburgh_postflop(state: GameState, facing: bool) -> tuple[float, bool]:
     """Kit RULES.md (double_board_turn_discard): three cards until the discard after the
     turn, two on the river, two boards. Before the discard we are worth the pair we would keep."""
     cards, boards = state.cards, _boards(state)
+    global _ONE_BOARD
     if len(boards) != 2 or len(cards) not in (2, 3):
         return holdem_postflop(state, facing)
     if len(cards) == 2:
-        return double_board_strength(cards, boards, facing)
-    return double_board_keep(cards, boards, facing)[:2]
+        strength, draw, keep = *double_board_strength(cards, boards, facing), (0, 1)
+    else:
+        strength, draw, keep = double_board_keep(cards, boards, facing)
+    pair = (cards[keep[0]], cards[keep[1]])
+    _ONE_BOARD = max(_pair_strength(pair, board, facing)[0] for board in boards)
+    return strength, draw
 
 
 def pittsburgh_discard(state: GameState) -> Action:
@@ -180,6 +188,37 @@ def pittsburgh_discard(state: GameState) -> Action:
         return automatic(state)
     keep = double_board_keep(cards, boards)[2]
     return Action("discard", cards=(3 - keep[0] - keep[1],))
+
+
+# Heads-up pot share of three cards on two boards, by class (Codex's fit over 300,000 kit deals,
+# checked here on eight hands at 12,000 deals each: within 0.013). The best two cards alone
+# overrate pairs by 8 to 12 points and weak aces by 10. Marks: that share at each twentieth of
+# all 22,100 hands, best first.
+_PITT_MARKS = (0.78, 0.6719, 0.5916, 0.568, 0.552, 0.5399, 0.5284, 0.5189, 0.5096, 0.5003, 0.4923, 0.4836, 0.4739, 0.4641, 0.4552, 0.4431, 0.4319, 0.4207, 0.4048, 0.3886, 0.3265)
+
+
+def _three_card_equity(cards) -> float:
+    pairs = [_EQUITY[_class_key(a, b)] for i, a in enumerate(cards) for b in cards[i + 1 :]]
+    ranks = [card[0] for card in cards]
+    distinct = len(set(ranks))
+    if distinct == 3:
+        equity = 0.05890 + 0.10728 * max(pairs) + 0.74613 * sum(pairs) / 3
+    elif distinct == 2:
+        i, j = [index for index, rank in enumerate(ranks) if ranks.count(rank) == 2]
+        pocket = _EQUITY[_class_key(cards[i], cards[j])]
+        other = max(_EQUITY[_class_key(cards[k], cards[3 - i - j])] for k in (i, j))
+        equity = -0.15478 + 0.95933 * pocket + 0.17325 * other
+    else:
+        equity = -0.29592 + 1.23494 * pairs[0]
+    return min(1.0, max(0.0, equity))
+
+
+def pittsburgh_preflop(state: GameState) -> tuple[float, float]:
+    cards = state.cards
+    if len(cards) != 3:
+        return holdem_preflop(state)
+    equity = _three_card_equity(cards)
+    return equity, _percentile_of(equity, _PITT_MARKS)
 
 
 def discard_reveal_preflop(state: GameState) -> tuple[float, float]:
@@ -364,7 +403,7 @@ def _entry(detect, phases: dict, preflop_score, postflop_score) -> dict:
 VARIANTS = {
     "double_board_turn_discard": _entry(  # the kit's name; the portal calls it "pittsburgh"
         lambda state: isinstance(getattr(state, "variant", None), dict) and "boards" in state.variant,
-        {"discard": pittsburgh_discard}, discard_reveal_preflop, pittsburgh_postflop,
+        {"discard": pittsburgh_discard}, pittsburgh_preflop, pittsburgh_postflop,
     ),  # fmt: skip
     "irish": _entry(  # four cards before the flop; the two kept afterwards play as hold'em
         lambda state: state.phase == "discard",
@@ -490,6 +529,8 @@ PROFILES = {
         icm_scale=1.0, cap_aware=True, open_size=2.3, semi_bluff=0.3,
         call_margin=0.05, bubble_margin=0.08, push_scale=0.9, points_tight=0.08,
         threebet=0.03, call_raise=0.08,
+        # Averaged two-board strength seldom reaches the hold'em thresholds: bet thinner.
+        value_bet=0.70, medium_bet=0.52,
     ),  # fmt: skip
 }
 
@@ -503,15 +544,15 @@ SETTINGS = {
     "steal_widen": 1.15,
     "steal_any": 0.85,
     "call_margin": 0.05,
-    "bubble_margin": 0.08,
+    "bubble_margin": 0.0,
     "semi_bluff": 0.3,
-    "cbet_air": 0.3,
+    "cbet_air": 0.6,
     "hu_open": 0.65,
     "push_scale": 0.9,
     "threebet": 0.03,
     "call_raise": 0.08,
-    "points_tight": 0.08,
-    "icm_scale": 1.0,
+    "points_tight": 0.0,
+    "icm_scale": 0.0,
 }
 if ACTIVE == "final":
     P.update(SETTINGS)
@@ -583,6 +624,10 @@ def preflop(state: GameState, variant: dict, tracker) -> Action:
     pot = max(0, state.pot - _unwinnable(state, me))
     need = to_call / max(1, pot + to_call) if to_call else 0.0
     short = eff_bb <= P["pf_bb"]
+
+    action = _cloned(state, me, pct, eff_bb, raises, limpers, to_call, can_raise, big_blind, behind, left)
+    if action is not None:
+        return action
 
     if raises:
         last = raises[-1]
@@ -682,6 +727,88 @@ def preflop(state: GameState, variant: dict, tracker) -> Action:
     return Action.fold()
 
 
+# Preflop frequencies of the ten best teams, read from round 1's hand histories (2026-11-12):
+# the share of hands they play in each spot. Our hands are ranked by percentile, so a share is
+# a threshold. Rows: 2, 3, 4-5, 6+ players left. Columns: up to 6, 10, 15, 25 big blinds, deeper.
+_CL_DEPTH = (6, 10, 15, 25)
+# First in (nobody has raised or called), by seats still to act: 1, 2, 3, 4 or more.
+_CL_PLAY = (
+    ((0.89, 0.90, 0.80, 0.76, 0.79),),
+    ((0.82, 0.82, 0.76, 0.76, 0.78), (0.61, 0.47, 0.42, 0.47, 0.48)),
+    ((0.84, 0.77, 0.74, 0.80, 0.80), (0.55, 0.38, 0.43, 0.47, 0.51), (0.35, 0.25, 0.25, 0.28, 0.28),
+     (0.34, 0.18, 0.17, 0.18, 0.18)),
+    ((0.84, 0.77, 0.71, 0.77, 0.76), (0.70, 0.47, 0.43, 0.47, 0.51), (0.56, 0.32, 0.25, 0.30, 0.30),
+     (0.39, 0.20, 0.15, 0.15, 0.14)),
+)  # fmt: skip
+# Of those, the share that goes all-in at 10 to 15 big blinds (the weaker part; the stronger
+# part raises small, as the top teams do, and calls a re-raise).
+_CL_SHOVE15 = ((0.34,), (0.42, 0.20), (0.42, 0.18, 0.11, 0.07), (0.37, 0.15, 0.08, 0.04))
+_CL_EARLY = (1.35, 1.1, 0.85, 0.7)  # 6+ left: the last row pools 4 to 7 seats behind; spread it
+# Calling a first raise that is all-in, by its size in big blinds (same columns): big blind, others.
+_CL_CALL_SHOVE = (
+    ((0.83, 0.49, 0.34, 0.28, 0.15), (0.83, 0.49, 0.34, 0.28, 0.15)),
+    ((0.67, 0.32, 0.19, 0.11, 0.05), (0.45, 0.20, 0.12, 0.06, 0.03)),
+    ((0.55, 0.21, 0.11, 0.05, 0.02), (0.30, 0.10, 0.06, 0.05, 0.02)),
+    ((0.53, 0.23, 0.14, 0.07, 0.07), (0.28, 0.10, 0.07, 0.05, 0.06)),
+)
+# Facing one raise that is not all-in: (re-raise, call) shares for the big blind, the small
+# blind and the other seats.
+_CL_RERAISE = (
+    ((0.64, 0.79, 0.80, 0.73, 0.52),) * 3,
+    ((0.55, 0.67, 0.65, 0.57, 0.53), (0.58, 0.52, 0.47, 0.46, 0.41), (0.58, 0.52, 0.47, 0.46, 0.41)),
+    ((0.42, 0.51, 0.48, 0.45, 0.50), (0.37, 0.37, 0.35, 0.33, 0.34), (0.29, 0.25, 0.20, 0.17, 0.17)),
+    ((0.59, 0.55, 0.51, 0.46, 0.35), (0.48, 0.41, 0.39, 0.30, 0.23), (0.27, 0.23, 0.19, 0.14, 0.09)),
+)
+_CL_CALL = (
+    ((0.14, 0.03, 0.03, 0.04, 0.16),) * 3,
+    ((0.18, 0.10, 0.09, 0.08, 0.11), (0.02, 0.00, 0.00, 0.01, 0.03), (0.02, 0.00, 0.00, 0.01, 0.03)),
+    ((0.18, 0.09, 0.07, 0.07, 0.07), (0.01, 0.00, 0.00, 0.01, 0.01), (0.00, 0.00, 0.01, 0.01, 0.02)),
+    ((0.12, 0.09, 0.09, 0.07, 0.08), (0.01, 0.00, 0.00, 0.01, 0.01), (0.01, 0.00, 0.01, 0.01, 0.01)),
+)
+
+
+def _cloned(state, me, pct, eff_bb, raises, limpers, to_call, can_raise, big_blind, behind, left):
+    """The first preflop decision in the three spots the tables cover, or None for the general
+    code: limped pots, a second raise, and a re-raise after we raised."""
+    table = 0 if left <= 2 else 1 if left == 3 else 2 if left <= 5 else 3
+    depth = sum(eff_bb > mark for mark in _CL_DEPTH)
+    if not raises:
+        if limpers or behind < 1 or to_call < 0:
+            return None
+        rows = _CL_PLAY[table]
+        play = rows[min(behind, len(rows)) - 1][depth]
+        if table == 3 and behind >= 4:
+            play *= _CL_EARLY[min(behind, 7) - 4]
+        if pct > play:
+            return None
+        if not can_raise:
+            return Action.call() if to_call > 0 else None
+        if depth <= 1 or (depth == 2 and pct > play - _CL_SHOVE15[table][min(behind, len(rows)) - 1]):
+            return Action.raise_to(can_raise.max_amount)  # short, or the weaker part at 10 to 15: all-in
+        if depth == 2:
+            return raise_to(state, int(2.2 * big_blind))
+        return raise_to(state, int((2.2 if left <= 2 else 2.3) * big_blind))
+    last = raises[0]
+    if len(raises) == 2 and last.seat == state.seat and eff_bb <= 15 and to_call > 0:
+        # We raised small at 10 to 15 big blinds, which we only do with the strong part: no folding now.
+        return Action.raise_to(can_raise.max_amount) if can_raise else Action.call()
+    if len(raises) != 1 or last.seat == state.seat or to_call <= 0:
+        return None
+    seat = 0 if me.bet >= big_blind else 1 if me.bet > 0 else 2
+    villain = _seat(state, last.seat)
+    if (villain is not None and villain.stack == 0) or to_call >= me.stack or not can_raise:
+        size = sum(min(last.amount, me.stack + me.bet) / big_blind > mark for mark in _CL_DEPTH)
+        return Action.call() if pct <= _CL_CALL_SHOVE[table][min(seat, 1)][size] else Action.fold()
+    reraise = _CL_RERAISE[table][seat][depth]
+    if pct <= reraise:
+        if eff_bb <= 25:
+            return Action.raise_to(can_raise.max_amount)
+        return raise_to(state, int(3.0 * (me.bet + to_call)))
+    if pct <= reraise + _CL_CALL[table][seat][depth]:
+        return Action.call()
+    return Action.fold()
+
+
 def _call_all_in(state, tracker, me, villain, last, equity, pct, need, width, on_bubble,
                  callers, behind) -> Action:  # fmt: skip
     """Facing an all-in or a raise that commits us: call (or shove over it) or fold."""
@@ -766,7 +893,10 @@ def postflop(state: GameState, variant: dict, tracker) -> Action:
     pot, to_call = state.pot, state.to_call
     others = [s for s in state.seats if s.seat != state.seat and s.status in ("active", "all_in")]
     opponents = len(others)
+    global _ONE_BOARD
+    _ONE_BOARD = 0.0
     strength, draw = variant["postflop"](state, to_call > 0)
+    one = _ONE_BOARD  # two boards: each pays half, so a hand that owns one board bets as a freeroll
     # A hand that beats one random hand 70% of the time beats three of them far less often.
     strength = strength ** (1 + 0.3 * max(0, opponents - 1))
     can_raise = state.can("raise")
@@ -778,11 +908,11 @@ def postflop(state: GameState, variant: dict, tracker) -> Action:
     if to_call == 0:
         if not can_raise:
             return Action.check()
-        if strength >= value:
+        if strength >= value or one >= 0.80:
             return raise_to(state, me.bet + int(P["value_size"] * bigger * pot))
         if minimal:
             return Action.check()
-        if strength >= P["medium_bet"]:
+        if strength >= P["medium_bet"] or (one >= 0.64 and opponents <= 2):
             return raise_to(state, me.bet + int(P["cbet_size"] * bigger * pot))
         if station or opponents > 2:
             return Action.check()
@@ -796,16 +926,21 @@ def postflop(state: GameState, variant: dict, tracker) -> Action:
     pot = max(0, pot - _unwinnable(state, me))
     need = to_call / max(1, pot + to_call)
     edge = P["call_edge"]
+    early = len(state.board) < 5
+    if early:
+        edge += 0.10  # rounds 1 and 2: we fold flop and turn bets 25 and 22%, the top teams 51 and 43%
     if P["points_tight"] and state.players_remaining <= sum(1 for p in state.config.payouts if p > 0):
         edge += P["points_tight"]
     if P["icm_scale"] and to_call >= 0.4 * me.stack:
         bettor = next((e.seat for e in reversed(state.history) if e.kind == "raise"), None)
         edge += P["icm_scale"] * _icm_premium(state, me, _seat(state, bettor))
-    if strength >= 0.88 and can_raise:
+    if (strength >= (0.78 if early else 0.88) or (one >= (0.84 if early else 0.93) and strength >= 0.72)) and can_raise:
         return raise_to(state, me.bet + to_call + int(0.75 * (pot + to_call)))
+    if one >= 0.84 and need <= 0.42:
+        return Action.call()  # trips or better on one board: that half of the pot is nearly ours
     if to_call > 0.5 * me.stack and strength < 0.75:
         return Action.fold()  # do not call off a stack with a marginal hand
-    if strength >= need + edge or (draw and need <= 0.25 and not minimal):
+    if strength >= need + edge or (draw and need <= (0.2 if early else 0.25) and not minimal):
         return Action.call()
     return Action.fold()
 

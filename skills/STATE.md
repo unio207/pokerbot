@@ -193,7 +193,7 @@ correcting it did not score.
 | round 4 (weight 5) | 20:15:05 | v17 | 2,673,318 | 0 | 0 | none | 13.04 ± 0.24 over 20,000 tables, 59th of 112, field median 13.12, 1st 11.2%, 2nd 12.7%, 3rd 18.1% |
 | practice 8 | 20:26:12 | v94 | 1,284,050 | 0 | 0 | none | 14.90 ± 0.38 over 10,000 tables, 37th of 112, field median 13.31, 1st 17.3%, 2nd 12.6%, 3rd 12.4%. Vedaant: heads-up win 57.9% (was 33.5%), big blind at 5 to 8 players -1.71 per table (was -3.57) |
 | round 5 (weight 8) | 20:35:22 | v96 | 2,421,407 | 0 | 0 | none | 15.37 ± 0.28 over 20,000 tables, 21st of 112, field median 13.24, 1st 20.0%, 2nd 11.1%, 3rd 10.2% (p2's read; health from the portal). Standings after it: 48th, total 260.8 = 12.40 + 2 x 11.64 + 3 x 12.31 + 5 x 13.04 + 8 x 15.37, so the weights are fibonacci whatever the portal's weight field says |
-| round 6 (weight 13) | 20:55:51 | v971 (`eb6caf1a`) | 480,781 at 20:58, still running | 0 | 0 | none | not out at 21:00 |
+| round 6 (weight 13) | 20:55:51 | v971 (`eb6caf1a`) | 2,510,126 | 0 | 0 | none | 15.96 ± 0.28 over 20,000 tables, 21st of 112, field median 13.71, 1st 19.5%, 2nd 13.2%, 3rd 11.2%. Final standings (portal, 21:23): 37th of 146 entries, total 468.31 (1st 598.3, 5th 565.1, 10th 542.3, 20th 498.9, 30th 476.8) |
 | practice 6 | 19:45:01 | v90 | 726,640 | 0 | 0 | none | 11.02 ± 0.50 over 5,000 tables, 75th of 112, field median 13.37, 1st 13.8%, 2nd 7.2%, 3rd 9.9% |
 
 Health columns are from `portal.py`. Points and places are Vedaant's, from the hand histories
