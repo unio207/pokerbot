@@ -4,6 +4,12 @@ One page that collects every recommendation from the hand-history reports of 202
 
 Where we are: par (11.0–13.0 points, 53rd–76th of ~110) on every run. The top five score 19–22. The gap is the same on every run: the big blind (4–5 points), calling instead of re-raising, and passive play after the flop.
 
+## Latest (after round 3)
+
+- Round 3 (v13) showed the postflop settings work; keep them. v13 dropped the round 2 preflop and heads-up fixes; merge them back, without the any-pair big-blind call. See [round 3](report-round3.md).
+- Aggression is needed in four places only (heads-up big blind, re-raise instead of call, heads-up button, short-stack shoves), not in opening or postflop betting. See [aggression](report-aggression.md).
+- Items 3–5 below are now largely done by v13; items 1, 2, 6 and 7 are the open ones.
+
 ## Build order
 
 | # | Change | Rule to implement | Evidence | Report |
