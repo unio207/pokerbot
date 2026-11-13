@@ -1,5 +1,11 @@
 # Bot test battery, 2026-11-11
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Mini-simulator
+> hold'em results from 2026-11-11. `bots/final` here is the pre-event bot.
+> `zoo/claude_exploiter_1` is in the repo now, so `--extra` is no longer needed; its port to the
+> Pittsburgh variant scored 11.02 on the platform, our lowest run. What happened:
+> [`pittsburgh-results.md`](../../docs/pittsburgh-results.md).
+
 Thirty-four tests per bot on the **unofficial** mini simulator, no-limit hold'em. Produced by [`tools/bot_tests.py`](../../tools/bot_tests.py) and scored by [`tools/bot_tests_report.py`](../../tools/bot_tests_report.py); the raw decisions and tables are in `raw-2026-11-11.json.gz`.
 
 Each score is 0-100 (100 = the target behaviour) and each grade is A >= 85, B >= 70, C >= 55, D >= 40, F below. The overall score is the unweighted mean of the 34. Scores are formulas over the metric shown beside them in the per-test tables; the formulas are our choice, so read the metrics, not just the grades.

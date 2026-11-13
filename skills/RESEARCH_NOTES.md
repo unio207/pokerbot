@@ -1,5 +1,10 @@
 # Research notes for the NO LIMIT '26 skills
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Written that
+> morning. "Current main" in it is `8f76ac0`. It treats the kit gauntlet as the final word; the
+> gauntlet scored the round 1 bot 28 where the field scored it 12.4. What happened:
+> [`pittsburgh-results.md`](../docs/pittsburgh-results.md).
+
 Written 2026-11-12. An index plus what is new; existing documents are linked, not repeated.
 Every number names its source. "mini" means `devtest/mini_sim.py`: unofficial. No kit was
 installed in this session, so nothing here is a kit number.

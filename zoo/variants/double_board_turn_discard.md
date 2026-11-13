@@ -16,7 +16,8 @@ wins half of every pot.
 
 ## How a bot recognises it
 
-- `state.config.variant`: `double_board_turn_discard` in the kit. Not known on the platform.
+- `state.config.variant`: `double_board_turn_discard` in the kit. Not read on the platform: the
+  bot detects the game by the `boards` key, and played all six rounds with no missed decision.
 - Signs in the state: `state.variant` is a dict with a `boards` key (two lists of cards);
   `state.phase == "discard"`.
 
@@ -72,10 +73,13 @@ A pot that does not divide evenly gives the odd chip to the first board.
 - [x] `detect`: `"boards" in state.variant`, or the kit's name.
 - [x] `phases`: `discard` returning `Action("discard", cards=(i,))` (`pittsburgh_discard`).
 - [x] `strength`: after the flop, the mean over both boards (`double_board_strength`), with
-      three cards the pair we would keep (`double_board_keep`). Before the flop: the
-      `discard_reveal` table (three cards, best two), not measured for this game.
+      three cards the pair we would keep (`double_board_keep`). Before the flop:
+      `pittsburgh_preflop`, the measured pot share of the three cards by class
+      (`_three_card_equity`; `tools/preflop_check.py` checks it on eight hands). Up to v96 it
+      was the `discard_reveal` table (best two cards), which overrated pairs by 8 to 12 points.
 
 ## Open questions
 
-- Whether the platform's `state.config.variant` is the kit's name or `pittsburgh`.
-- The preflop table and the made-hand strengths are hold'em's: none is measured on two boards.
+- Whether the platform's `state.config.variant` is the kit's name or `pittsburgh` (never read).
+- The made-hand strengths after the flop are hold'em's, averaged over the two boards: not
+  measured on two boards. The preflop ranking is measured (above).

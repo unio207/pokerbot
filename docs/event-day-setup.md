@@ -1,5 +1,11 @@
 # Event-day setup
 
+> **Written before the Pittsburgh regional (2026-11-12).** The conversion
+> steps were followed on the day, except that no table job was added to
+> `tools/gen_variant_tables.py` and no simulator class was written: the variant was tested on
+> the kit only. Three passages were corrected afterwards and say so. What happened:
+> [`pittsburgh-results.md`](pittsburgh-results.md).
+
 Based on the competition's setup skill
 (`https://pokerbot.sequoiacap.com/tournament/no-limit-2026-setup/SKILL.md`, version
 2026-11-05.2) and the Getting started page.
@@ -49,7 +55,7 @@ Notes:
 - **Python:** the kit needs Python 3.12 exactly, not 3.13.
 - **Secrets:** the skill's own rule is never to copy a private key or the API key to the
   build machine. That includes GitHub credentials, so this repository gets there by
-  `scp`, not `git clone`.
+  `rsync`, not `git clone`.
 
 ## On the day
 
@@ -156,7 +162,9 @@ decisions and the bot's error handler switched off.
    ```
 
 6. **Compare with the unconverted bot on the kit**, same seed, before uploading. Keep the
-   unconverted upload selectable on the team page as the rollback.
+   unconverted upload selectable on the team page as the rollback. This comparison shows
+   that the conversion works (at Pittsburgh +2.42 ± 0.69 and +3.58 ± 0.74 on two seeds). It
+   does not show how the bot will score: kit opponents are not the field.
 
 What the rehearsal did not cover: reading an unfamiliar `RULES.md`, the kit's real phase
 names and action forms, a changed deck or hand ranking (see the `short_deck` entry for
@@ -169,9 +177,17 @@ the variant, the simulator class and the bot were all ours; budget most of the h
 python3.12 tools/field_report.py <downloaded history file> --hero <our team name>
 ```
 
-prints each opponent's habits, the mix of types in the field and which `PROFILES` knobs
-to change. The organizers' file format was not available beforehand, so the first run on
-a real file may recognise no hands. Then:
+prints each opponent's habits, the mix of types in the field and which knobs to change. Its
+types and advice were set on hold'em. At Pittsburgh the readers that found the gains were
+the seven in `tools/history/`, which compare us with a run's ten best teams (table in
+`skills/STATE.md`):
+
+```bash
+python3.12 -I tools/history/chipflow.py <downloaded history file> "<team name>" "<team name>" ...
+```
+
+`field_report.py` reads the download format (checked against the kit's sample). If a file
+ever recognises no hands:
 
 ```bash
 python3.12 tools/field_report.py --inspect <downloaded history file>

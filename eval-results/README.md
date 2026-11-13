@@ -1,5 +1,11 @@
 # Strategy evaluation, 2026-11-11
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Mini-simulator
+> results from 2026-11-11. `bots/final` in these tables is the pre-event bot, not the file in
+> the repo now, and `tools/eval_all.py` would rank 31 bots today, not 18. None of these rankings
+> predicted the platform. What happened:
+> [`pittsburgh-results.md`](../docs/pittsburgh-results.md).
+
 Every strategy in the repo ranked on the **unofficial** mini simulator (`devtest/mini_sim.py`)
 in all six variants it plays. Produced by [`tools/eval_all.py`](../tools/eval_all.py):
 

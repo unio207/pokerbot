@@ -1,5 +1,11 @@
 # Sequoia pokerbot competition ("No Limit: A Bot Building Tournament") — official details
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Research from
+> 2026-11-10, from the public pages. On the format,
+> [`official-format.md`](../official-format.md) replaces it: weights 1, 2, 3, 5, 8, 13, blinds
+> every 20 hands, a 250-hand cap, 20,000 tables per scored round. What happened:
+> [`pittsburgh-results.md`](../pittsburgh-results.md).
+
 Research date: 2026-11-10. Source-access caveats: the official site and official rules page were read through an automated fetch-and-summarize tool (not raw HTML), so "verbatim" quotes below are as that tool reported them. X/Twitter posts could not be opened directly (HTTP 402); tweet contents come from search-result titles/snippets and from the Digg aggregation page. One secondary page (agihunt.info) returned 403 and was not read.
 
 ## 1. What is the event, its official name, organizer, official URL, and announcement date?

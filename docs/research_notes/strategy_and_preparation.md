@@ -1,5 +1,11 @@
 # Strategy and Preparation for a Time-Boxed Pokerbot Competition (Sequoia "No Limit", Nov 2026)
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Research from
+> 2026-11-10. Its main recommendation, an ICM-aware bot that never errors, is the bot we started
+> with: no missed decision all night, and 12.40 points per table in round 1, 67th of 109. Local
+> sparring results did not predict the field. The weights were 1, 2, 3, 5, 8, 13 and pre-written
+> code was allowed. What happened: [`pittsburgh-results.md`](../pittsburgh-results.md).
+
 Researcher notes, compiled 2026-11-10. Sourcing legend used below:
 - **[fetched]** = page was opened and read this session.
 - **[snippet]** = seen only as a search-result summary; not opened.

@@ -1,5 +1,10 @@
 # Building the bot zoo
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** The zoo did not
+> look like the field: a bot that scored 28 points per table against it scored 12.4 on the
+> platform. This file is still the how-to for generating zoo bots. What happened:
+> [`pittsburgh-results.md`](pittsburgh-results.md).
+
 The field tomorrow is other teams' bots, mostly written in an hour with AI assistants. A
 zoo is a folder of 15–30 bots written the same way, so we tune against something that
 looks like the real field instead of five hand-written opponents.

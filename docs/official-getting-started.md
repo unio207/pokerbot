@@ -1,5 +1,9 @@
 # Official "Getting started" page: what it says and what it changes for us
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Nothing in it was
+> contradicted: the kit did unlock only at the variant announcement. What happened:
+> [`pittsburgh-results.md`](pittsburgh-results.md).
+
 Condensed from a team member's summary of the competition site's Getting started page
 (pokerbot.sequoiacap.com). The **Format** page is summarised in [`official-format.md`](official-format.md).
 

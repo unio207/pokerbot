@@ -15,6 +15,7 @@ T0 = SKILL / ".t0"
 STAGES = ((0, "1 kit + active bot"), (10, "2 Rules Card"), (18, "3 convert to the variant"),
           (38, "4 safety gate, upload v1"), (44, "5 format corrections (gauntlet beside)"),
           (48, "7 last practice-covered upload"), (52, "9 hand-off (STATE.md); no new code"))  # fmt: skip
+WEIGHTS = (1, 2, 3, 5, 8, 13)  # fibonacci: how Pittsburgh scored its six rounds
 
 
 def main() -> None:
@@ -38,7 +39,8 @@ def main() -> None:
         if minutes < snapshot:
             left = snapshot - minutes
             state = "OPEN" if left > cutoff else "CLOSED except to replace a failing active bot"
-            print(f"round {number} (weight {number}x) snapshot in {left:.1f} min, at T+{snapshot}")
+            weight = WEIGHTS[number - 1] if number <= len(WEIGHTS) else "?"
+            print(f"round {number} (weight {weight}x) snapshot in {left:.1f} min, at T+{snapshot}")
             print(f"uploads {state} (cutoff {cutoff} min before the snapshot)")
             return
     print("all snapshots taken: nothing uploaded now counts")

@@ -1,7 +1,8 @@
 # Instructions for Claude sessions in this repo
 
-Bot and tooling for NO LIMIT '26, Sequoia's poker bot tournament (Pittsburgh regional
-2026-11-12, finals 2026-11-15). Remote: `unio207/pokerbot`. `README.md` has the detail.
+Bot and tooling for NO LIMIT '26, Sequoia's poker bot tournament. The team played the
+Pittsburgh regional on 2026-11-12 and is not playing the finals (2026-11-15): the repo is the
+record of that event. Remote: `unio207/pokerbot`. `README.md` has the detail.
 Run `git pull` first: a session on 2026-11-12 worked from a checkout 49 commits behind.
 
 ## Stack
@@ -35,18 +36,20 @@ Run `git pull` first: a session on 2026-11-12 worked from a checkout 49 commits 
 ```bash
 python3.12 tools/build.py --check                      # bots/ match the core
 python3.12 practice.py bots/final --mini               # upload check + five line-ups, no kit
-python3.12 tools/fuzz.py bots/final --states 20000     # random and malformed states
+python3.12 tools/fuzz.py bots/final --states 20000     # random and malformed states (no two-board states: gate.py has those)
+python3.12 tools/preflop_check.py                      # the three-card preflop ranking against dealt hands
 python3.12 ui/server.py                                # practice page at http://127.0.0.1:8765/
 
 K=skills/sequoia-launch/scripts
 python3.12 $K/gate.py bots/final                       # safety gate: PASS or FAIL
 python3.12 $K/gauntlet.py bots/final --vs starter      # A/B on the same seeds, ± error
 python3.12 $K/portal.py                                # read-only: variant, uploads, health, rounds
+python3.12 $K/results.py                               # read-only: each run's points, rank, field median
 ```
 
 There is no test suite. The checks are `gate.py`, `tools/fuzz.py` and `tools/bot_tests.py`.
 
-## Current state (2026-11-12)
+## Current state (2026-11-13)
 
 - Pittsburgh regional played (variant `double_board_turn_discard`, portal name `pittsburgh`):
   37th of 112, total 468.31; rounds 12.40, 11.64, 12.31, 13.04, 15.37, 15.96 points per table.
@@ -62,6 +65,14 @@ There is no test suite. The checks are `gate.py`, `tools/fuzz.py` and `tools/bot
   `mkdir -p .claude/skills && for s in sequoia-launch competition-build mid-round-iterate; do ln -sfn ../../skills/$s .claude/skills/$s; done`
 - The 13 float knobs of `final` are in `SETTINGS` in `tools/core_agent.py`, which overrides
   `PROFILES["final"]`. Change them there; `tools/field_fit.py --sweep` reads the same table.
+- The core is frozen at the round 6 upload. `bots/final/agent.py` is a byte copy of
+  `tools/core_agent.py`, so any edit to the core, a comment included, makes it differ from what
+  played (`uploads/v971_2f1d6444/agent.py` on branch `uploads`). Known stale text left in it for
+  that reason: the header says "full ICM pricing" and omits the Pittsburgh variant, and
+  `PROFILES["final"]` lists `icm_scale`, `bubble_margin`, `points_tight` and `cbet_air` at their
+  pre-event values (`SETTINGS` sets 0, 0, 0 and 0.6). Do not edit the core unless Henry asks.
+- Docs written before the event carry a dated line at the top. The mini simulator has no class
+  for `double_board_turn_discard`: `--mini` plays hold'em.
 
 ## Rules for this repo
 

@@ -1,5 +1,11 @@
 # Sequoia "No Limit" Pokerbot Tournament: Rules and Technical Format
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Research from
+> 2026-11-10, from the public pages. On the format,
+> [`official-format.md`](../official-format.md) replaces it: weights 1, 2, 3, 5, 8, 13, blinds
+> every 20 hands, a 250-hand cap, 20,000 tables per scored round. Pre-written code was allowed.
+> What happened: [`pittsburgh-results.md`](../pittsburgh-results.md).
+
 Research date: 2026-11-10. Reliability key used below:
 - **[OFFICIAL]** = official rules page or official landing page (read through a fetch-and-summarize tool, so wording is close paraphrase unless in quotation marks; section numbers are from the rules page).
 - **[PRESS]** = secondary news write-up of the official pages.

@@ -65,7 +65,9 @@ really playing, which is what a hold'em-only bot does in most other variants.
 ## Variants
 
 `sim_variants.py` holds one class per ruleset in [`zoo/variants/`](../zoo/variants/README.md),
-under the same name. A variant sets the number of hole cards and overrides a few hooks:
+under the same name, except the one the Pittsburgh regional played: `double_board_turn_discard`
+has no class, so the mini simulator cannot deal it (use the kit). `rehearsal` is the class for
+[`rehearsal/RULES.md`](../rehearsal/RULES.md). A variant sets the number of hole cards and overrides a few hooks:
 the deck, an extra decision phase after a street's cards are dealt, and the showdown
 ranking. Play one with:
 

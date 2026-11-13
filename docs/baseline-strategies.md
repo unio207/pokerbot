@@ -1,5 +1,11 @@
 # Baseline strategies
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Rounds 4 to 6 were
+> 26 of 32 of the score, not 71%. Our two best rounds at the regional were played with the
+> ladder's survival pricing (tighter calls near the points) turned off, and scores against a
+> local pool did not predict the field. What happened:
+> [`pittsburgh-results.md`](pittsburgh-results.md).
+
 For an 8-bot sit-and-go scored on finishing place with a 1 ms decision limit, the useful
 baselines form a ladder. Each rung is a working bot you can submit, and each one beats
 the one below it. `starter/agent.py` implements rungs 1 to 6.

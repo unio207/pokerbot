@@ -1,5 +1,10 @@
 # Timed conversion rehearsal
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** The 13-point gain
+> quoted below is a mini-simulator number. `bots/final` is now the Pittsburgh bot, so the
+> unconverted baseline in `ANSWERS.md` (21.07) will not reproduce. What happened:
+> [`pittsburgh-results.md`](../docs/pittsburgh-results.md).
+
 A variant none of us has converted a bot to, written the way the organizers write theirs,
 so the person who will do the conversion on the day can practise it against the clock.
 

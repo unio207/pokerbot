@@ -1,5 +1,11 @@
 # Sequoia's pokerbot sprint rewards preparation over poker
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Three things
+> turned out differently: the rounds weighed 1, 2, 3, 5, 8, 13 (not 1 to 6), each scored round
+> played 20,000 tables, and pre-written code was allowed. Its claim that survival math is the
+> edge did not hold: our two best rounds were played with the survival margins turned off. What
+> happened: [`pittsburgh-results.md`](pittsburgh-results.md).
+
 > **Superseded figures.** This guide was written from the public rules page. For
 > Pittsburgh, [`official-format.md`](official-format.md) and
 > [`official-getting-started.md`](official-getting-started.md) are the authority: blinds

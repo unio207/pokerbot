@@ -1,5 +1,9 @@
 # Five strategy opponents
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Written
+> 2026-11-10. Every number in it is hold'em on the mini simulator. What happened:
+> [`pittsburgh-results.md`](../docs/pittsburgh-results.md).
+
 These implement strategies A–E from the supplied strategy chat. They are zoo
 opponents, not five claimed tournament winners. All were authored by Codex in
 this session; separate implementation/review tasks do not imply different models.

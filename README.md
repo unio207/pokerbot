@@ -1,180 +1,274 @@
-# Pokerbot practice setup (No Limit, Pittsburgh)
+<h1 align="center">pokerbot</h1>
 
-Our competition bots, a starter bot, opponents to practise against, and the tools to
-measure them. Every bot is written against the interface in the organizers' starter kit
-(`poker_agent_sdk`: `act(state, memory) -> (Action, bytes)`), so any `agent.py` here is
-uploadable as is.
+<p align="center">
+  <em>A one-file poker bot for Sequoia's NO LIMIT '26, and the record of the regional it played.</em>
+</p>
 
-**The bot to upload is `bots/final/agent.py`.** Over 1,500 tables per line-up on the mini
-simulator it averaged 26.6 points per table against the starter's 19.0 (par is 12.5).
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
+  <img src="https://img.shields.io/badge/dependencies-standard_library_only-5c6573" alt="Dependencies: standard library only">
+  <img src="https://img.shields.io/badge/NO_LIMIT_%2726-Pittsburgh_regional-15181e" alt="NO LIMIT '26, Pittsburgh regional">
+  <img src="https://img.shields.io/badge/result-37th_of_112-2b5bd7" alt="Result: 37th of 112">
+  <img src="https://img.shields.io/badge/status-event_played%2C_bot_frozen-137a47" alt="Status: event played, bot frozen">
+</p>
 
-## What is here
+<p align="center">
+  <b><a href="docs/pittsburgh-results.md">Results</a></b> ·
+  <b><a href="media/results.mp4">Results video</a></b> ·
+  <b><a href="skills/STATE.md">Event log</a></b>
+</p>
 
-| Path | What it is |
+---
+
+**pokerbot** is Team Allow It's entry for [NO LIMIT '26](https://pokerbot.sequoiacap.com/), Sequoia's poker bot tournament, and the tools that built and judged it. The bot is one Python file, [`bots/final/agent.py`](bots/final/agent.py), that answers every decision in under **1 ms** with the standard library only. At the Pittsburgh regional on 2026-11-12 the variant was announced at 18:13 (**three hole cards, two boards, one discard after the turn**), the first converted bot was uploaded 18 minutes later, and after six scored rounds the team finished **37th of 112 scoring teams with 468.31 points**. The first three rounds scored below the field median, the fourth at it, and the last two above it; what changed between them is the most useful thing in this repo.
+
+The event is over, the team is not playing the finals, and the bot is frozen at the file that played round 6.
+
+<p align="center">
+  <img src="media/results-rounds.png" alt="Bar chart of the six scored rounds: 12.40, 11.64, 12.31 and 13.04 points per table in rounds 1 to 4, then 15.37 and 15.96 in rounds 5 and 6, with the field median near 13 and the top-ten mean near 18 drawn as lines, and the round weights 1, 2, 3, 5, 8, 13 under the bars" width="820">
+</p>
+
+The key features are:
+
+- **One file that did not fail**: `act` wraps the whole strategy, turns any exception into a check or a fold, and clamps every raise to the legal range. 80,989 bytes, no missed decision and no restart in 14 platform runs.
+- **A variant table**: `VARIANTS` in [`tools/core_agent.py`](tools/core_agent.py) has one entry per ruleset (seven), each saying how to recognise the game, how to answer its extra phases and how to score the cards. The betting strategy is written once and reads only 0 to 1 scores.
+- **Two-board scoring**: `double_board_strength` scores a pair on each board and averages, since each board wins half of every pot; `double_board_keep` keeps the pair with the most strength summed over both boards, and the discard throws away the third card.
+- **Preflop copied from the leaders**: `_cloned()` holds the measured first-in, all-in-call and re-raise frequencies of round 3's ten best teams (round 1's in `v94`), by players left, seats behind and stack depth, and uses them as percentile thresholds.
+- **A measured three-card ranking**: `pittsburgh_preflop` ranks three cards by their dealt pot share, by hand class. The earlier "best two cards" ranking overrated pairs by 8 to 12 points of equity and weak aces by 10; the fit is within 0.013 of the dealt share on eight test hands ([`tools/preflop_check.py`](tools/preflop_check.py)).
+- **One safety gate**: [`gate.py`](skills/sequoia-launch/scripts/gate.py) prints `GATE: PASS` or `GATE: FAIL` from a build check, 20,000 fuzzed states, hidden-exception and memory checks, decision timing and real tables. The round 6 bot passes it on the organizers' engine and on the mini simulator.
+
+## Results
+
+Each scored round played 20,000 tables of eight bots; a table pays 50, 30 and 20 points to the first three places, so par is 12.5 points per table. The margin is the portal's, about two standard errors. Rounds weigh 1, 2, 3, 5, 8 and 13.
+
+| Round | Weight | Bot | Points per table | Rank in the round | Field median | Us minus median | Tables won |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | `v4` | 12.40 ± 0.23 | 67 of 109 | 13.04 | -0.64 | 9.2% |
+| 2 | 2 | `v11` | 11.64 ± 0.23 | 72 of 111 | 13.00 | -1.36 | 9.2% |
+| 3 | 3 | `v13` | 12.31 ± 0.22 | 68 of 112 | 13.30 | -1.00 | 7.8% |
+| 4 | 5 | `v17` | 13.04 ± 0.24 | 59 of 112 | 13.12 | -0.07 | 11.2% |
+| 5 | 8 | `v96` | 15.37 ± 0.28 | 21 of 112 | 13.28 | +2.10 | 20.0% |
+| 6 | 13 | `v971` | 15.96 ± 0.28 | 21 of 112 | 13.71 | +2.26 | 19.5% |
+
+Final standing: 37th of 112 scoring teams (146 entries, 34 forfeited), 468.31 points; first place had 598.3 and tenth 542.3. Every run including the eight practice runs, the standing after each round and the comparison with each round's ten best teams are in [`docs/pittsburgh-results.md`](docs/pittsburgh-results.md); the reader outputs behind it are in [`docs/pittsburgh-results/`](docs/pittsburgh-results/), and the step-by-step log of the night is [`skills/STATE.md`](skills/STATE.md). Vedaant's analysis from the night, run by run, is in [`docs/research_notes/pittsburgh/`](docs/research_notes/pittsburgh/README.md).
+
+<p align="center">
+  <a href="media/results.mp4">
+    <img src="media/results.gif" alt="The results video, playing: the title, 37th of 112 teams with 468.31 points, a bar chart of the six rounds against the field median and the top-ten mean, the same bot at 28.08 on the kit gauntlet and 12.40 on the platform, two line charts of chips per 100 hands and heads-up matches won against the ten best teams, and the overall rank going from 67th after round 1 to 37th" width="820">
+  </a>
+  <br>
+  <sub>The 34-second results video, playing as a GIF: charts only, drawn from the numbers in <code>docs/pittsburgh-results.md</code>. Chips are counted over hands dealt with four or more players left. Click for the MP4 (1920x1080).</sub>
+</p>
+
+What the numbers do and do not show:
+
+- **Four weak rounds.** In rounds 1 to 4 the bot lost chips in hands dealt with four or more players left (-0.4 to -5.0 big blinds per 100 hands against the ten best teams' +12 to +14) and won 34 to 49% of its heads-up matches against their 61 to 67%.
+- **Two strong rounds, from one method.** From round 5 the bot played the ten best teams' measured preflop frequencies with its survival margins turned off. Play with four or more left went to +9.4 and then +13.7 big blinds per 100 hands, and the share of tables won went from 8 to 11% to about 20%.
+- **Round 6 did not beat round 5.** `v971` added the three-card ranking and smaller opens. Against the median it was +2.26 after +2.10, inside the margins of ± 0.28 each.
+- **The local test was wrong all night.** The kit gauntlet (our bot against the starter, five sparring bots and 23 AI-written zoo bots) scored the round 1 bot at 28.08 ± 0.25 points per table. The field scored it 12.40. The gauntlet's opponents reach showdown in 20 to 90% of hands and real teams in 8 to 13%. It read `v94` against `v13` as -0.27 ± 0.32; on the platform `v94` scored 14.90 in practice 8 (+1.59 against the median) where `v13` had scored 12.31 in round 3 (-1.00).
+- **Still open.** In round 6, 43% of our opens were re-raised and we folded 65% of those; the ten best teams folded 50%, and their opens earned 1.22 big blinds against our 0.94.
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["tools/core_agent.py<br/>the one source"] --> B["tools/build.py<br/>stamps the profiles"]
+    B --> C["bots/final/agent.py<br/>the upload"]
+    C --> D{"gate.py"}
+    D -- FAIL --> A
+    D -- PASS --> E["team page<br/>upload by hand"]
+    E --> F["platform run<br/>2,500 to 20,000 tables"]
+    F --> G["results.py<br/>points minus field median"]
+    F --> H["hand history<br/>about 150 MB per 10,000 tables"]
+    H --> I["tools/history/<br/>us against the ten best"]
+    G --> A
+    I --> A
+```
+
+1. **Core.** All strategy lives in `tools/core_agent.py`: a crash-proof `act`, the `VARIANTS` table, the betting strategy, and the embedded equity tables. The 13 float knobs of the `final` profile are in `SETTINGS`.
+2. **Build.** `tools/build.py` stamps one copy per profile into `bots/<profile>/agent.py`. `--check` fails if a stamped file has drifted from the core.
+3. **Gate.** `gate.py` runs every safety check and prints one verdict. Its timing counts only on the team's build machine, where the round 6 bot measured p99 185 µs against the 1,000 µs limit (80 µs on the Mac).
+4. **Upload.** A person uploads the file on the team page. Nothing in this repo uploads or switches the active bot.
+5. **Run.** The platform snapshots the active bot at the start of each practice run and each scored round.
+6. **Read.** `results.py` prints our points, rank and the field median for a finished run. The seven readers in `tools/history/` stream that run's hand history and compare us with its ten best teams, situation by situation.
+7. **Change.** The largest measured gap becomes one change in the core, and the loop starts again.
+
+The limits that shape all of it: 1 ms per decision with a 100 ms bank per table, 64 KB of memory that is emptied at every table, anonymous seats, a 60-minute build after the variant is announced, and 20 minutes between round snapshots. Round 6 alone was 13 of the 32 weight units.
+
+## Roadmap
+
+| Component | Status |
 | --- | --- |
-| `bots/<profile>/agent.py` | Seven strategy bots, `final` being the one to upload. Generated: edit `tools/core_agent.py`, then run `tools/build.py`. |
-| `tools/core_agent.py` | The single source of those bots, in the zoo template's layout: one `VARIANTS` entry per ruleset, the profiles' tuning knobs in `PROFILES`. |
-| `starter/agent.py` | The original starter bot, kept as the baseline. One file, standard library only. |
-| `sparring/*/agent.py` | Opponents: `check_or_fold`, `min_raiser`, `calling_station`, `shover`, `nit`. |
-| `practice.py` | Upload check, then five line-ups, reporting points per table and failed decisions. |
-| `tools/build.py` | Stamps `bots/<profile>/agent.py` from the core; `--check` fails if one has drifted. |
-| `tools/bench.py` | Compares bots over fixed line-ups on the same deals, with standard errors. |
-| `tools/fuzz.py` | Throws random and malformed states at a bot; any exception or illegal action is a failure. |
-| `tools/gen_variant_tables.py` | Measures the per-variant tables embedded in the core (Monte Carlo on the mini simulator's rules). |
-| `tools/field_report.py` | Reads hand histories and says what the field is (dead seats, shovers, stations) and what to change. |
-| `tools/field_fit.py` | Measures a field from its hand histories, builds a look-alike field from zoo bots, and tries other values for a bot's `SETTINGS` against it (`--sweep`). |
-| `tools/check_zoo.py` | Upload check, upload-test imitation and a short match for zoo bots, per variant. |
-| `tools/gen_preflop.py` | Regenerates the hold'em preflop equity table embedded in a bot. |
-| `ui/` | Local web page for building line-ups, running matches, comparing runs and replaying hands. Uses the organizers' kit when it is installed. |
-| `zoo/` | Opponent bots to tune against, with a template and instructions for adding one (`zoo/README.md`). |
-| `docs/` | Competition research, baseline strategies, edge plan, bot-zoo guide and a strategy research prompt. |
-| `rehearsal/` | A sealed variant for a timed conversion rehearsal. Read `rehearsal/README.md`; do not open its `RULES.md` before the timer starts. |
-| `devtest/` | Unofficial mini simulator and SDK stand-in, for when the kit is not installed. |
+| Round 6 bot (`bots/final`, byte-identical to the upload) | ✅ frozen |
+| Safety gate, fuzzers, build check | ✅ |
+| Results reader and hand-history readers | ✅ |
+| Launch and between-rounds skills, rewritten after the event | ✅ |
+| Defence when our open is re-raised (the gap still open after round 6) | ⏸️ deferred |
+| Made-hand strengths measured on two boards (they are hold'em's, averaged) | ⏸️ deferred |
+| Mini-simulator class for the Pittsburgh variant | ⏸️ deferred: `--mini` plays hold'em |
+| Finals, 2026-11-15 | ⏸️ not playing |
 
-## Practising under the real rules
+## Project structure
 
-The authority is the organizers' starter kit. According to the competition's Getting
-started page it unlocks at the variant announcement, together with uploads, so it cannot
-be installed beforehand (see [`docs/official-getting-started.md`](docs/official-getting-started.md)).
-Its `poker-agent play` runs real tables with the 1 ms limit enforced, and every upload
-plays a short test match with no time bank.
-
-```bash
-# inside the kit folder, with Python 3.12
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-pip install -e ./sdk/agent-protocol -e ./sdk/engine -e ./sdk/agent-sdk
+```
+pokerbot/
+├── bots/           # seven stamped profiles; final/agent.py is the bot that played round 6
+├── tools/          # core_agent.py (the source), build, fuzz, preflop check, evaluation tools
+│   └── history/    # seven streaming readers for the platform's hand histories
+├── skills/         # launch, build and between-rounds playbooks; STATE.md, the event log
+├── docs/           # pittsburgh-results.md and its raw outputs; research notes, the pre-event ones dated
+├── media/          # results figure and the 34-second results video (MP4 and GIF)
+├── starter/        # the original starter bot, kept as a baseline
+├── sparring/       # five hand-written opponents
+├── zoo/            # 23 AI-written opponents, a bot template, one ruleset file per variant
+├── devtest/        # unofficial mini simulator and a stand-in for the organizers' SDK
+├── ui/             # local practice page (plain HTML, CSS and JS, served by ui/server.py)
+├── eval-results/   # pre-event mini-simulator rankings
+├── rehearsal/      # a sealed practice variant for a timed conversion
+├── practice.py     # upload check and five line-ups for one bot
+└── CLAUDE.md       # instructions for Claude Code sessions in this repo
 ```
 
-```bash
-# from this folder, with that environment active
-python practice.py starter --tables 500
-```
+## Requirements
+
+Python 3.12. No packages: the repo has no dependency file because there is nothing to install. The organizers' starter kit is optional and is not in the repo (see [Data](#data)).
+
+## Installation
 
 ```bash
-# or one line-up directly through the kit
-poker-agent play starter sparring/nit sparring/shover sparring/calling_station --tables 200
+git clone https://github.com/unio207/pokerbot.git
+cd pokerbot
+python3.12 tools/build.py --check
 ```
 
-Copy `starter/` to a new folder per version (`v2/`, `v3/`) and compare with the same
-`--seed`. A 1-point difference needs roughly 1,600 tables to show.
-
-## Without the kit
+The three skills are used from Claude Code and need linking once per clone:
 
 ```bash
-python3.12 practice.py starter --mini
+mkdir -p .claude/skills && for s in sequoia-launch competition-build mid-round-iterate; do ln -sfn ../../skills/$s .claude/skills/$s; done
 ```
 
-`--mini` uses `devtest/mini_sim.py`: no-limit hold'em, or with `--variant <name>` our own
-version of a ruleset in `zoo/variants/`, bots run in-process,
-rules re-implemented from the kit's documentation. Good for catching crashes and illegal
-actions; not a substitute for the kit.
+## Data
 
-## Web interface
+Not in the repo, and why:
+
+1. **The hand histories.** 1.7 GB for the six rounds and four practice runs, one gzip file per run. A round's file holds its first 10,000 tables: 149 to 166 MB and 1.4 to 1.6 million hands. They are in `hand-history/` on one laptop and in a private Drive folder. They name the other teams.
+2. **The organizers' starter kit** (the real engine, `poker-agent`). It unlocks with a team account at the variant announcement. Every script finds it at `./starter-kit`, `../starter-kit` or `~/work/starter-kit` and falls back to the mini simulator without it.
+3. **The competition API key**, read from `~/.config/no-limit-2026/api-key` by `portal.py` and `results.py`. Without it those two scripts exit with a message; nothing else needs it.
+4. **Candidate bots** `v0/` to `v971/` (36 folders) and `rules_card.json`, written during the event and ignored by git. The 16 distinct files that were uploaded are on branch `uploads`, one folder each. There were 17 uploads: the round 6 file went up twice, is kept as `v971_2f1d6444` and played as submission `eb6caf1a`.
+
+```
+hand-history/                  # ignored by git
+├── round1/ round5/            # round 1: a partial download and the full retry; round 5: one file; round2/: a partial
+├── practice4/ practice6/
+├── drive/                     # rounds 2, 4 and 6
+└── hands-*.jsonl.gz           # round 3, practice 7 and 8, and round 1's .part and .truncated leftovers
+../starter-kit/                # the organizers' kit, beside the repo
+```
+
+## Usage
+
+| Step | Entry point |
+| --- | --- |
+| Check the stamped bots match the core | `python3.12 tools/build.py --check` |
+| Safety gate, no kit needed | `python3.12 skills/sequoia-launch/scripts/gate.py bots/final --mini` |
+| Safety gate on the real engine | `../starter-kit/.venv/bin/python skills/sequoia-launch/scripts/gate.py bots/final` |
+| Random and malformed states | `python3.12 tools/fuzz.py bots/final --states 20000` |
+| Five line-ups on the mini simulator | `python3.12 practice.py bots/final --mini` |
+| Check the three-card ranking against dealt hands | `python3.12 tools/preflop_check.py` |
+| Every run's result against the field (needs the key) | `python3.12 skills/sequoia-launch/scripts/results.py` |
+| Read a hand history (team names from `results.py <id>`; without them `chipflow.py` uses one round's ten names, built in) | `python3.12 -I tools/history/chipflow.py <file.jsonl.gz> "<team>" ...` |
+| Practice page | `python3.12 ui/server.py`, then http://127.0.0.1:8765/ |
+
+From a clean copy with no kit, on 2026-11-13:
+
+```console
+$ python3.12 tools/build.py --check
+ok
+$ python3.12 skills/sequoia-launch/scripts/gate.py bots/final --mini
+[WARN] rules card: not filled: limits are the pre-announcement defaults
+[PASS] build check: bots/ match tools/core_agent.py
+[PASS] agent.py size: 80989 bytes (limit 1048576)
+[PASS] fuzz legality: 20000 states, 0 bad
+[PASS] fuzz hidden exceptions: 0 raised inside the bot on 10000 clean states; check/fold share on clean states 79%
+[PASS] memory growth: largest blob 96 bytes over a 250-hand busy table (allowed 16384 = 25% of 65536)
+[PASS] mini tables: 300 tables over 3 line-ups, 0 failed decisions of 27971
+[PASS] upload test imitation: no time bank, heads-up, 20 hands x 300: 0 of 3000 failed (0.00%; ours allowed 1%, platform rejects over 10%)
+warnings: rules card
+GATE: PASS
+$ python3.12 tools/preflop_check.py
+hand        measured  best two     fit  fit - measured   n = 12,000 deals per hand
+9h 9d 2c       0.603     0.721   0.605          +0.002
+Ah Kd Qs       0.603     0.651   0.604          +0.001
+Ah 7c 2d       0.489     0.588   0.491          +0.002
+largest gap between the fit and the measured share: 0.013
+```
+
+The gate output is cut to eight of its thirteen check lines and the preflop check to three of its eight hands. The warning is real: a clean copy has no Rules Card (`rules_card.json` is written from the kit), so the gate uses the template's limits. `--mini` plays hold'em on our own simulator, which has no class for the Pittsburgh variant: it finds crashes and illegal actions, the variant's phases are exercised by the fuzz only, and its scores say nothing about the platform. With the kit the same gate plays the real two-board game (90 tables, 0 failed decisions on 2026-11-13).
+
+### Useful scripts
 
 ```bash
-python ui/server.py
+python3.12 skills/sequoia-launch/scripts/portal.py         # read-only: variant, uploads, health, runs
+python3.12 skills/sequoia-launch/scripts/results.py <id>   # one run, and its ten best teams' names
+python3.12 -I tools/history/run_stats.py <file>            # our places and heads-up actions
+python3.12 -I tools/history/opens.py <file> "<team>" ...   # what happens after a first-in open
+python3.12 -I tools/history/headsup.py <file> "<team>" ... # how often heads-up is reached and won
+python3.12 -I tools/history/freq2.py <file> "<team>" ...   # their preflop frequencies as Python literals
 ```
 
-Then open http://127.0.0.1:8765/. Click bots to seat them, press Run, and read points per
-table, win rate, failed decisions and decision time per bot; the Hand replay tab steps
-through recorded hands on a drawn table. Bots are re-read from disk on every run, so edit
-an `agent.py` and run again, and a new bot folder appears in the list without a restart.
+## Architecture
 
-- **Seed.** By default every run gets a new seed. Untick "new seed every run" and type one
-  to replay the same deals, for example to test one change to a bot.
-- **Vary rules by seed.** On by default: the seed also picks the hand cap (150 to 300),
-  hands per level (15 to 25) and starting stack (1,500 to 3,000), and every table draws
-  its own payouts, so a bot is not tuned to one exact tournament. The results show the
-  rules each run used. Turn it off to set them by hand.
-- **Speed.** Tables are played by several processes at once (half the processors by
-  default, `--workers N` to change), so 200 tables take a few seconds. A table's cards
-  depend only on the seed and the table number, so results do not depend on the workers.
-- **Warnings.** A bot that folded or checked every hand is flagged: a hold'em-only bot
-  does this in other variants, and the other bots' scores then mean little.
+<details>
+<summary><b>The core: <code>tools/core_agent.py</code> (1,566 lines)</b></summary>
 
-The page has two engines, chosen under **Match settings**:
+Four parts, in file order. `act(state, memory)` is the crash-proof wrapper: it never changes between variants. `VARIANTS` has seven entries (`double_board_turn_discard`, `irish`, `discard_reveal`, `omaha`, `auction`, `short_deck`, `holdem`), each with `detect`, `phases`, `strength`, `preflop` and `postflop`. `decide()` is the betting strategy with the seven `PROFILES`. The helpers hold legal actions, hand evaluation and the embedded equity tables. Nothing is random: the same state and memory give the same action. Memory is a packed byte record (a `T2` header and per-seat counters) of how each seat has played, 96 bytes at its largest in the gate's 250-hand table.
 
-- **Organizers' kit** (the default when it is found). Every table is played by the kit's
-  `poker-agent play`, so the variant, the rules and the 1 ms limit are the real ones.
-  The server finds the kit when it is unpacked as `starter-kit` inside or beside this
-  folder (or in `~/work`, where the competition's setup skill puts it), when its
-  environment is active, or when you point at it:
+</details>
 
-  ```bash
-  python ui/server.py --kit /path/to/kit/.venv/bin/poker-agent
-  ```
+<details>
+<summary><b>The Pittsburgh entry</b></summary>
 
-  On the team build machine, forward ports 8765 and 8766 over SSH to see the page and the
-  kit's viewer in your own browser: see [`docs/event-day-setup.md`](docs/event-day-setup.md).
+Detected by `"boards" in state.variant`, so it does not depend on the name the platform sends. After the flop: `double_board_strength`, the hold'em strength of a pair on each board, averaged. With three cards: `double_board_keep`, the pair with the most strength summed over both boards; `pittsburgh_discard` returns the index of the third card. One-board lock rule: bet two pair or better on one board, never fold trips or better on one board at a price up to 0.42. Before the flop: `pittsburgh_preflop`, a by-class fit of the three cards' pot share, and `_cloned()`. `_hand_rank` and `_draws_of` (behind `hand_rank` and `_draws`) are memoised with 64 entries; 4,096 made the garbage collector pause for 1 to 2 ms.
 
-  Hands per level, payouts and starting stack come from the kit. The kit reports failed
-  decisions but not decision times. A hand history of the first 20 tables is saved under
-  `hand-history/`, and the **Hand replay** tab opens it in the kit's own viewer, which
-  shows the cards of the bot in seat #0 and other bots' cards only when shown.
-- **Mini simulator** (the fallback). Unofficial; hold'em or a variant from `zoo/variants/`
-  picked in the Variant box. It adds decision
-  times, per-table failure details and a built-in replay with every bot's cards visible.
+</details>
 
-A kit run is split into about ten `poker-agent play` calls so the page can show progress
-and error bars. Each call gets its own seed derived from yours, so a seed in the page
-does not give the same deals as the same seed on the command line.
+<details>
+<summary><b>The <code>final</code> knobs as played in round 6</b></summary>
 
-The kit engine was tested here only against a stand-in for `poker-agent` and `replay`
-(the real kit could not be run in the session that wrote it). The first run against the
-real kit is the real test: if `poker-agent play` rejects an option, the page shows the
-kit's error message.
+`SETTINGS`, applied last: `open_size` 2.3, `steal_widen` 1.15, `steal_any` 0.85, `call_margin` 0.05, `bubble_margin` 0.0, `semi_bluff` 0.3, `cbet_air` 0.6, `hu_open` 0.65, `push_scale` 0.9, `threebet` 0.03, `call_raise` 0.08, `points_tight` 0.0, `icm_scale` 0.0. From the profile: per-seat tracking with the steal, shover, station and min-raise reads, `value_bet` 0.70, `medium_bet` 0.52. The file's header still says "full ICM pricing" and `PROFILES["final"]` still lists the pre-event values of four knobs; `SETTINGS` overrides them. They are left alone on purpose (see Background).
 
-![Hand replay](ui/screenshots/replay.png)
+</details>
 
-## How the competition bots are organised
+<details>
+<summary><b>The gate</b></summary>
 
-`tools/core_agent.py` follows [`zoo/_template/README.md`](zoo/_template/README.md): a
-crash-proof `act`, a `VARIANTS` table with one entry per ruleset in `zoo/variants/`
-(how to recognise the variant, its extra phases, how to score our cards), the betting
-strategy written once, and helpers. To convert it to the announced variant, follow
-"Converting to the announced variant" in [`docs/event-day-setup.md`](docs/event-day-setup.md).
+`gate.py` reads every limit from a Rules Card (`rules_card.json`, written by `probe.py` from the kit; the template's defaults without it). Checks: the runner's own `check`, `tools/build.py --check`, file and upload size, import time, fuzz legality on states built from the card's phases, exceptions hidden by the bot's own `try`, `tools/fuzz.py`, decision time (p99 allowed 250 µs, p99.9 500 µs, both our margins under the 1,000 µs limit), memory growth, tables with zero failed decisions, and on the mini simulator an imitation of the upload test with no time bank.
 
-## How the starter bot is organised
+</details>
 
-1. `act` wraps everything: an exception or illegal action becomes check/fold, and raises
-   are clamped to the legal range.
-2. `variant_decision` is the one place for a variant's extra phases. Its default is the
-   first legal action, which is what the platform plays automatically.
-3. `hole_strength` and `postflop_strength` are the only functions that score cards. With
-   a hole-card count other than two they take the best two-card combination, which is a
-   placeholder: rewrite them when the variant is announced.
-4. Preflop: open-raise chart by position when deep, shove-or-fold at 12 big blinds or
-   fewer, tighter all-in calls one place off the points, wider play once in the points.
-5. Postflop: bet strong made hands, call by pot odds, fold the rest.
-6. Table memory: a small JSON record of how often each seat raises.
+<details>
+<summary><b>The skills</b></summary>
 
-The numbers at the top of the file are the tuning knobs.
+`skills/sequoia-launch` takes the team from the variant announcement to a converted, gated, active bot on a clock; `skills/competition-build` is its short form; `skills/mid-round-iterate` is the loop between rounds. The last one was rewritten after the event: it now promotes a version on its points minus the field median in a practice run, not on the kit gauntlet.
 
-## What was and was not tested
+</details>
 
-Tested on the mini simulator (not the kit):
+## Background
 
-- 60,000 random states, including three- and four-card hands, a `select` phase and
-  corrupted memory: no internal errors, every action legal.
-- 300 tables per line-up, zero failed decisions. Points per table against a par of 12.5:
-  about 21 in a mixed field, 41 against mostly passive bots, 14 against aggressive bots.
-- Decision time with two hole cards: about 60 µs typical, about 250 µs at the 99.9th
-  percentile.
+The plan before the event was an ICM-aware bot that never fails, tuned against a zoo of AI-written opponents, with every change promoted on a same-seed gauntlet. The never-fails part held: no missed decision in 14 runs. The rest did not. The ICM bot scored below the median in rounds 1 to 3 (-0.64 to -1.36), and the gauntlet could not tell a good preflop change from a bad one. The notes written before the event are still in `docs/`, each with a dated line at the top saying what turned out differently.
 
-Not tested: anything against the organizers' kit itself, so run `practice.py` without
-`--mini` once before relying on it.
+Three decisions worth knowing:
 
-## Things to check in your own kit
+- **Versions are compared on points minus the field median, not on points.** The field kept improving: the median was 13.28 in round 5 and 13.71 in round 6.
+- **Copy measured frequencies before trying ideas.** Every change that moved the platform score copied something the ten best teams were measured doing. Raising aggression past their rates (1.25 to 1.5 times) lost head to head.
+- **The core is frozen.** `bots/final/agent.py` is a byte copy of `tools/core_agent.py`, so fixing even a stale comment would make the repo's bot differ from the one that played. The stale lines are listed in [`CLAUDE.md`](CLAUDE.md) instead.
 
-- **Table settings.** The official Format page for Pittsburgh says blinds rise every 20
-  hands with a 250-hand cap (see [`docs/official-format.md`](docs/official-format.md)),
-  which is what the mini simulator uses. The bot reads these from `state.config` anyway.
-- **Payouts.** Rounds may draw payouts per table. The bot reads `state.config.payouts`.
-- **Upload test.** It has no time bank and rejects a bot that fails more than 10% of
-  decisions. `practice.py --mini` imitates it; the kit's `play` always gives the bank.
-- **Speed with more than two hole cards.** The placeholder scoring takes about 250 µs
-  typical with four hole cards and occasionally exceeds 1 ms. Replace it before using it
-  in such a variant, and time it on the team build box.
-- **Pre-written code.** The published rules do not say whether you may bring code to the
-  event. Ask the organizers before planning to upload this.
+## Research question
+
+> With one hour to build and twenty minutes between rounds, what should judge a change to a bot: a local gauntlet against bots we wrote, or the field itself?
+
+At this event, the field: its results arrived within seconds of a run finishing, and its hand histories said what to change.
+
+## Author
+
+Henry Zou and Vedaant, Team Allow It. NO LIMIT '26, Pittsburgh regional, 2026-11-12.

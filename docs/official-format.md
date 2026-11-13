@@ -1,7 +1,9 @@
 # Official tournament format (Pittsburgh)
 
-From the competition site's **Format** page for NO LIMIT '26 Pittsburgh. This is the
-authority; where older notes in `docs/` disagree, this page wins.
+From the competition site's **Format** page for NO LIMIT '26 Pittsburgh, read before the
+event. Where older notes in `docs/` disagree, this page wins. Where the regional itself
+(2026-11-12) differed from the page, the line says so; what happened is in
+[`pittsburgh-results.md`](pittsburgh-results.md).
 
 ## One table
 
@@ -36,22 +38,26 @@ Getting started page adds that rounds may draw payouts per table, so read
 | 1 | When the build ends | 1x |
 | 2 | +20 min | 2x |
 | 3 | +40 min | 3x |
-| 4 | +60 min | 4x |
-| 5 | +80 min | 5x |
-| 6 | +100 min | 6x |
+| 4 | +60 min | 5x |
+| 5 | +80 min | 8x |
+| 6 | +100 min | 13x |
+
+The Format page's table read 1x to 6x. Pittsburgh's competition record said `fibonacci`, and
+the final totals fit 1, 2, 3, 5, 8, 13 (32 in all; rounds 4 to 6 are 26 of the 32).
 
 - Build for 60 minutes after the variant is announced, and keep building between rounds.
 - Rounds start 20 minutes apart. Twenty minutes is the gap between starts, not a time
   limit; each round finishes when its iterations complete.
 - Each scored round runs **at least 5,000 iterations**; every bot plays one table per
-  iteration. (The published rules said 10,000.)
+  iteration. (The published rules said 10,000. Pittsburgh played 20,000.)
 - Round score is average points per table. Results show the average and the finishes in
   every place.
 - Final score is the sum of round score times weight.
 - Practice runs: about 1,000 iterations every 10 minutes during the build. They never
-  count.
+  count. (At Pittsburgh: 2,500 to 10,000 tables, and they went on between the scored rounds.)
 - Results normally arrive within the following 20-minute window, so the result of round
-  N may not be in hand before round N+1 is snapshotted.
+  N may not be in hand before round N+1 is snapshotted. (At Pittsburgh a finished run's
+  results were on the portal within seconds, and a round took about 10 minutes.)
 
 ## Bots and snapshots
 
@@ -86,11 +92,11 @@ are invited to finals. Finals use the same format with a different variant.
 
 - **Our simulator's defaults already match:** 8 seats, 2,000 chips, 10/20 blinds rising
   every 20 hands, 250-hand cap, 50/30/20.
-- **Results lag a round.** The snapshot for round N+1 can be taken before round N's
-  result arrives, so decisions between rounds lean on the practice runs, our own
-  simulations and the hand histories, not on the last score.
-- **Six practice runs during the build.** At about 1,000 tables each, the standard error
-  is roughly 0.6 points per table: enough to spot a broken bot or a large gain, not a
-  1-point change.
+- **Results did not lag.** We planned for round N's result arriving after round N+1's
+  snapshot. It arrived in time, with every team's score, and it and the hand histories were
+  the only evidence that tracked the field; our own simulations did not.
+- **Practice runs all evening.** Eight at Pittsburgh, four of them between scored rounds.
+  The portal's margin (about two standard errors) was 0.68 at 2,500 tables, 0.45 to 0.50 at
+  5,000 and 0.31 to 0.38 at 10,000: a candidate can be judged on one.
 - **The last snapshot is at +100 minutes.** Work after that changes nothing.
 - **Firsts break ties**, which agrees with playing for first place rather than survival.

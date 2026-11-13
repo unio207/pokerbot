@@ -16,8 +16,9 @@ step further, in three parts:
 3. Sweep (`--sweep`). The bot plays the look-alike field on the mini simulator with each
    setting in its `SETTINGS` table moved down and up, one at a time.
 
-Reading the file is `field_report.kit_hands`, a best guess at the organizers' format: on
-the day run `field_report.py --inspect` first and fix that function. The match in part 2
+Reading the file is `field_report.kit_hands`, which reads the organizers' download format
+(checked against the kit's sample). The sweep cannot play `double_board_turn_discard`: the
+mini simulator has no class for it. The match in part 2
 is on six statistics, so the look-alike field is an approximation of the real one, and
 the mini simulator is not the organizers' engine.
 """

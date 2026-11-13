@@ -10,7 +10,12 @@ From "variant announced" to "active, safe, converted bot plus a baseline", on a 
 This skill is the clocked version of [`skills/competition-build`](../competition-build/SKILL.md)
 (same upload target, same conversion steps) with four things added: a clock with upload
 cutoffs, a Rules Card read from the kit, one PASS/FAIL gate, and a gauntlet with error bars.
-The strategy itself is not decided here: it is the locked `final` profile.
+The strategy itself is not decided here: the build hour ships the `final` profile, converted
+and safe. What to change after that comes from the field (`mid-round-iterate`).
+
+Used once, at the Pittsburgh regional on 2026-11-12 (`skills/STATE.md`). The stages held: an
+active bot at T+7:31, the converted bot at T+17:54, no missed decision in 14 runs. What it
+said about judging strength did not, and is corrected below.
 
 All paths are relative to the repo root (`pokerbot/`; on the build machine `~/work/pokerbot`,
 kit at `~/work/starter-kit`). Set once per shell:
@@ -30,17 +35,23 @@ rulesets in `zoo/variants/`, never the kit's engine.
    upload and embedded in `tools/core_agent.py`.
 2. **No active bot at a snapshot scores zero.** A legal bot goes up first; every later upload
    only has to beat it.
-3. **Rounds weigh fibonacci** (`round_weighting` in `portal.py`; 1, 2, 3, 5, 8, 13 by Henry's
-   reading, total 32: round 6 is 13 times round 1). A gain counts in every round after it
+3. **Rounds weigh fibonacci** (`round_weighting` in `portal.py`; 1, 2, 3, 5, 8, 13, confirmed
+   by the Pittsburgh totals, total 32: round 6 is 13 times round 1). A gain counts in every round after it
    lands, so most of the score is won by iterating after the build (`mid-round-iterate`); the
    build hour's job is a converted, safe bot and a working hand-history reader. A failure
-   costs more the later it lands (round 6 is 41%), so nothing uploads without the gate. Read
-   each round's real weight from `portal.py` once rounds exist.
+   costs more the later it lands (round 6 is 41%), so nothing uploads without the gate. The
+   per-round `weight` field on the portal read 1 to 6 at Pittsburgh while the totals fit
+   1, 2, 3, 5, 8, 13: go by `round_weighting`.
 4. **Memory resets per table and seats are anonymous.** Adaptation lives inside one table.
-5. **Results lag a round.** Decisions rest on the gate, the gauntlet and practice runs.
-6. **Converting to the variant is the largest measured gain** (`docs/event-day-setup.md`: 30.9
-   against 17.3 points per table in the `irish` rehearsal). The build hour is spent there,
-   not on tuning.
+5. **Results do not lag.** A finished run's scores for every team are on the portal within
+   seconds (`$PY $K/results.py`), and practice runs go on all evening, about every 10
+   minutes. Strength is judged there and on the hand histories. The gate and the gauntlet
+   say whether the bot is safe, not whether it is good: the kit gauntlet scored the round 1
+   bot at 28.08 points per table and the platform scored it 12.40.
+6. **Converting to the variant comes first** (`docs/event-day-setup.md`: 30.9 against 17.3
+   points per table in the `irish` rehearsal on the mini simulator; at Pittsburgh +2.42 ± 0.69
+   and +3.58 ± 0.74 on the kit). The build hour is spent there, not on tuning. The larger
+   gains came afterwards, from the histories.
 
 ## The clock
 
@@ -55,9 +66,9 @@ Run `$PY $K/clock.py` at every stage boundary and before every upload.
 | 3 Convert | T+18 to 38 | `VARIANTS` entry, tables, rebuilt `bots/final` | conversion beats `v0` on the same seed | hold'em logic in another game |
 | 4 Safety gate | T+38 to 44 | `GATE: PASS`, `v1` uploaded | active, 0 missed decisions | failed decisions on the platform |
 | 5 Format corrections | T+44 to 50 | at most one measured change | passed the promotion rule | untested cleverness |
-| 6 Gauntlet baseline | beside 3 to 5 | points/table ± error, n, tables/min | numbers in STATE.md | promoting noise |
+| 6 Gauntlet and readers | beside 3 to 5 | converted against `v0` ± error, n, tables/min; the history readers run on a real file | numbers in STATE.md | a conversion that does nothing; an idle first window |
 | 7 Upload | each version | `vN/` copy, upload, confirmation | ready, active, clean | a bad auto-activated bot |
-| 8 Practice runs | every 10 min | one line per run in STATE.md | counters read | flying blind |
+| 8 Practice runs | every 10 min | one line per run in STATE.md: health, points minus the field median | counters and `results.py` read | flying blind |
 | 9 Hand-off | T+52 to 60 | `skills/STATE.md` | `mid-round-iterate` can start from it | losing the state between skills |
 
 ## Reading the portal
@@ -137,7 +148,12 @@ table and patterns in `references/variants.md`:
 3. One entry in `VARIANTS` in `tools/core_agent.py`; a job in `tools/gen_variant_tables.py`;
    `$PY tools/gen_variant_tables.py tools/core_agent.py --samples 400000`; `$PY tools/build.py`.
 4. `$PY $K/gauntlet.py bots/final --vs v0 --tables 300`: the converted bot must beat the
-   unconverted one on the same seeds, on the kit when it is installed.
+   unconverted one on the same seeds, on the kit when it is installed. This is the one
+   question about strength the gauntlet can answer.
+
+Steps 1 and 2 are optional. At Pittsburgh the game (two boards) was not written into the
+simulator and no table job was added: the entry was tested on the kit only, and `gate.py`
+deals the variant's states from the Rules Card.
 
 Hold'em unchanged: skip to stage 5.
 
@@ -159,14 +175,15 @@ sweeps belong to `mid-round-iterate`, after hand histories exist.
 
 ## Stage 6: gauntlet and baseline
 
-While a gauntlet runs, fix the hand-history reader once, before any round exists: the kit's
-`hand-history/` folder holds a sample in the download format, so run
-`$PY tools/field_report.py --inspect <kit>/hand-history/<sample file>` and adjust `kit_hands`
-in `tools/field_report.py` until the report parses it. Our name in the files is the team
-name, `Team Allow It`.
+While a gauntlet runs, get the hand-history readers working on a real file. The first
+practice run finishes about 20 minutes after the announcement: ask the human to download its
+history from the team page, then run `$PY -I tools/history/run_stats.py <file>` and
+`$PY $K/results.py`. The readers in `tools/history/` were written on Pittsburgh's download
+format; if another event's differs, `$PY tools/field_report.py --inspect <file>` shows the
+structure. Our name in the files is the team name, `Team Allow It`.
 
 `$PY $K/gauntlet.py bots/final --vs v0` as soon as the conversion builds. Record points/table
-± error with n, tables/min, and the detectable-difference lines. Details and the promotion
+± error with n and tables/min. What the gauntlet can and cannot say, and the promotion
 rule: `references/measure-and-upload.md`. On the mini simulator `tools/bench.py` does a
 finer per-table paired comparison, hold'em only; the gauntlet is the one that plays the
 variant and also runs on the kit.
@@ -179,21 +196,21 @@ replaces a failing bot; a round-1 version should be active by T+48.
 
 ## Stage 8: practice runs
 
-After each one, read missed decisions, restarts, errors, average, places. The table in
+After each one: `$PY $K/portal.py` for missed decisions, restarts and errors, and
+`$PY $K/results.py` for points, rank, the field median and places. The table in
 `references/measure-and-upload.md` says what each triggers. One line per run in STATE.md.
 
-Practice runs are the only real-platform evidence before round 1 and are too noisy to A/B
-(standard error about 0.6 per run). If one offers a hand history, ask the human to download
-about 5,000 hands (the download lets you choose; `mid-round-iterate` says why that many) and run
-`tools/field_report.py` on them during the build: it is the first read of
-the real field, and it lets the first window after T+60 ship a change instead of waiting for
-round 1's lagging history.
+Practice runs are the real-platform evidence, before round 1 and after it. At Pittsburgh they
+had 2,500, 5,000, then 10,000 tables, with margins of 0.68, 0.45 to 0.50 and 0.31 to 0.38: a
+version can be judged on one. Each has a hand history: ask the human to download it and run
+the `tools/history/` readers against that run's ten best teams during the build. It is the
+first read of the real field, and it lets the first window after T+60 ship a change.
 
 ## Stage 9 (T+52 to 60): hand off
 
 Fill `skills/STATE.md` from `templates/STATE.md`: active version, the `final` profile's knobs,
-gauntlet baseline with n, tables/min, upload-to-ready time, known weaknesses, first
-experiments. No new code after T+52. Then `skills/mid-round-iterate` takes over.
+the gauntlet's conversion check with n, each practice run's points minus the field median,
+upload-to-ready time, known weaknesses, first experiments. No new code after T+52. Then `skills/mid-round-iterate` takes over.
 
 ## Behind the clock
 
@@ -205,7 +222,7 @@ Never shrink: an active bot (stage 1) and the gate before any upload (stage 4).
 | T+30 and no simulator class yet | skip it: write the `VARIANTS` entry with `phases` handlers only, reuse the nearest family's tables, test on the kit |
 | T+40 and the conversion does not beat `v0` | ship phase handlers only (no failed decisions), keep hold'em scoring; tables later |
 | T+45 and the gate still fails | stop changing the bot; the active bot stays; find the failing check's cause, nothing else |
-| T+48 and no measured improvement | upload nothing more before round 1; round 1 is 1/32 |
+| T+48 and no version has beaten the active one in a practice run | upload nothing more before round 1; round 1 is 1/32 |
 | the kit will not install locally | work on the build machine over SSH; if that fails too, upload the kit's `agent.py` by hand and tell the organizers |
 | gate tables are slow on the kit | `--tables 30`; never drop the fuzz or timing parts |
 
@@ -224,5 +241,6 @@ Never shrink: an active bot (stage 1) and the gate before any upload (stage 4).
 - `references/variants.md`: families, which existing `VARIANTS` entry to copy, timings. Stage 3.
 - `references/strategy.md`: payouts and ICM, the cap, which knobs answer which format change. Stage 5.
 - `references/measure-and-upload.md`: gauntlet, promotion rule, upload checklist, cutoff, practice runs. Stages 6 to 8.
+- `scripts/results.py`: a run's result against the field. `tools/history/`: the hand-history readers.
 - `templates/rules_card.json`, `templates/STATE.md`.
 - Background, not needed on the day: `skills/RESEARCH_NOTES.md`.

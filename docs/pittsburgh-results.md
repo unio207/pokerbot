@@ -79,11 +79,11 @@ Counts per table at our tables; the prize table sums raw counts over the six rou
 
 ## What changed the score
 
-- **Rounds 1 to 4:** we lost chips at full tables (-0.4 to -5.0 bb per 100 hands against the top ten's +12 to +14), folded the big blind more than the leaders, re-raised a fifth as often, and won 34 to 49% of heads-up against their 61 to 67%.
+- **Rounds 1 to 4:** we lost chips in hands dealt with four or more players left (-0.4 to -5.0 bb per 100 hands against the top ten's +12 to +14), folded the big blind more than the leaders, re-raised a fifth as often, and won 34 to 49% of heads-up against their 61 to 67%.
 - **Round 2** was the low point: the wider opens in `v11` earned 0.48 bb each, down from 0.68.
-- **Round 4:** the endgame package lifted heads-up wins from 33.7% to 48.8%; full-table play did not move.
-- **Round 5:** copying the top ten's measured preflop frequencies, with the survival margins off, turned full tables from -0.4 to +9.4 bb per 100 hands and heads-up wins to 65.0%.
-- **Round 6:** `v971` earned more per open (0.94 bb against 0.74) and lost heads-up wins (59.7% against 65.0%). Against the field median it was +2.25, `v96` +2.09: no measurable difference.
+- **Round 4:** the endgame package lifted heads-up wins from 33.7% to 48.8%; play with four or more left did not move.
+- **Round 5:** copying the top ten's measured preflop frequencies, with the survival margins off, turned play with four or more left from -0.4 to +9.4 bb per 100 hands and heads-up wins to 65.0%.
+- **Round 6:** `v971` earned more per open (0.94 bb against 0.74) and lost heads-up wins (59.7% against 65.0%). Against the field median it was +2.26, `v96` +2.10: no measurable difference.
 - **Still open:** in round 6, 43% of our opens were re-raised and we folded 65% of those; the top ten folded 50%. Their opens earned 1.22 bb, ours 0.94.
 
 The step-by-step account, every A/B and the gate results are in [`skills/STATE.md`](../skills/STATE.md).
@@ -92,5 +92,5 @@ The step-by-step account, every A/B and the gate results are in [`skills/STATE.m
 
 - **Runs and standings:** the portal, `portal.get("tournaments/<run id>/results")` and `competitions/<id>/standings` (`skills/sequoia-launch/scripts/portal.py`). Overall ranks after rounds 1 to 5 are recomputed from the round results; the final rank and total are the portal's.
 - **History tables:** the reader outputs in [`pittsburgh-results/`](pittsburgh-results/), one file per round and script (`r<round>_<script>.txt`), made by `tools/history/<script>.py`.
-- **Hand histories:** about 150 MB a round, in `hand-history/` on Henry's Mac and in his Drive folder. They are not in the repo.
+- **Hand histories:** about 150 MB for a round's first 10,000 tables, in `hand-history/` on Henry's Mac and in his Drive folder. They are not in the repo.
 - **The bots:** every uploaded file is on branch `uploads` (`uploads/v<N>_<submission id>/agent.py`).

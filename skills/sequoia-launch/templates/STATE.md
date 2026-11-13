@@ -27,7 +27,7 @@ Last `gate.py` output for the active version: runner, machine, the timing line, 
 ## Gauntlet baseline
 
 Runner (kit or mini), machine, seed, n per line-up, each line-up's points ± error, the total,
-tables per minute, and the three detectable-difference lines. Promotion rule in force.
+tables per minute. This is the conversion check, not a forecast of the platform score.
 
 ## Practice runs and rounds
 

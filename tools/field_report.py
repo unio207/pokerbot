@@ -7,7 +7,8 @@
 Per opponent it prints how often it plays a hand (VPIP), raises before the flop (PFR),
 goes all-in before the flop, limps, folds to a raise, bets after the flop and folds to a
 bet; a one-word type; the hands it showed after shoving; then the mix of types in the
-field and what to change in our bot (the knobs are in PROFILES in tools/core_agent.py).
+field and what to change in our bot (the knobs are in SETTINGS in tools/core_agent.py).
+The types and the advice were set on hold'em. For the Pittsburgh histories use tools/history/.
 
 Formats. `--simulate` plays tables on our mini simulator and reads its replay records;
 that path is tested. A file is read as JSON lines (gzip or plain), and `kit_hands` below

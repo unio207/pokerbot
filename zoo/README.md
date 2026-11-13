@@ -1,7 +1,10 @@
 # Bot zoo
 
-Opponents to tune against. Each folder here is one bot. The aim is variety that looks
-like tomorrow's field, not strength: weak, odd and even failing bots belong here.
+Opponents to test against. Each folder here is one bot. The aim was variety that looks
+like the field, not strength: weak, odd and even failing bots belong here. It did not look
+like the field: at the Pittsburgh regional these bots went to showdown in 20 to 90% of hands
+and real teams in 8 to 13%, and a bot that scored 28 points per table against them scored
+12.4 on the platform (`skills/STATE.md`). Use the zoo to find crashes, not to judge strength.
 Background and the reasoning are in [`docs/bot-zoo.md`](../docs/bot-zoo.md).
 
 ## Variants
@@ -106,7 +109,8 @@ the seat dropdowns, or name them on the command line:
 python3.12 devtest/mini_sim.py play starter zoo/gpt_aggro_1 zoo/henry_tight_2 sparring/nit --tables 200
 ```
 
-Tune on about two thirds of the zoo and check the final bot against the rest.
+The plan before the event was to tune on about two thirds of the zoo and check the final bot
+against the rest. Scores against the zoo did not carry over to the real field (see the top).
 
 ## Moving a zoo bot to the real kit
 

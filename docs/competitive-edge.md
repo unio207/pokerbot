@@ -1,5 +1,11 @@
 # How we gain an edge
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** The rounds weighed
+> 1, 2, 3, 5, 8, 13, so rounds 4 to 6 were 26 of 32 of the score, not 71%. Tuning against the
+> zoo did not carry over to the field, and pre-written code was allowed. Reading the real hand
+> histories (lever 2) is the part that paid. What happened:
+> [`pittsburgh-results.md`](pittsburgh-results.md).
+
 Most teams will arrive with nothing and spend the hour getting a bot to run at all, so
 the edge is mostly preparation and process, not cleverer poker. In rough order of payoff.
 

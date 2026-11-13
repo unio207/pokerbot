@@ -15,9 +15,12 @@ $PY $K/gauntlet.py bots/final                             # one bot: points/tabl
   then compares the working `bots/final` with what is uploaded.
 - Same `--seed` means the same seating and the same decks for both versions. The error bar on
   the difference comes from the ten batch differences and is what the verdict uses.
-- **Promotion rule:** the difference over all line-ups is above 2 standard errors, and still
-  positive on a fresh seed; zero failed decisions; the gate passes. Otherwise the incumbent
-  stays. `skills/mid-round-iterate` uses this same rule.
+- **The gauntlet does not promote.** It answers two questions: does the converted bot beat
+  the unconverted one on the same seeds (stage 3), and do failed decisions appear under load.
+  At Pittsburgh it scored the round 1 bot at 28.08 ± 0.25 where the platform scored it 12.40,
+  and read v94 against v13 as -0.27 ± 0.32 where the platform had v94 at +1.59 against the
+  median (practice 8) and v13 at -1.00 (round 3). Its opponents go
+  to showdown in 20 to 90% of hands; real teams in 8 to 13%. The promotion rule is below.
 - With the kit installed the gauntlet plays the kit's engine; without it, the mini simulator
   (and the ruleset named in the card's `variant.mini_name`).
 - On the mini simulator, `tools/bench.py` is the finer instrument: it differences per-table
@@ -45,6 +48,24 @@ and runner it is on. By hand: `2.8 x 21 / sqrt(tables per bot)`: 1.9 points at 1
 per bot, 1.0 at 3,500, 0.5 at 14,000. Two close versions of the same bot differ less per
 table than `final` and `starter` do, so their A/B is tighter than this.
 
+## Promotion rule
+
+One rule, used here and in `skills/mid-round-iterate`. A version stays active at a round
+snapshot only when:
+
+1. `gate.py bots/final` prints `GATE: PASS`, on the build machine too.
+2. Before any history exists (the build hour): it is the conversion, and it beats the
+   unconverted bot on the kit on two seeds. After that: the change answers a gap measured in
+   a hand history against that run's ten best teams (`tools/history/`).
+3. It played a practice run and its points minus the field median (`$PY $K/results.py`) beat
+   the active version's latest figure by more than the two margins combined: about 0.5 when
+   both runs have 10,000 tables. When no practice run fits before the snapshot, say so to the
+   human; `skills/mid-round-iterate` lists what must hold then.
+4. The human gives the go.
+
+Compare on points minus the median, not on points: the field's level moves (the median was
+13.28 in round 5 and 13.71 in round 6).
+
 ## Upload checklist (stage 7)
 
 Every upload and every switch of the active bot needs the human's explicit go. The agent
@@ -58,12 +79,13 @@ prepares; the human clicks.
    `rsync -a --exclude .git --exclude .claude --exclude starter-kit --exclude __pycache__ ./ no-limit-2026-build:work/pokerbot/` and
    `ssh no-limit-2026-build 'cd ~/work/pokerbot && ../starter-kit/.venv/bin/python skills/sequoia-launch/scripts/gate.py bots/final'`.
 4. State to the human: the file path, what changed since the active version, the gate line,
-   the gauntlet difference with its error and n. Ask for the go.
+   the measured gap it answers, and whether it has played a practice run. Ask for the go.
 5. The human uploads on the team page (or by the kit's documented command if there is one;
    never by a guessed API call, and the API key never goes to the build machine).
 6. Confirm on the team page: the upload is **ready**, it is the **active** bot, and after the
    next practice run it shows **0 missed decisions, 0 restarts, no errors**.
-7. Append a line to `skills/STATE.md`: version, time (T+), what changed, gate, gauntlet.
+7. Append a line to `skills/STATE.md`: version, time (T+), what changed, gate, and its
+   platform result once it has one.
 8. Rollback is never a re-upload: switch the active bot back to the previous ready version on
    the team page.
 
@@ -71,7 +93,7 @@ prepares; the human clicks.
 
 An upload becomes active by itself once ready. So an upload that lands just before a snapshot
 is scored without anyone having looked at it. Needed between upload and snapshot: the upload
-test and readiness (not measured yet: time it on the first upload and write it in STATE.md),
+test and readiness (under 60 s at Pittsburgh; time it again on the first upload),
 one look at the team page, and room for one switch back, at the site's rate limit of one
 upload per 30 s. Until the first upload is timed, allow 5 minutes:
 
@@ -80,10 +102,10 @@ upload per 30 s. Until the first upload is timed, allow 5 minutes:
 - **Round 1:** the last practice run that can show a problem before the T+60 snapshot starts
   around T+50. A version meant for round 1 should be active by **T+48**; anything later goes
   in unseen by any practice run and needs a clean gate on the build machine instead.
-- **Rounds 2 to 6:** only versions that passed the promotion rule; rounds 5 and 6 (21/32 of
-  the score) also need two fresh seeds, the build-machine gate, and a clean current round
-  (`skills/mid-round-iterate`, "Round posture"). There are no practice runs after the build,
-  so the gauntlet, the gate and the health of the round in progress are the only evidence.
+- **Rounds 2 to 6:** only versions that passed the promotion rule. Practice runs go on
+  between the scored rounds (four at Pittsburgh, each about ten minutes after a round's
+  start), so a candidate can play one before the round it is meant for. Rounds 5 and 6 are
+  21/32 of the score: there the active version must also be clean in the run in progress.
 
 ## Reading a practice run or a round result (stage 8)
 
@@ -92,13 +114,14 @@ upload per 30 s. Until the first upload is timed, allow 5 minutes:
 | Missed decisions above 0 | timeouts, exceptions or illegal actions on the real platform | top priority. Read the latest errors and the hand history's failed decisions. If the previous version had none, switch back now, fix after. |
 | Restarts above 0 | the process crashed or stalled (import, memory, a hang) | switch back now. Check import time and anything done at import. |
 | Missed decisions only in the first decisions of tables | slow first call | build tables at import, not on first use |
-| Average points below par (sum of payouts / players, 12.5) by more than 1.3 | weaker than the field; one practice run of about 1,000 tables has a standard error near 0.6 (`docs/official-format.md`) | check the place histogram before changing anything |
-| Many 2nd and 3rd, few 1st | too tight once in the points | `points_tight` down, `hu_open` up |
+| Points below the field median (`results.py`) by more than the margin | weaker than the field. Par (12.5) is not the bar: the median of the teams that played was 12.95 to 14.22 | read the run's history against its ten best teams before changing anything |
+| Many 2nd and 3rd, few 1st | playing to survive, and losing heads-up. At Pittsburgh: 9% firsts against the leaders' 26% | `icm_scale`, `points_tight`, `bubble_margin` to 0; `tools/history/headsup.py` for the heads-up rates |
 | Many 6th to 8th | busting early | tighter opens and calls (`call_raise`, `call_margin`); look for a variant-scoring error in the histories first |
-| Two versions differ by less than about 1.8 points across two practice runs | inside the noise of two independent 1,000-table runs (0.6 x 1.4 x 2) | believe the gauntlet A/B, not the practice runs |
-| Round result arrives after the next snapshot | normal (`docs/official-format.md`) | never wait for it to decide an upload |
+| Two versions differ, minus the median, by less than the two margins combined | inside the noise (about 0.5 for two 10,000-table runs, 0.64 for two of 5,000) | no evidence either way; do not turn to the gauntlet for a verdict |
+| A run has finished | its results for every team are on the portal within seconds, its history on the team page | `results.py`, then the readers |
 
-Hand histories: `tools/field_report.py <file> --hero <our name>` (`--inspect` first; the
-organizers' format was not known when it was written). That, `tools/field_fit.py --sweep`
-and what to change are `skills/mid-round-iterate`'s job. Nothing about named opponents goes
-into the bot: seats are anonymized and cross-table information breaks the rules.
+Hand histories: the seven readers in `tools/history/`, each a streaming pass over one
+download, comparing us with the run's ten best teams. Which to run and what to change are
+`skills/mid-round-iterate`'s job. `tools/field_report.py` also reads the format, but its
+types and advice were set on hold'em. Nothing about named opponents goes into the bot: seats
+are anonymized and cross-table information breaks the rules.

@@ -36,7 +36,8 @@ Results of every run, our standing after each round and the six-round history ta
 | v971 | `v971/agent.py`, 80,989 bytes, sha256 `ad2551c62fc741a9...` (p2's build, not in the core) | 20:45:55, submission `2f1d6444`, uploaded by Henry; uploaded again at 20:52:17 as submission `eb6caf1a` (same 80,989 bytes) | **yes: `eb6caf1a` played round 6** (no practice run took place after 20:31) | v96 with the preflop percentile from the measured three-card pot share (`pittsburgh_preflop`), no 1.1 multiplier, `call_margin` 0.05, `push_scale` 0.9, opens of 2.3 bb. p2's gate PASS (p99 185 µs, 0 failed of 90) |
 
 Upload to ready: under 60 s both times (v1 was ready and active at the first portal read, 56 s
-after upload; not timed more finely). Rollback target: v1, on the team page (the active switch, not a re-upload).
+after upload; not timed more finely). The rollback target during the build was v1, on the team page (the
+active switch, not a re-upload); it was never used.
 
 ## Variant
 
@@ -62,26 +63,44 @@ What the conversion is (`tools/core_agent.py`, the `double_board_turn_discard` e
   code (`_pair_strength`, split out of `holdem_postflop`), averaged.
 - `double_board_keep(cards, boards)`: the pair with the most strength summed over both boards.
   The discard handler throws away the third card; flop and turn strength is that pair's.
-- Preflop: `discard_reveal_preflop` (three cards, best two), unchanged.
+- Preflop: `discard_reveal_preflop` (three cards, best two) from v1 to v96. From v971 it is
+  `pittsburgh_preflop`: the measured three-card pot share by class (`_three_card_equity`,
+  `_PITT_MARKS`), with the top ten's frequencies in `_cloned()` deciding the action.
 - `hand_rank` and `_draws` are memoised (`lru_cache`, 64 entries): three pairs share each
   board's rank. 4,096 entries made the garbage collector pause for 1 to 2 ms; keep it small.
 - No mini-simulator class for this game. `--mini` plays hold'em: every measurement is on the kit.
 
-## Knobs in the active version (`PROFILES["final"]`, `tools/core_agent.py`)
+## Knobs in the round 6 bot (`tools/core_agent.py`)
+
+`SETTINGS`, applied last and only when `ACTIVE` is `final`. Change a knob here:
 
 ```python
-track=True, adapt=frozenset({"steal", "shover", "station", "minraise"}),
-steal_widen=1.15, steal_any=0.85, cbet_air=0.3, vs_shover="doc",
-icm_scale=1.0, cap_aware=True, open_size=2.3, semi_bluff=0.3,
-call_margin=0.05, bubble_margin=0.08, push_scale=0.9, points_tight=0.08,
-threebet=0.03, call_raise=0.08,
+open_size=2.3, steal_widen=1.15, steal_any=0.85, call_margin=0.05, bubble_margin=0.0,
+semi_bluff=0.3, cbet_air=0.6, hu_open=0.65, push_scale=0.9, threebet=0.03,
+call_raise=0.08, points_tight=0.0, icm_scale=0.0,
 ```
 
-Unchanged from before the event. Everything else comes from `_BASE` (`value_bet=0.80`,
-`medium_bet=0.60`, `call_edge=0.12`, `post="basic"`). The 13 float knobs are repeated in
-`SETTINGS`, applied last: change a knob there.
+`PROFILES["final"]` adds `track=True`, `adapt={steal, shover, station, minraise}`,
+`vs_shover="doc"`, `cap_aware=True`, `value_bet=0.70`, `medium_bet=0.52`. Everything else is
+`_BASE` (`call_edge=0.12`, `post="basic"`).
+
+`PROFILES["final"]` still carries the pre-event `icm_scale=1.0`, `bubble_margin=0.08`,
+`points_tight=0.08` and `cbet_air=0.3`, and the file header still says "full ICM pricing".
+`SETTINGS` overrides all four. They are left as they are: `bots/final/agent.py` is a copy of the
+core, so any edit to the core, a comment included, makes it differ from the round 6 upload.
+
+At the 19:03 hand-off (v4) the knobs were the pre-event profile: `icm_scale=1.0`,
+`bubble_margin=0.08`, `points_tight=0.08`, `cbet_air=0.3`, `value_bet=0.80`, `medium_bet=0.60`.
 
 ## Gate
+
+The round 6 bot, re-run on 2026-11-13 on the Mac (`gate.py bots/final --tables 30`, runner kit):
+**GATE: PASS**. 80,989 bytes, 20,000 fuzz states with 0 bad, 0 hidden exceptions in 10,000 clean
+states, timing p50 63 µs, p99 80, p99.9 97, max 116, largest memory blob 96 bytes, 90 kit tables
+with 0 failed decisions. Its gate on the build machine during the event is in the v971 row above
+(p99 185 µs, 0 failed of 90).
+
+The rest of this section is the 19:03 hand-off, about v1 and v4.
 
 `gate.py bots/final --tables 30`, runner kit, SDK kit, card `rules_card.json`: **GATE: PASS** on
 both machines, on the file that is v1 (table below) and again on v4 (build machine: p50 137 µs,
@@ -106,6 +125,10 @@ logged 0 missed of 416,771. Treat a handful in a gauntlet as load, and a failure
 (which plays its tables alone) as real.
 
 ## Gauntlet baseline
+
+Written at the 19:03 hand-off, about v0, v1 and v4. These kit numbers did not predict the
+platform: v4 scored 28.08 here and 12.40 in round 1. The promotion rule below was dropped during
+the night (see "The kit gauntlet as a judge").
 
 `gauntlet.py bots/final --vs v0 --tables 100`, runner kit, 5 jobs, payouts 50/30/20, nine
 line-ups, n = 900 tables per bot per seed. Par is 12.5.
@@ -187,8 +210,8 @@ correcting it did not score.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | practice 1 | 18:34:34 | v1 | 416,771 | 0 | 0 | none | 15.95 ± 0.68, 32nd of 82 that played; 1st 11.4%, 2nd 22.3%, 3rd 17.8% |
 | practice 2 | 18:45:01 | v2 | 803,861 | 0 | 0 | none | 14.47 ± 0.45, 43rd of 100; 1st 7.5%, 2nd 23.3%, 3rd 18.6% |
-| practice 3 | 18:54:04 | v3 | 1,551,886 | 0 | 0 | none | not read |
-| practice 4 | 19:04:02 | v4 | 1,509,669 | 0 | 0 | none | 13.06 ± 0.17 over 10,479 tables; 1st 9.9%, 2nd 15.4%, 3rd 17.4%, out of the points 57.3% (our own read of the download) |
+| practice 3 | 18:54:04 | v3 | 1,551,886 | 0 | 0 | none | 12.43 ± 0.31 over 10,000 tables, 59th of 105, field median 13.36, 1st 7.0%, 2nd 19.2%, 3rd 15.7% (portal, read 2026-11-13) |
+| practice 4 | 19:04:02 | v4 | 1,509,669 | 0 | 0 | none | 13.06 ± 0.17 over 10,479 tables; 1st 9.9%, 2nd 15.4%, 3rd 17.4%, out of the points 57.3% (our own read of the download). Portal: 13.00 ± 0.33 over 10,000 tables, 54th of 107 |
 | round 1 (weight 1) | 19:14:02 | v4 | 2,888,728 at 19:27 | 0 | 0 | none | 12.40 ± 0.23 (margin, about 2 standard errors) over 20,000 tables, 67th of 109, field median 13.04, 1st 9.2% (results endpoint: `portal.get("tournaments/<run id>/results")`) |
 | practice 5 | 19:24:11 | v7 | 703,480 | 0 | 0 | none | 11.73 ± 0.45 (margin, about 2 standard errors), 74th of 111, field median 12.95, 1st 8.0% (results endpoint) |
 | round 2 (weight 2) | 19:34:08 | v11 | 2,816,064 | 0 | 0 | none | 11.64 ± 0.23 over 20,000 tables, 72nd of 111, field median 13.00, 1st 9.2%, 2nd 13.0%, 3rd 15.8% |
@@ -196,8 +219,8 @@ correcting it did not score.
 | practice 7 | 20:06:46 | v91 | 1,327,755 | 0 | 0 | none | 12.78 ± 0.32 over 10,000 tables, 60th of 112, field median 13.01, 1st 7.8%, 2nd 17.9%, 3rd 17.6% |
 | round 4 (weight 5) | 20:15:05 | v17 | 2,673,318 | 0 | 0 | none | 13.04 ± 0.24 over 20,000 tables, 59th of 112, field median 13.12, 1st 11.2%, 2nd 12.7%, 3rd 18.1% |
 | practice 8 | 20:26:12 | v94 | 1,284,050 | 0 | 0 | none | 14.90 ± 0.38 over 10,000 tables, 37th of 112, field median 13.31, 1st 17.3%, 2nd 12.6%, 3rd 12.4%. Vedaant: heads-up win 57.9% (was 33.5%), big blind at 5 to 8 players -1.71 per table (was -3.57) |
-| round 5 (weight 8) | 20:35:22 | v96 | 2,421,407 | 0 | 0 | none | 15.37 ± 0.28 over 20,000 tables, 21st of 112, field median 13.24, 1st 20.0%, 2nd 11.1%, 3rd 10.2% (p2's read; health from the portal). Standings after it: 48th, total 260.8 = 12.40 + 2 x 11.64 + 3 x 12.31 + 5 x 13.04 + 8 x 15.37, so the weights are fibonacci whatever the portal's weight field says |
-| round 6 (weight 13) | 20:55:51 | v971 (`eb6caf1a`) | 2,510,126 | 0 | 0 | none | 15.96 ± 0.28 over 20,000 tables, 21st of 112, field median 13.71, 1st 19.5%, 2nd 13.2%, 3rd 11.2%. Final standings (portal, 21:23): 37th of 146 entries, total 468.31 (1st 598.3, 5th 565.1, 10th 542.3, 20th 498.9, 30th 476.8) |
+| round 5 (weight 8) | 20:35:22 | v96 | 2,421,407 | 0 | 0 | none | 15.37 ± 0.28 over 20,000 tables, 21st of 112, field median 13.28, 1st 20.0%, 2nd 11.1%, 3rd 10.2% (p2's read; health from the portal). Standings after it: 48th, total 260.8 = 12.40 + 2 x 11.64 + 3 x 12.31 + 5 x 13.04 + 8 x 15.37, so the weights are fibonacci whatever the portal's weight field says |
+| round 6 (weight 13) | 20:55:51 | v971 (`eb6caf1a`) | 2,510,126 | 0 | 0 | none | 15.96 ± 0.28 over 20,000 tables, 21st of 112, field median 13.71, 1st 19.5%, 2nd 13.2%, 3rd 11.2%. Final standings (portal, 21:23): 37th of 112 scoring teams (146 entries, 34 forfeited), total 468.31 (1st 598.3, 5th 565.1, 10th 542.3, 20th 498.9, 30th 476.8) |
 | practice 6 | 19:45:01 | v90 | 726,640 | 0 | 0 | none | 11.02 ± 0.50 over 5,000 tables, 75th of 112, field median 13.37, 1st 13.8%, 2nd 7.2%, 3rd 9.9% |
 
 Health columns are from `portal.py`. Points and places are Vedaant's, from the hand histories
@@ -207,6 +230,10 @@ third of their tables, play 19 to 32% of hands and fold to raises 67 to 81%; we 
 16% and folded 88 to 89%, all of it with the big-blind bug below.
 
 ## Known weaknesses
+
+Written at the 19:03 hand-off, about v4. Changed since: the betting thresholds (v13), the
+heads-up big blind (v17, then `_cloned()`), the preflop ranking (v971). What was still open after
+round 6 is under "What changed the score" in [`docs/pittsburgh-results.md`](../docs/pittsburgh-results.md).
 
 - Practice 4, v4, from the history (`hand-history/practice4/`, 169 MB, 1,571,390 hands): heads-up on
   the button it raises 67.8% and folds 27.4% (n = 30,979; the fold rate was 75% before the fix).
@@ -242,6 +269,9 @@ third of their tables, play 19 to 32% of hands and fold to raises 67 to 81%; we 
 
 ## First experiments to try
 
+Written at the 19:03 hand-off. What was tried, and how each scored, is in the table "Tried during
+the build and not shipped" above and in the last section.
+
 Judge each on `gauntlet.py bots/final --vs v4` on the kit and on the share of 1st places in the
 next practice run. Vedaant's ranked list (GitHub issues #12 and #13, branch `research/pittsburgh`):
 
@@ -272,7 +302,7 @@ decisions, 0 missed, 0 restarts. Result: **15.96 ± 0.28, 21st of 112**, firsts 
 The totals fit multipliers 1, 2, 3, 5, 8, 13 although the portal's `weight` field reads 1 to 6.
 
 v971 against v96 on the platform: 15.96 against 15.37, but the field median rose from 13.28 to
-13.71, so above the median it is +2.25 against +2.09, the same rank (21st) in both rounds, and a
+13.71, so above the median it is +2.26 against +2.10, the same rank (21st) in both rounds, and a
 difference of +0.16 inside the margins (± 0.28 each). The ranking fix and the 2.3 bb opens are
 not shown to have added anything; they did not cost anything either.
 
@@ -285,7 +315,7 @@ none came from the kit gauntlet.
 | 1 | Every calling line lost (a call of a raise outside the blinds -1.55 bb, a call of a flop bet after opening -1.07); the top ten re-raised 4.2% of hands, we 1.1% | v91: re-raise one raise with the top 15% / 12% / 6% (big blind, small blind, others) | 12.78 against v13's 12.31; -0.13 against the median, was -0.98 |
 | 2 | The gap to first was all first places (9% against 26%); heads-up we won 38%, the top ten 65%, and folded the big blind two to three times as often | `_cloned()`: the top ten's measured preflop frequencies by players left, seats behind and stack depth, used as percentile thresholds | v94: 14.90, 37th, 17.3% firsts, heads-up 57.9% |
 | 3 | By round 3 the top ten re-raised and called shoves far more than in round 1 and opened tighter; survival margins steer us to 2nd to 4th | v96: round 3's tables, `icm_scale`, `points_tight`, `bubble_margin` 0 | round 5: 15.37, 21st, 20.0% firsts, heads-up 65.0% (top ten 54.6%) |
-| 4 | Our ranking (best two cards) is wrong by up to 12 points of equity: 9-9-2 is 0.603 not 0.721, A-K-Q 0.603 not 0.651, A-7-2 0.489 not 0.588 (12,000 deals each). Our opens lose 2.89 bb when re-raised, the top ten's 2.35 | v971: percentile from the by-class three-card fit (`pittsburgh_preflop`, `_PITT_MARKS`), opens of 2.3 bb | round 6: 15.96, 21st, 19.5% firsts (+2.25 above the median; v96 was +2.09) |
+| 4 | Our ranking (best two cards) is wrong by up to 12 points of equity: 9-9-2 is 0.603 not 0.721, A-K-Q 0.603 not 0.651, A-7-2 0.489 not 0.588 (12,000 deals each). Our opens lose 2.89 bb when re-raised, the top ten's 2.35 | v971: percentile from the by-class three-card fit (`pittsburgh_preflop`, `_PITT_MARKS`), opens of 2.3 bb | round 6: 15.96, 21st, 19.5% firsts (+2.26 above the median; v96 was +2.10) |
 
 **Still open after round 5** (us against that round's top ten, 4+ players): +9.4 against +11.3 bb per
 100 hands. Re-raised after opening and continuing: +2.44 bb against +4.76 (that decision still runs
@@ -315,11 +345,24 @@ the names are the teams to compare with, taken from that run's results.
 | `headsup.py` | how often heads-up is reached and won, by starting chip share and stack depth |
 | `prizes.py` | scoops and rivers seen per table, every team ranked |
 
-The histories are in `hand-history/` (ignored by git; rounds 1, 3 and 5, part of 2, practice 4,
-6, 7 and 8; round 6's was not downloaded). The preflop equity checks (`hand_check.py`,
-`pre_mc.py`) stayed in the launch session's scratchpad: they load ignored `vNN` folders.
+The histories are in `hand-history/` (ignored by git, 1.7 GB: all six rounds and some practice
+runs, downloaded by 2026-11-13). The preflop equity check is `tools/preflop_check.py`. The Monte
+Carlo fit behind it (`pre_mc.py`) needed numpy, was never used in a bot and was not kept.
 
 ## Log
+
+- 2026-11-13, the day after: cleanup. The team is not playing the finals. Stale lines in this
+  file, the variant ruleset, the skills and the pre-event docs corrected or dated; the judging
+  parts of `sequoia-launch` and `mid-round-iterate` rewritten around the platform's results and
+  the history readers; `scripts/results.py` added (a run's points minus the field median) and
+  `tools/preflop_check.py` ported from the launch session's scratchpad (`pre_mc.py` dropped). The
+  core and `bots/` were not touched. Remote branches deleted, with their tips: `claude-strategies`
+  and `strategies` (`fa9590f`), `frontend` (`4ee6db0`), `zoo/rubric-pressure-icm` (`cfa3c03`),
+  `zoo/strategy-opponents` (`333b034`), all ancestors of main; `pittsburgh-v1` (`a2d477d`, also
+  in `pittsburgh-v2`); `overnight/prep-2026-11-11` (`765da1d`, PR #10 closed unmerged) and
+  `eval/mock-tournament-2026-11-12` (`f568cff`, PR #11 closed unmerged), both still reachable
+  from their pull requests. Kept: `uploads`, `pittsburgh-v2`, `research/pittsburgh`. New README
+  and a 34-second results video (`media/`).
 
 - 2026-11-12 19:13 to 21:00, the six rounds (`mid-round-iterate`). What moved the platform score, in order: v13's postflop (fold flop and turn bets twice as often, bet thinner): level with v4 on points, calling lines fixed; v17's endgame package: firsts 7.8 to 11.2%, 13.04; p2's cloned preflop of the ten best teams plus the one-board lock rule (v94): 14.90, firsts 17.3%; the same with round 3's tables and the survival settings off (v96): 15.37, 21st of 112. What did not: wider opens, big-blind calls, heads-up tweaks one at a time, the exploiter port (11.02). The nine-line-up gauntlet read every preflop change as flat and was right only about postflop; the two tests that tracked the platform were a table of our own versions head to head and `predict.py` (a candidate against seven uploads with known platform scores). `tools/core_agent.py` and `bots/final` hold v971, the round 6 bot (`cmp` equal to `v971/agent.py`, `build.py --check` ok). Unplayed candidates left as ignored folders: v95, v97 to v103 (the `wild` multiplier variants; the v103 core is saved in the session scratchpad only), v970.
 

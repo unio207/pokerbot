@@ -29,7 +29,7 @@ Prefer the event **Format** page / kit docs over older notes. Pittsburgh default
 | Hand cap | **250** (ICM split of remaining points at cap) |
 | Points (default) | **50 / 30 / 20**, 4th–8th = 0 — read `state.config.payouts` |
 | Rounds | 6 scored, weights **fibonacci** (1, 2, 3, 5, 8, 13: round 6 is 41%; a gain shipped early counts in every later round) |
-| Iterations | ≥ **5,000** tables per scored round; practice ~1,000 / 10 min (uncounted) |
+| Iterations | Pittsburgh played **20,000** tables per scored round; practice runs of 2,500 to 10,000 tables about every 10 min, all evening (uncounted) |
 | Decision limit | **1 ms**; error / timeout / illegal → check if free, else fold |
 | Memory | Empty each table; seats anonymized — only in-table stats |
 | AI | May write/refine code during build; **must not** make live decisions |
@@ -43,10 +43,11 @@ kit `RULES.md` / Format page for *this* event explicitly says otherwise.
 **`bots/final/agent.py`** — generated from `tools/core_agent.py` with `ACTIVE = "final"`.
 
 - Not `starter/`, not zoo bots, not one-off experiments.
-- Measured on the mini simulator on 2026-11-12 (`skills/STATE.md`): **24.55 ± 0.19**
-  pts/table vs starter **18.99 ± 0.16** over nine line-ups, n = 9,000 tables per bot; gate
-  fuzz 20,000 states / **0** bad. Stop chasing more mini-EV; process and variant
-  conversion are the remaining edge.
+- Local scores do not predict the platform. Before the Pittsburgh regional the mini simulator
+  had the pre-event `final` at 24.55 ± 0.19 pts/table against the starter's 18.99 ± 0.16
+  (hold'em, nine line-ups, n = 9,000 tables per bot), and on the day the kit gauntlet had the
+  round 1 bot at 28.08 ± 0.25. The platform scored that bot 12.40 (`docs/pittsburgh-results.md`).
+  Use local runs for crashes and timing; judge strength on the platform's results.
 
 If pre-written repo code is allowed: copy the repo, build, upload `bots/final` first, then
 convert. If not: rebuild the same ladder from the kit template using the strategy spec
@@ -113,17 +114,23 @@ stable under fuzz.
    blinds; `vs_shover="doc"` (conservative vs constant shovers); adapt to stations and
    min-raisers. Reset with the table.
 
-Locked `final` knobs. The float ones are in the top-level `SETTINGS` table of
-`tools/core_agent.py`, which overrides `PROFILES["final"]`: change them in `SETTINGS`,
-then `tools/build.py`. The rest are in `PROFILES["final"]`:
+The `final` knobs as played in round 6 of the Pittsburgh regional. The float ones are in the
+top-level `SETTINGS` table of `tools/core_agent.py`, which overrides `PROFILES["final"]`:
+change them in `SETTINGS`, then `tools/build.py`. The rest are in `PROFILES["final"]`:
 
 ```text
-track + adapt {steal, shover, station, minraise}
-steal_widen=1.15  steal_any=0.85  vs_shover=doc  cbet_air=0.3
-icm_scale=1.0  cap_aware  open_size=2.3  semi_bluff=0.3
-call_margin=0.05  bubble_margin=0.08  push_scale=0.9  points_tight=0.08
-threebet=0.03  call_raise=0.08  hu_open≈0.65
+SETTINGS   open_size=2.3  steal_widen=1.15  steal_any=0.85  call_margin=0.05
+           bubble_margin=0.0  semi_bluff=0.3  cbet_air=0.6  hu_open=0.65  push_scale=0.9
+           threebet=0.03  call_raise=0.08  points_tight=0.0  icm_scale=0.0
+PROFILES   track + adapt {steal, shover, station, minraise}  vs_shover=doc  cap_aware
+           value_bet=0.70  medium_bet=0.52
 ```
+
+Rung 5 did not hold up. The bot started the regional with `icm_scale=1.0`,
+`bubble_margin=0.08` and `points_tight=0.08` and scored 11.64 to 13.04 in rounds 1 to 4;
+with all three at 0 and the ten best teams' measured preflop frequencies (`_cloned()`) it
+scored 15.37 and 15.96. Survival pricing steered it to 2nd to 4th place; the points are in
+firsts. `PROFILES["final"]` still lists the old values: `SETTINGS` wins.
 
 ## Variant portability
 
@@ -159,5 +166,5 @@ below, plus decision timing against the limit, memory growth and the upload-test
 ## Handoff
 
 Once a legal (preferably variant-converted) `bots/final` is the active upload, stop
-rewriting strategy from scratch. Use **`mid-round-iterate`** for hand-history scouting,
-`SETTINGS` sweeps, promote/rollback, and spending weight on rounds 4–6.
+rewriting strategy from scratch. Use **`mid-round-iterate`** for reading the hand histories
+against each run's ten best teams, promote/rollback, and spending weight on rounds 4–6.

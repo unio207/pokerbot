@@ -1,7 +1,10 @@
 # Format corrections (stage 5)
 
-The strategy is the locked `final` profile in `tools/core_agent.py` (`PROFILES["final"]`):
-position charts, push/fold when short, ICM-priced calls, per-seat tracking and exploits. Its
+The strategy for the build hour is the `final` profile in `tools/core_agent.py`: position
+charts, push/fold when short, per-seat tracking and exploits, with its float knobs in
+`SETTINGS`. The file in the repo is the bot that played round 6 at Pittsburgh: its preflop is
+that field's measured frequencies (`_cloned()`) and its ICM pricing is off (`icm_scale` 0).
+For another variant or field, start the knobs below from their pre-event values. Its
 ladder is in `docs/baseline-strategies.md` and `skills/competition-build/SKILL.md`. During
 the build hour only one question is asked of it: **does the Rules Card contradict something
 it assumes?** Field tuning waits for hand histories and `skills/mid-round-iterate`.
@@ -35,12 +38,12 @@ Win chance needed to call an all-in against one opponent, by ICM
 Every knob named in this table is in the `SETTINGS` table of `tools/core_agent.py`, which
 overrides `PROFILES["final"]`: change it there, or the change does nothing. Knobs not in
 `SETTINGS` are keys of `PROFILES["final"]` (or `_BASE`). Change one, run `tools/build.py`,
-then `gauntlet.py bots/final --vs vN`.
+then the promotion rule in `measure-and-upload.md`.
 
 | The Rules Card says | Check first | Knob to test |
 | --- | --- | --- |
-| payouts are 50/30/20 | nothing: this is what `final` was tuned on | none |
-| winner take all, or one place paid | `icm_scale=1.0` already prices calls from `state.config.payouts`, so it should adapt by itself | `bubble_margin` 0.08 to 0, `points_tight` 0.08 to 0 |
+| payouts are 50/30/20 | nothing: this is what `final` was tuned on. At Pittsburgh, with these payouts, the two best rounds were played with the survival knobs at 0; that change shipped together with the cloned preflop, so its own share was not measured | none in the build hour |
+| winner take all, or one place paid | with `icm_scale=1.0` calls are priced from `state.config.payouts` (it is 0.0 in the repo now) | `bubble_margin` and `points_tight` to 0 (they are 0.0 in the repo now) |
 | four or more places paid | **the core's ICM prices only the first three places** (`_icm_me` in `tools/core_agent.py`), and `paid` moves the bubble by itself | extend `_icm_me` if time allows; otherwise `bubble_margin` up to 0.15 |
 | payouts drawn per table | grep the core for a payout constant used outside `act` | none if clean |
 | the cap binds (see below) | `cap_aware=True` is already on | none; watch the place histogram in practice runs |
@@ -63,9 +66,9 @@ survivor there, tables will reach the cap and the last hands are pure ICM decisi
 
 ## What not to do in the build hour
 
-- No new strategy code. `skills/competition-build` says to stop chasing mini-simulator EV, and
-  the measurements agree: `final` already scores 24.55 ± 0.19 over nine line-ups against
-  18.99 ± 0.16 for the starter.
+- No new strategy code before a history exists. Local scores (the pre-event `final` at
+  24.55 ± 0.19 against the starter's 18.99 ± 0.16 on the mini simulator) do not say what the
+  field does; the first practice run's history does.
 - No global widening of calls against shovers. On the starter, lowering its shove-call
   discount from 0.10 to 0.04 cost 0.73 ± 0.23 points per table (n = 5,000 each). `final` uses
   `vs_shover="doc"`, the conservative setting, for the same reason.

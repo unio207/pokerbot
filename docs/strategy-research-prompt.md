@@ -1,5 +1,11 @@
 # Strategy research prompt
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** The prompt is kept
+> as it was sent. Its format figures are the pre-event ones: the weights were 1, 2, 3, 5, 8, 13,
+> practice runs were 2,500 to 10,000 tables, and results arrived within seconds. Its "about 21
+> points per table" is hold'em on our own simulator. What happened:
+> [`pittsburgh-results.md`](pittsburgh-results.md).
+
 Paste the block below into each model. It is self-contained and asks for the same output
 structure from each, so the answers line up for comparison.
 

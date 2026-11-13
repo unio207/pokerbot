@@ -60,7 +60,7 @@ def main() -> None:
     parser.add_argument("--vs", help="Incumbent to compare against on the same seeds.")
     parser.add_argument("--tables", type=int, default=200, help="Tables per line-up per bot.")
     parser.add_argument("--batches", type=int, default=10)
-    parser.add_argument("--seed", default="gauntlet", help="Promote only after a second run on a fresh seed.")
+    parser.add_argument("--seed", default="gauntlet", help="Same seed, same deals. A second seed confirms a difference.")
     parser.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) // 2), help="Runner calls in parallel.")
     parser.add_argument("--mini", action="store_true")
     options = parser.parse_args()

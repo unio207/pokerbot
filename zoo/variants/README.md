@@ -5,7 +5,7 @@ in a fixed layout, so that a person or an AI can write a zoo bot for it from
 [`zoo/_template/`](../_template/README.md) without guessing.
 
 The tournament's variant is secret until the build starts, and the finals use a different
-one. Rulesets here are therefore of three kinds, and each file says which it is:
+one. The Pittsburgh regional (2026-11-12) played `double_board_turn_discard`. Rulesets here are therefore of three kinds, and each file says which it is:
 
 - **official**: taken from the organizers' pages or the kit's `RULES.md`.
 - **reported**: described by entrants of an earlier event; details may be wrong.
@@ -21,12 +21,14 @@ one. Rulesets here are therefore of three kinds, and each file says which it is:
 | [`omaha.md`](omaha.md) | `omaha` | practice: four hole cards, exactly two play | Yes |
 | [`auction.md`](auction.md) | `auction` | practice: a bidding phase for an extra card | Yes |
 | [`irish.md`](irish.md) | `irish` | practice: four hole cards, discard two after the flop (the conversion rehearsal) | Yes |
+| [`double_board_turn_discard.md`](double_board_turn_discard.md) | `double_board_turn_discard` | official (the Pittsburgh regional, 2026-11-12) | No: the kit only |
 
-The four variants were picked to cover the kinds of twist entrants and the organizers'
+Four of the practice and reported variants were picked to cover the kinds of twist entrants and the organizers'
 wording point to: an extra phase that chooses cards (`discard_reveal`), a changed deck and
 ranking (`short_deck`), extra hole cards with a rule on which play (`omaha`), and an extra
-phase that spends chips (`auction`). The real variant will be something else; a bot that
-handles all four through one `VARIANTS` table is quick to convert.
+phase that spends chips (`auction`). The real variant was something else (three hole cards,
+two boards, a discard after the turn); the core took it as one more `VARIANTS` entry, with no
+simulator class and no entry in the zoo template.
 
 ## The base game
 

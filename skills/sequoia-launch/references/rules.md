@@ -17,8 +17,8 @@ something older, the older value is in brackets.
 | Runtime | Python 3.12, standard library, `poker_agent_sdk`, `poker_agent_protocol`, the kit's `requirements.txt`. No network. Bot folder read-only; `/tmp` (64 MB) writable; no files kept between tables | kit `README.md` |
 | Upload | `agent.py`, or a zip with `agent.py` at its root: 50 MB uploaded [100], 200 MB unpacked, 1,000 entries, 1 MB of code in `agent.py`; one upload per 30 s [5 min] | Rules Card `limits` |
 | Upload test | heads-up, up to 20 hands, against check-or-fold, 1 ms and **no time bank**; rejected if the bot does not start, crashes, or fails more than 10% of decisions | `gate.py` imitates it on the mini simulator |
-| Schedule | build 60 min; rounds 1 to 6 snapshot at T+60, 80, 100, 120, 140, 160; weights fibonacci, 1, 2, 3, 5, 8, 13 by Henry's reading [1x to 6x]; at least 5,000 tables per round [10,000] | Rules Card `schedule`, `clock.py` |
-| Practice | about 1,000 tables every 10 min during the build; never scored | team page |
+| Schedule | build 60 min; rounds 1 to 6 snapshot at T+60, 80, 100, 120, 140, 160; weights fibonacci, 1, 2, 3, 5, 8, 13 (confirmed by the Pittsburgh totals) [1x to 6x]; Pittsburgh played 20,000 tables per round [Format page: at least 5,000; rules page: 10,000] | Rules Card `schedule`, `clock.py` |
+| Practice | about every 10 min, during the build and between the scored rounds; 2,500 to 10,000 tables at Pittsburgh [Format page: about 1,000, during the build]; never scored | team page, `portal.py` |
 | Score | sum over rounds of weight x average points per table; ties by weighted share of firsts, then seconds | |
 | Active bot | each upload becomes active once ready unless a newer one is already active; any earlier ready upload can be switched back to; no active bot at a snapshot scores 0; organizers can freeze uploads | team page |
 
@@ -45,7 +45,9 @@ something older, the older value is in brackets.
 ## What the team page shows
 
 Per round and practice run: average points, finishes by place, decisions, **missed decisions**,
-**restarts**, latest errors. Never what the bot prints. After each round: hand histories of
+**restarts**, latest errors. Never what the bot prints. A finished run's scores for every team
+are on `portal.get("tournaments/<run id>/results")` within seconds. After each run, practice
+runs included: one hand-history file (about 150 MB for a round's first 10,000 tables) of
 every table we played (opponents named, our cards, others' cards when shown, the action
 played for each failed decision). What each number triggers: `measure-and-upload.md`.
 

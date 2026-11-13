@@ -1,5 +1,9 @@
 # Vedaant Seceret Strategies HeHeHe
 
+> **Written before the Pittsburgh regional (2026-11-12) and left as it was.** Written on branch
+> `zoo/rubric-pressure-icm`, merged as PR #2: "this branch" below means that one. What happened:
+> [`pittsburgh-results.md`](../docs/pittsburgh-results.md).
+
 Design for the RubricPressure ICM zoo bot. **The bot is implemented** in `zoo/codex_rubric_pressure_icm_1/agent.py`; results are under Strategy F in [`STRATEGIES.md`](STRATEGIES.md). The sections below are the original handoff plan, kept as the design record.
 
 ## Status on this branch
