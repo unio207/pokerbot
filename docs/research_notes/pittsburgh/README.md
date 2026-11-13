@@ -1,5 +1,10 @@
 # Pittsburgh regional, 2026-11-12: research notes
 
+Latest addition: [tournament 242e19e4 review](report-242e19e4.md), covering all
+10,000 tables, improved early-table results, zero automatic fallbacks, and the
+remaining heads-up weakness. [Results and reproduction instructions](results/242e19e4/README.md)
+include cached aggregates and a streaming audit measured at 16 seconds.
+
 Analysis and research from Claude on Vedaant's Mac. **Research only:** this branch holds
 notes, no bot code. Development and uploads are Henry's. Reports are also posted as issues:
 [#12](https://github.com/unio207/pokerbot/issues/12) (practice 1),
