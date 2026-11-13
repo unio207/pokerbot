@@ -1,0 +1,1122 @@
+{
+  "tournament_id": "242e19e4-657a-4a4f-9819-85b9850570fa",
+  "counts": {
+    "all_tables": 10000,
+    "tables": 10000,
+    "points": 127820.0,
+    "points_squared": 4261000.0,
+    "initial_points": 125000.0,
+    "automatic": 0,
+    "tables_with_automatic": 0,
+    "unfinished_tables": 1,
+    "hero_hands": 1091202,
+    "decisions": 1327755,
+    "prize_rivers_seen": 81927,
+    "prize_scoops": 17829
+  },
+  "mean": 12.782,
+  "standard_error": 0.16209464848509575,
+  "approximate_95_interval": [
+    12.464294488969212,
+    13.099705511030788
+  ],
+  "stage": {
+    "5-8": {
+      "hands": 850450,
+      "points_change": 9510.448800000213,
+      "fold_hands": 726071,
+      "fold_points_change": -81552.75850000593,
+      "uncontested_hands": 81876,
+      "uncontested_points_change": 76319.30259999966,
+      "showdown_hands": 42503,
+      "showdown_points_change": 14743.904699999985
+    },
+    "3-4": {
+      "hands": 187753,
+      "points_change": -2965.372999999911,
+      "showdown_hands": 22587,
+      "showdown_points_change": 1699.4401,
+      "fold_hands": 134583,
+      "fold_points_change": -44201.76730000028,
+      "uncontested_hands": 30583,
+      "uncontested_points_change": 39536.954199999826
+    },
+    "HU": {
+      "hands": 52999,
+      "points_change": -3725.0757999999723,
+      "fold_hands": 25204,
+      "fold_points_change": -15092.98520000027,
+      "uncontested_hands": 16826,
+      "uncontested_points_change": 11064.11310000005,
+      "showdown_hands": 10969,
+      "showdown_points_change": 303.7963000000014
+    }
+  },
+  "score_distribution": {
+    "0.0": 5672,
+    "20.0": 1758,
+    "30.0": 1792,
+    "50.0": 778
+  },
+  "blocks": {
+    "0": {
+      "tables": 2000,
+      "points": 24340.0,
+      "stage_5-8": 1041.491299999962,
+      "stage_3-4": -1038.2167000000015,
+      "stage_HU": -663.2746000000013
+    },
+    "1": {
+      "tables": 2000,
+      "points": 25350.0,
+      "stage_5-8": 1363.5914999999761,
+      "stage_3-4": -540.6580999999977,
+      "stage_HU": -472.933400000001
+    },
+    "2": {
+      "tables": 2000,
+      "points": 25570.0,
+      "stage_5-8": 2289.433100000024,
+      "stage_3-4": -937.1730000000043,
+      "stage_HU": -782.2601000000013
+    },
+    "3": {
+      "tables": 2000,
+      "points": 26030.0,
+      "stage_5-8": 2453.377200000074,
+      "stage_3-4": -416.98870000000124,
+      "stage_HU": -1006.3885000000035
+    },
+    "4": {
+      "tables": 2000,
+      "points": 26530.0,
+      "stage_5-8": 2362.555700000029,
+      "stage_3-4": -32.33650000000025,
+      "stage_HU": -800.2192000000013
+    }
+  },
+  "examples": [
+    {
+      "iteration": 8606,
+      "table": 11,
+      "hand": 135,
+      "seat": 4,
+      "stage": "3-4",
+      "cards": [
+        "7d",
+        "6d",
+        "3d"
+      ],
+      "points_change": 27.6487,
+      "chip_change": 0,
+      "events": [
+        {
+          "kind": "blind",
+          "seat": 2,
+          "amount": 200
+        },
+        {
+          "kind": "blind",
+          "seat": 3,
+          "amount": 400
+        },
+        {
+          "kind": "fold",
+          "seat": 4
+        },
+        {
+          "kind": "raise",
+          "seat": 6,
+          "amount": 1522
+        },
+        {
+          "kind": "call",
+          "seat": 2,
+          "amount": 1322
+        },
+        {
+          "kind": "raise",
+          "seat": 3,
+          "amount": 4607
+        },
+        {
+          "kind": "call",
+          "seat": 2,
+          "amount": 3085
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "4c",
+            "3h",
+            "Tc"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "2s",
+            "3c",
+            "7c"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "As"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "7h"
+          ]
+        },
+        {
+          "kind": "discard",
+          "seat": 2
+        },
+        {
+          "kind": "discard",
+          "seat": 3
+        },
+        {
+          "kind": "discard",
+          "seat": 6
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "9c"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "Ad"
+          ]
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 2
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 3
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 6
+        },
+        {
+          "kind": "show",
+          "seat": 2,
+          "cards": [
+            "Qc",
+            "Ac"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 3,
+          "cards": [
+            "Qh",
+            "9s"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 6,
+          "cards": [
+            "Jc",
+            "Jd"
+          ]
+        },
+        {
+          "kind": "prize_scoops",
+          "seat": 2
+        },
+        {
+          "kind": "win",
+          "seat": 2,
+          "amount": 10736
+        },
+        {
+          "kind": "stack",
+          "seat": 2,
+          "amount": 15843
+        },
+        {
+          "kind": "stack",
+          "seat": 3,
+          "amount": 0
+        },
+        {
+          "kind": "stack",
+          "seat": 4,
+          "amount": 157
+        },
+        {
+          "kind": "stack",
+          "seat": 6,
+          "amount": 0
+        }
+      ]
+    },
+    {
+      "iteration": 4372,
+      "table": 2,
+      "hand": 129,
+      "seat": 7,
+      "stage": "3-4",
+      "cards": [
+        "Ac",
+        "Td",
+        "9c"
+      ],
+      "points_change": 27.4756,
+      "chip_change": 287,
+      "events": [
+        {
+          "kind": "blind",
+          "seat": 4,
+          "amount": 200
+        },
+        {
+          "kind": "blind",
+          "seat": 5,
+          "amount": 400
+        },
+        {
+          "kind": "call",
+          "seat": 7,
+          "amount": 287
+        },
+        {
+          "kind": "raise",
+          "seat": 3,
+          "amount": 4452
+        },
+        {
+          "kind": "call",
+          "seat": 4,
+          "amount": 4252
+        },
+        {
+          "kind": "call",
+          "seat": 5,
+          "amount": 2394
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "2c",
+            "7c",
+            "Jd"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "Kh",
+            "2h",
+            "5d"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "5s"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "8s"
+          ]
+        },
+        {
+          "kind": "discard",
+          "seat": 4
+        },
+        {
+          "kind": "discard",
+          "seat": 5
+        },
+        {
+          "kind": "discard",
+          "seat": 7
+        },
+        {
+          "kind": "discard",
+          "seat": 3
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "5c"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "4d"
+          ]
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 4
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 5
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 7
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 3
+        },
+        {
+          "kind": "show",
+          "seat": 4,
+          "cards": [
+            "Kc",
+            "Kd"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 5,
+          "cards": [
+            "8c",
+            "7h"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 7,
+          "cards": [
+            "Ac",
+            "9c"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 3,
+          "cards": [
+            "Qc",
+            "As"
+          ]
+        },
+        {
+          "kind": "win",
+          "seat": 4,
+          "amount": 11411
+        },
+        {
+          "kind": "win",
+          "seat": 7,
+          "amount": 574
+        },
+        {
+          "kind": "stack",
+          "seat": 4,
+          "amount": 15426
+        },
+        {
+          "kind": "stack",
+          "seat": 5,
+          "amount": 0
+        },
+        {
+          "kind": "stack",
+          "seat": 7,
+          "amount": 574
+        },
+        {
+          "kind": "stack",
+          "seat": 3,
+          "amount": 0
+        }
+      ]
+    },
+    {
+      "iteration": 2894,
+      "table": 6,
+      "hand": 78,
+      "seat": 3,
+      "stage": "5-8",
+      "cards": [
+        "Td",
+        "Ah",
+        "Ad"
+      ],
+      "points_change": 25.777300000000004,
+      "chip_change": 6272,
+      "events": [
+        {
+          "kind": "blind",
+          "seat": 5,
+          "amount": 50
+        },
+        {
+          "kind": "blind",
+          "seat": 7,
+          "amount": 100
+        },
+        {
+          "kind": "raise",
+          "seat": 0,
+          "amount": 1099
+        },
+        {
+          "kind": "call",
+          "seat": 1,
+          "amount": 1099
+        },
+        {
+          "kind": "call",
+          "seat": 3,
+          "amount": 1099
+        },
+        {
+          "kind": "call",
+          "seat": 4,
+          "amount": 1099
+        },
+        {
+          "kind": "call",
+          "seat": 5,
+          "amount": 1049
+        },
+        {
+          "kind": "call",
+          "seat": 7,
+          "amount": 999
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "6c",
+            "6h",
+            "Qs"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "Kd",
+            "4c",
+            "Ac"
+          ]
+        },
+        {
+          "kind": "check",
+          "seat": 5
+        },
+        {
+          "kind": "check",
+          "seat": 7
+        },
+        {
+          "kind": "check",
+          "seat": 1
+        },
+        {
+          "kind": "raise",
+          "seat": 3,
+          "amount": 441
+        },
+        {
+          "kind": "call",
+          "seat": 4,
+          "amount": 441
+        },
+        {
+          "kind": "call",
+          "seat": 5,
+          "amount": 336
+        },
+        {
+          "kind": "fold",
+          "seat": 7
+        },
+        {
+          "kind": "fold",
+          "seat": 1
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "9s"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "Ts"
+          ]
+        },
+        {
+          "kind": "discard",
+          "seat": 5
+        },
+        {
+          "kind": "discard",
+          "seat": 0
+        },
+        {
+          "kind": "discard",
+          "seat": 3
+        },
+        {
+          "kind": "discard",
+          "seat": 4
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "2s"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "3s"
+          ]
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 5
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 0
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 3
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 4
+        },
+        {
+          "kind": "show",
+          "seat": 5,
+          "cards": [
+            "7s",
+            "7h"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 0,
+          "cards": [
+            "Jd",
+            "Jh"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 3,
+          "cards": [
+            "Ah",
+            "Ad"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 4,
+          "cards": [
+            "Kc",
+            "Qh"
+          ]
+        },
+        {
+          "kind": "prize_scoops",
+          "seat": 3
+        },
+        {
+          "kind": "win",
+          "seat": 3,
+          "amount": 7812
+        },
+        {
+          "kind": "stack",
+          "seat": 5,
+          "amount": 0
+        },
+        {
+          "kind": "stack",
+          "seat": 7,
+          "amount": 897
+        },
+        {
+          "kind": "stack",
+          "seat": 0,
+          "amount": 0
+        },
+        {
+          "kind": "stack",
+          "seat": 1,
+          "amount": 238
+        },
+        {
+          "kind": "stack",
+          "seat": 3,
+          "amount": 7812
+        },
+        {
+          "kind": "stack",
+          "seat": 4,
+          "amount": 7053
+        }
+      ]
+    },
+    {
+      "iteration": 7165,
+      "table": 3,
+      "hand": 96,
+      "seat": 3,
+      "stage": "5-8",
+      "cards": [
+        "As",
+        "Jh",
+        "Ks"
+      ],
+      "points_change": 23.222500000000004,
+      "chip_change": 6276,
+      "events": [
+        {
+          "kind": "blind",
+          "seat": 1,
+          "amount": 80
+        },
+        {
+          "kind": "blind",
+          "seat": 2,
+          "amount": 160
+        },
+        {
+          "kind": "raise",
+          "seat": 3,
+          "amount": 2292
+        },
+        {
+          "kind": "call",
+          "seat": 4,
+          "amount": 2292
+        },
+        {
+          "kind": "fold",
+          "seat": 5
+        },
+        {
+          "kind": "call",
+          "seat": 6,
+          "amount": 2292
+        },
+        {
+          "kind": "fold",
+          "seat": 7
+        },
+        {
+          "kind": "fold",
+          "seat": 1
+        },
+        {
+          "kind": "call",
+          "seat": 2,
+          "amount": 1452
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "4c",
+            "7c",
+            "Kh"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "6s",
+            "Ac",
+            "4h"
+          ]
+        },
+        {
+          "kind": "check",
+          "seat": 4
+        },
+        {
+          "kind": "check",
+          "seat": 6
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "2s"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "9h"
+          ]
+        },
+        {
+          "kind": "check",
+          "seat": 4
+        },
+        {
+          "kind": "check",
+          "seat": 6
+        },
+        {
+          "kind": "discard",
+          "seat": 2
+        },
+        {
+          "kind": "discard",
+          "seat": 3
+        },
+        {
+          "kind": "discard",
+          "seat": 4
+        },
+        {
+          "kind": "discard",
+          "seat": 6
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "Js"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "2h"
+          ]
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 2
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 3
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 4
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 6
+        },
+        {
+          "kind": "check",
+          "seat": 4
+        },
+        {
+          "kind": "check",
+          "seat": 6
+        },
+        {
+          "kind": "show",
+          "seat": 2,
+          "cards": [
+            "5c",
+            "2c"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 3,
+          "cards": [
+            "As",
+            "Ks"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 4,
+          "cards": [
+            "Qd",
+            "Qh"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 6,
+          "cards": [
+            "8s",
+            "8c"
+          ]
+        },
+        {
+          "kind": "prize_scoops",
+          "seat": 3
+        },
+        {
+          "kind": "win",
+          "seat": 3,
+          "amount": 8568
+        },
+        {
+          "kind": "stack",
+          "seat": 1,
+          "amount": 3788
+        },
+        {
+          "kind": "stack",
+          "seat": 2,
+          "amount": 0
+        },
+        {
+          "kind": "stack",
+          "seat": 3,
+          "amount": 8568
+        },
+        {
+          "kind": "stack",
+          "seat": 4,
+          "amount": 1966
+        },
+        {
+          "kind": "stack",
+          "seat": 5,
+          "amount": 1196
+        },
+        {
+          "kind": "stack",
+          "seat": 6,
+          "amount": 77
+        },
+        {
+          "kind": "stack",
+          "seat": 7,
+          "amount": 405
+        }
+      ]
+    },
+    {
+      "iteration": 9550,
+      "table": 10,
+      "hand": 143,
+      "seat": 7,
+      "stage": "3-4",
+      "cards": [
+        "Ts",
+        "3h",
+        "3c"
+      ],
+      "points_change": 23.0008,
+      "chip_change": 573,
+      "events": [
+        {
+          "kind": "blind",
+          "seat": 1,
+          "amount": 300
+        },
+        {
+          "kind": "blind",
+          "seat": 6,
+          "amount": 600
+        },
+        {
+          "kind": "call",
+          "seat": 7,
+          "amount": 573
+        },
+        {
+          "kind": "raise",
+          "seat": 0,
+          "amount": 4889
+        },
+        {
+          "kind": "call",
+          "seat": 1,
+          "amount": 973
+        },
+        {
+          "kind": "call",
+          "seat": 6,
+          "amount": 4289
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "Th",
+            "Ks",
+            "9h"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "Qs",
+            "3d",
+            "9s"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "6d"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "7d"
+          ]
+        },
+        {
+          "kind": "discard",
+          "seat": 1
+        },
+        {
+          "kind": "discard",
+          "seat": 6
+        },
+        {
+          "kind": "discard",
+          "seat": 7
+        },
+        {
+          "kind": "discard",
+          "seat": 0
+        },
+        {
+          "kind": "board",
+          "amount": 1,
+          "cards": [
+            "7h"
+          ]
+        },
+        {
+          "kind": "board",
+          "amount": 2,
+          "cards": [
+            "8h"
+          ]
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 1
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 6
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 7
+        },
+        {
+          "kind": "prize_rivers_seen",
+          "seat": 0
+        },
+        {
+          "kind": "show",
+          "seat": 1,
+          "cards": [
+            "Tc",
+            "Kd"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 6,
+          "cards": [
+            "Ac",
+            "8s"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 7,
+          "cards": [
+            "3h",
+            "3c"
+          ]
+        },
+        {
+          "kind": "show",
+          "seat": 0,
+          "cards": [
+            "5s",
+            "5c"
+          ]
+        },
+        {
+          "kind": "win",
+          "seat": 6,
+          "amount": 10478
+        },
+        {
+          "kind": "win",
+          "seat": 7,
+          "amount": 1146
+        },
+        {
+          "kind": "stack",
+          "seat": 1,
+          "amount": 0
+        },
+        {
+          "kind": "stack",
+          "seat": 6,
+          "amount": 14854
+        },
+        {
+          "kind": "stack",
+          "seat": 7,
+          "amount": 1146
+        },
+        {
+          "kind": "stack",
+          "seat": 0,
+          "amount": 0
+        }
+      ]
+    }
+  ],
+  "elapsed_seconds": 16.362
+}

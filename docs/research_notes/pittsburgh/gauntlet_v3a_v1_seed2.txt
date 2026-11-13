@@ -1,0 +1,46 @@
+runner: kit   seed pgh-v3a-2   payouts [50, 30, 20]   jobs 4
+
+v3a: failed decisions 7   <-- FIX BEFORE ANYTHING ELSE
+  mixed field                         33.10 ± 2.35  (n=100 tables)
+  passive field (many broken bots)    40.40 ± 2.30  (n=100 tables)
+  aggressive field                    30.30 ± 0.72  (n=100 tables)
+  seven starters                      24.10 ± 1.25  (n=100 tables)
+  four of you, four starters          16.57 ± 0.73  (n=100 tables)
+  zoo field 1                         19.10 ± 2.29  (n=100 tables)
+  zoo field 2                         24.30 ± 2.46  (n=100 tables)
+  zoo field 3                         33.50 ± 0.74  (n=100 tables)
+  zoo field 4                         20.90 ± 1.38  (n=100 tables)
+  ALL LINE-UPS (equal weight)         26.92 ± 0.44  (n=900 tables, par 12.5)
+
+v1: failed decisions 7   <-- FIX BEFORE ANYTHING ELSE
+  mixed field                         31.20 ± 2.22  (n=100 tables)
+  passive field (many broken bots)    38.00 ± 3.21  (n=100 tables)
+  aggressive field                    30.50 ± 0.67  (n=100 tables)
+  seven starters                      23.20 ± 2.36  (n=100 tables)
+  four of you, four starters          17.77 ± 0.40  (n=100 tables)
+  zoo field 1                         19.30 ± 1.79  (n=100 tables)
+  zoo field 2                         24.30 ± 1.40  (n=100 tables)
+  zoo field 3                         34.40 ± 1.53  (n=100 tables)
+  zoo field 4                         20.50 ± 2.32  (n=100 tables)
+  ALL LINE-UPS (equal weight)         26.57 ± 0.25  (n=900 tables, par 12.5)
+
+speed: 1800 tables in 2.50 min = 721 tables/min on this machine (kit)
+
+v3a minus v1, same seeds:
+  mixed field                         +1.90 ± 0.94
+  passive field (many broken bots)    +2.40 ± 1.88
+  aggressive field                    -0.20 ± 0.46
+  seven starters                      +0.90 ± 1.56
+  four of you, four starters          -1.20 ± 0.44
+  zoo field 1                         -0.20 ± 1.45
+  zoo field 2                         +0.00 ± 2.20
+  zoo field 3                         -0.90 ± 1.31
+  zoo field 4                         +0.40 ± 2.31
+  ALL LINE-UPS                        +0.34 ± 0.31
+
+smallest difference this A/B can detect (2.8 standard errors: 5% false alarm, 80% power), at 721 tables/min:
+   5 min: 0.62 points/table  (1802 tables per bot)
+  10 min: 0.44 points/table  (3604 tables per bot)
+  30 min: 0.25 points/table  (10813 tables per bot)
+
+verdict: NO DETECTABLE DIFFERENCE at this n: keep the incumbent

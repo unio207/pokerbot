@@ -1,0 +1,11 @@
+{
+  "tournament_id": "3c389150-1178-4e95-bc03-7cc3b0b13282",
+  "team_id": "0214624e-3ca6-43d9-9a33-ce3e71ab9727",
+  "filename": "hands-3c389150-1178-4e95-bc03-7cc3b0b13282-first-10000.jsonl.gz",
+  "requested_tables": 10000,
+  "scope": "first 10,000 requested tables; not the full tournament",
+  "bytes": 156669007,
+  "sha256": "ba8e3bc5106e4bbde3642675960994ec0741d3fd622f3f295025f330d18cdb1b",
+  "download_url": "https://pokerbot.sequoiacap.com/tournament/api/teams/0214624e-3ca6-43d9-9a33-ce3e71ab9727/tournaments/3c389150-1178-4e95-bc03-7cc3b0b13282/hands?tables=10000",
+  "raw_file_committed": false
+}

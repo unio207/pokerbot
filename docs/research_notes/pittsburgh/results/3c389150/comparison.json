@@ -1,0 +1,415 @@
+{
+  "previous": {
+    "tournament_id": "242e19e4-657a-4a4f-9819-85b9850570fa",
+    "tables": 10000,
+    "mean_points": 12.782,
+    "standard_error": 0.16209464848509572,
+    "places": {
+      "1": 0.0778,
+      "2": 0.1792,
+      "3": 0.1758,
+      "4": 0.1667,
+      "5": 0.1273,
+      "6": 0.1085,
+      "7": 0.094,
+      "8": 0.0707
+    },
+    "cash_rate": 0.4328,
+    "heads_up_reach": 0.2531,
+    "heads_up_win": 0.30146187277755826,
+    "heads_up_start_share": 0.37505094330304234,
+    "stage": {
+      "5-8": {
+        "hands": 850450,
+        "points_per_table": 0.95104488,
+        "vpip": 0.17232759127520725,
+        "positions": {
+          "BTN": 1.5228343500000008,
+          "SB": -0.9714737100000002,
+          "BB": -3.2369945800000006,
+          "oth": 3.6366788200000038
+        },
+        "classes": {
+          "novol": {
+            "hands": 703894,
+            "points_per_table": -3.566185560000003
+          },
+          "pre_only": {
+            "hands": 62398,
+            "points_per_table": 0.54382518
+          },
+          "allin_pre_shove": {
+            "hands": 33000,
+            "points_per_table": 2.8525454700000004
+          },
+          "allin_pre_call": {
+            "hands": 1570,
+            "points_per_table": 0.3835176700000001
+          },
+          "post_agg": {
+            "hands": 27770,
+            "points_per_table": 2.186551819999999
+          },
+          "post_call": {
+            "hands": 5628,
+            "points_per_table": -1.035016890000001
+          },
+          "post_passive": {
+            "hands": 16190,
+            "points_per_table": -0.41419281000000047
+          }
+        }
+      },
+      "3-4": {
+        "hands": 187753,
+        "points_per_table": -0.29653729999999995,
+        "vpip": 0.27602754683014386,
+        "positions": {
+          "BTN": 1.9274526499999995,
+          "SB": -0.4440525599999998,
+          "BB": -2.9715285299999983,
+          "oth": 1.1915911400000005
+        },
+        "classes": {
+          "novol": {
+            "hands": 135928,
+            "points_per_table": -2.8965193199999986
+          },
+          "pre_only": {
+            "hands": 9529,
+            "points_per_table": -0.034187910000000016
+          },
+          "allin_pre_shove": {
+            "hands": 28642,
+            "points_per_table": 2.330892979999999
+          },
+          "allin_pre_call": {
+            "hands": 2422,
+            "points_per_table": 0.3485954900000003
+          },
+          "post_agg": {
+            "hands": 4582,
+            "points_per_table": 0.43523321
+          },
+          "post_call": {
+            "hands": 640,
+            "points_per_table": -0.15038654000000004
+          },
+          "post_passive": {
+            "hands": 6010,
+            "points_per_table": -0.3301652099999998
+          }
+        }
+      },
+      "HU": {
+        "hands": 52999,
+        "points_per_table": -0.37250758000000006,
+        "vpip": 0.4418007886941263,
+        "positions": {
+          "BTN": 0.0,
+          "SB": 0.25189535,
+          "BB": -0.6244029299999999,
+          "oth": 0.0
+        },
+        "classes": {
+          "novol": {
+            "hands": 29584,
+            "points_per_table": -1.0906650599999996
+          },
+          "pre_only": {
+            "hands": 2800,
+            "points_per_table": -0.03424826
+          },
+          "allin_pre_shove": {
+            "hands": 15771,
+            "points_per_table": 0.5824082199999999
+          },
+          "allin_pre_call": {
+            "hands": 821,
+            "points_per_table": 0.08183662999999998
+          },
+          "post_agg": {
+            "hands": 1350,
+            "points_per_table": 0.11127589999999996
+          },
+          "post_call": {
+            "hands": 109,
+            "points_per_table": -0.012677720000000005
+          },
+          "post_passive": {
+            "hands": 2564,
+            "points_per_table": -0.010437290000000002
+          }
+        }
+      }
+    },
+    "heads_up_actions": {
+      "e<=10": {
+        "button_raise": {
+          "opportunities": 14364,
+          "rate": 0.7572403230297967
+        },
+        "bb_fold_to_raise": {
+          "opportunities": 2442,
+          "rate": 0.6048321048321048
+        },
+        "bb_reraise": {
+          "opportunities": 2442,
+          "rate": 0.1416871416871417
+        },
+        "bb_call_shove": {
+          "opportunities": 8283,
+          "rate": 0.15912109139200772
+        }
+      },
+      "e10-25": {
+        "button_raise": {
+          "opportunities": 10179,
+          "rate": 0.6333628057765989
+        },
+        "bb_fold_to_raise": {
+          "opportunities": 4846,
+          "rate": 0.7133718530747007
+        },
+        "bb_reraise": {
+          "opportunities": 4846,
+          "rate": 0.09224102352455633
+        },
+        "bb_call_shove": {
+          "opportunities": 2748,
+          "rate": 0.10880640465793304
+        }
+      },
+      "e>25": {
+        "button_raise": {
+          "opportunities": 1546,
+          "rate": 0.7121604139715395
+        },
+        "bb_fold_to_raise": {
+          "opportunities": 1128,
+          "rate": 0.8164893617021277
+        },
+        "bb_reraise": {
+          "opportunities": 1128,
+          "rate": 0.12411347517730496
+        },
+        "bb_call_shove": {
+          "opportunities": 21,
+          "rate": 0.0
+        }
+      }
+    }
+  },
+  "current": {
+    "tournament_id": "3c389150-1178-4e95-bc03-7cc3b0b13282",
+    "tables": 10003,
+    "mean_points": 13.120063980805758,
+    "standard_error": 0.17416101797352967,
+    "places": {
+      "1": 0.11726482055383385,
+      "2": 0.12406278116565031,
+      "3": 0.17674697590722782,
+      "4": 0.16884934519644107,
+      "5": 0.12916125162451264,
+      "6": 0.11426572028391482,
+      "7": 0.09577126861941418,
+      "8": 0.0738778366490053
+    },
+    "cash_rate": 0.41807457762671196,
+    "heads_up_reach": 0.23672898130560832,
+    "heads_up_win": 0.4856418918918919,
+    "heads_up_start_share": 0.42057350612331096,
+    "stage": {
+      "5-8": {
+        "hands": 855104,
+        "points_per_table": 0.47839947015895234,
+        "vpip": 0.17302105942668966,
+        "positions": {
+          "BTN": 1.3977591922423278,
+          "SB": -1.0346965310406881,
+          "BB": -3.4150605618314507,
+          "oth": 3.530397370788763
+        },
+        "classes": {
+          "novol": {
+            "hands": 707153,
+            "points_per_table": -3.7277282315305427
+          },
+          "pre_only": {
+            "hands": 55567,
+            "points_per_table": 0.31782500249925005
+          },
+          "allin_pre_shove": {
+            "hands": 32806,
+            "points_per_table": 2.8331502149355194
+          },
+          "allin_pre_call": {
+            "hands": 1541,
+            "points_per_table": 0.3635508147555731
+          },
+          "post_agg": {
+            "hands": 33325,
+            "points_per_table": 2.2376225632310316
+          },
+          "post_call": {
+            "hands": 6991,
+            "points_per_table": -1.153345486354094
+          },
+          "post_passive": {
+            "hands": 17721,
+            "points_per_table": -0.39267540737778667
+          }
+        }
+      },
+      "3-4": {
+        "hands": 176634,
+        "points_per_table": -0.16640682795161446,
+        "vpip": 0.3025691542964548,
+        "positions": {
+          "BTN": 1.7282618314505656,
+          "SB": -0.3334216834949517,
+          "BB": -2.7327604218734396,
+          "oth": 1.171513445966209
+        },
+        "classes": {
+          "novol": {
+            "hands": 123190,
+            "points_per_table": -2.6306776567029884
+          },
+          "pre_only": {
+            "hands": 8817,
+            "points_per_table": -0.07679218234529644
+          },
+          "allin_pre_shove": {
+            "hands": 31429,
+            "points_per_table": 2.2221158552434273
+          },
+          "allin_pre_call": {
+            "hands": 1814,
+            "points_per_table": 0.286646546036189
+          },
+          "post_agg": {
+            "hands": 4721,
+            "points_per_table": 0.5158999000299904
+          },
+          "post_call": {
+            "hands": 908,
+            "points_per_table": -0.190589033290013
+          },
+          "post_passive": {
+            "hands": 5755,
+            "points_per_table": -0.29301025692292315
+          }
+        }
+      },
+      "HU": {
+        "hands": 38224,
+        "points_per_table": 0.3080713385984206,
+        "vpip": 0.6682450816241106,
+        "positions": {
+          "BTN": 0.0,
+          "SB": 0.26418303508947305,
+          "BB": 0.04388830350894729,
+          "oth": 0.0
+        },
+        "classes": {
+          "novol": {
+            "hands": 12681,
+            "points_per_table": -0.2905693791862443
+          },
+          "pre_only": {
+            "hands": 3742,
+            "points_per_table": -0.02494690592822152
+          },
+          "allin_pre_shove": {
+            "hands": 14544,
+            "points_per_table": 0.47436095171448545
+          },
+          "allin_pre_call": {
+            "hands": 1687,
+            "points_per_table": 0.09895665300409878
+          },
+          "post_agg": {
+            "hands": 1552,
+            "points_per_table": 0.10325870238928321
+          },
+          "post_call": {
+            "hands": 275,
+            "points_per_table": -0.02398255523342997
+          },
+          "post_passive": {
+            "hands": 3743,
+            "points_per_table": -0.029006128161551525
+          }
+        }
+      }
+    },
+    "heads_up_actions": {
+      "e<=10": {
+        "button_raise": {
+          "opportunities": 8148,
+          "rate": 0.8955571919489446
+        },
+        "bb_fold_to_raise": {
+          "opportunities": 999,
+          "rate": 0.25925925925925924
+        },
+        "bb_reraise": {
+          "opportunities": 999,
+          "rate": 0.4184184184184184
+        },
+        "bb_call_shove": {
+          "opportunities": 4903,
+          "rate": 0.49112788088925147
+        }
+      },
+      "e10-25": {
+        "button_raise": {
+          "opportunities": 9171,
+          "rate": 0.9145131392432668
+        },
+        "bb_fold_to_raise": {
+          "opportunities": 3961,
+          "rate": 0.20398889169401666
+        },
+        "bb_reraise": {
+          "opportunities": 3961,
+          "rate": 0.47361777328957333
+        },
+        "bb_call_shove": {
+          "opportunities": 2614,
+          "rate": 0.3404743687834736
+        }
+      },
+      "e>25": {
+        "button_raise": {
+          "opportunities": 1465,
+          "rate": 0.962457337883959
+        },
+        "bb_fold_to_raise": {
+          "opportunities": 984,
+          "rate": 0.24695121951219512
+        },
+        "bb_reraise": {
+          "opportunities": 984,
+          "rate": 0.4634146341463415
+        },
+        "bb_call_shove": {
+          "opportunities": 21,
+          "rate": 0.19047619047619047
+        }
+      }
+    }
+  },
+  "points_change": 0.3380639808057584,
+  "approximate_95_change_interval": [
+    -0.1282625508572779,
+    0.8043905124687947
+  ],
+  "stage_change": {
+    "5-8": -0.47264540984104764,
+    "3-4": 0.1301304720483855,
+    "HU": 0.6805789185984207
+  },
+  "caveat": "Unpaired descriptive comparison; interval assumes independent tables. Opponents, bot versions and runouts may differ."
+}
