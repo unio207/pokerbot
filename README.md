@@ -14,6 +14,7 @@
 
 <p align="center">
   <b><a href="docs/pittsburgh-results.md">Results</a></b> ·
+  <b><a href="media/build.mp4">Build video</a></b> ·
   <b><a href="media/results.mp4">Results video</a></b> ·
   <b><a href="skills/STATE.md">Event log</a></b>
 </p>
@@ -95,6 +96,66 @@ flowchart LR
 
 The limits that shape all of it: 1 ms per decision with a 100 ms bank per table, 64 KB of memory that is emptied at every table, anonymous seats, a 60-minute build after the variant is announced, and 20 minutes between round snapshots. Round 6 alone was 13 of the 32 weight units.
 
+## How it was built
+
+<p align="center">
+  <a href="media/build.mp4">
+    <img src="media/build.gif" alt="The build video, playing: an example deal of the variant on a felt table with three hole cards, two boards and one discard; a clock of the first hour with the first bot uploaded at 7 minutes 31 and the converted bot at 17 minutes 54; a scatter of the 23 zoo bots by hands played and hands raised; the same bot at 28.08 on the kit gauntlet (starter, sparring and zoo bots) and 12.40 against the field; the six-step loop between rounds; and the night's 17 uploads and 14 runs as bars above and below the field median" width="820">
+  </a>
+  <br>
+  <sub>The 47-second build video, playing as a GIF: the first hour, the zoo and the loop between rounds. Drawn from <code>skills/STATE.md</code>, <code>docs/pittsburgh-results.md</code> and <code>eval-results/</code>; the deal in the card scene is an example, not a hand from the event. Click for the MP4 (1920x1080).</sub>
+</p>
+
+### The first hour
+
+<p align="center">
+  <img src="media/launch.png" alt="A clock of the first hour after the variant announcement. Top: the playbook's windows from T+0 to T+60 (kit and first bot, Rules Card, convert, gate, fixes, hand-off). Below: six timed events, from the announcement at 18:13 through v0 uploaded at T+7:31, v1 uploaded at T+17:54, practice 1 at T+21 and v4 uploaded at T+45 to round 1 at T+61" width="820">
+  <br>
+  <sub>The playbook's windows (<code>skills/sequoia-launch/SKILL.md</code>) and what happened (<code>skills/STATE.md</code>).</sub>
+</p>
+
+The variant is secret until the build starts, and a team with no active bot at a round's snapshot scores zero for it. [`skills/sequoia-launch`](skills/sequoia-launch/SKILL.md) is the playbook for that hour: a clock with upload cutoffs, a Rules Card read from the kit, and one gate. On the night:
+
+1. **18:13, T+0.** The variant is announced: three hole cards, two boards, one discard after the turn.
+2. **18:20:31, T+7:31.** `v0` is uploaded: the pre-built `final` bot, unconverted. It scores board 1 only and lets the platform discard its lowest card, but it is legal, so no round can score zero.
+3. **18:30:54, T+17:54.** `v1` is uploaded, 20 minutes before the playbook's gate window opens: the same bot with a `double_board_turn_discard` entry in `VARIANTS` (both boards scored, the discard chosen). The gate passed on both machines (p99 193 µs on the build machine against the 250 µs we allow), and the portal showed it ready and active 56 seconds after the upload.
+4. **18:34, T+21.** Practice 1: `v1` scores 15.95 ± 0.68 points per table, 32nd of 82.
+5. **18:58, T+45.** `v4`: `v1` plus a heads-up big-blind seat fix, gated again on both machines.
+6. **19:14, T+61.** Round 1 takes its snapshot with `v4` active.
+
+The clock and the gate held. What the hour did not produce was a way to tell a good bot from a bad one: `v1` was +1.73 over the median in practice 1 with 82 teams playing, and `v4` was +0.00 in practice 4 and -0.64 in round 1.
+
+### Between rounds
+
+<p align="center">
+  <img src="media/night.png" alt="The evening from 18:13 to 21:05 on one axis. A row of 17 dots marks the uploads. Below, 14 bars show each platform run's points per table minus the field median, narrow for practice runs and wide for scored rounds: +1.73 and +0.78 at the start, then nine runs at or below the median down to -2.36 for v90, then +1.59 for v94, +2.10 for v96 in round 5 and +2.26 for v971 in round 6" width="820">
+  <br>
+  <sub>Every platform run of the night against that run's field median, with the bot that played it. Wide bars are scored rounds with their weights. Source: <code>docs/pittsburgh-results.md</code>, "Every run"; upload times from <code>skills/STATE.md</code>.</sub>
+</p>
+
+Rounds started 20 minutes apart, with a practice run about halfway between, except before round 6. From the announcement to round 6's snapshot the team uploaded 17 times (16 distinct files) and the bot played 14 platform runs: eight practice runs and six scored rounds. The loop that produced rounds 5 and 6 is the one drawn in [How it works](#how-it-works), written down as [`skills/mid-round-iterate`](skills/mid-round-iterate/SKILL.md) and rewritten after the event around what worked. Each row below is one turn of it.
+
+| Version | What the hand histories showed | Change | Platform result |
+| --- | --- | --- | --- |
+| `v91` | Every calling line lost chips; the ten best teams re-raised 4.2% of hands, we 1.1% | Re-raise a single raise with the top 15% / 12% / 6% of hands (big blind, small blind, other seats) | Practice 7: 12.78, -0.22 against the median (`v13` in round 3: -1.00) |
+| `v94` | The gap to the leaders was first places (9% against 26%); heads-up we won 38%, they 65% | `_cloned()`: the ten best teams' preflop frequencies by players left, seats behind and stack depth | Practice 8: 14.90, +1.59 |
+| `v96` | Survival margins steered us to 2nd to 4th place | `icm_scale`, `points_tight` and `bubble_margin` to 0, with round 3's tables | Round 5: 15.37, +2.10 |
+| `v971` | Ranking three cards by their best two overrated pairs by 8 to 12 points of equity | The measured three-card ranking, 2.3 bb opens | Round 6: 15.96, +2.26, inside the margins of `v96` |
+
+What did not move the score: wider opens (`v11`, round 2, 11.64, the lowest round), a port of the zoo's exploiter (`v90`, practice 6, 11.02, the lowest run), and heads-up tweaks one at a time (`v7`, practice 5, -1.21).
+
+### The zoo
+
+<p align="center">
+  <img src="media/zoo.png" alt="A chart of the 23 zoo bots in three groups by folder prefix (claude, codex, gpt), one row per bot: its name, how it was written, a light bar for the share of hands it plays before the flop with a solid bar for the share it raises, and its points per table. The range runs from scared_money, which plays 2% of hands, to limp_station, which plays 77% and raises 0.1%; the round 6 bot and the starter are at the bottom for comparison" width="820">
+  <br>
+  <sub>Each zoo bot over 600 hold'em tables on the mini simulator, each table against seven opponents drawn from the five sparring bots and the starter, on 2026-11-14. These are mini-simulator numbers, not kit or platform numbers. Data: <code>eval-results/zoo-weak-2026-11-14.json.gz</code>, from <code>python3.12 tools/eval_all.py run weak 600 --seed zoo1 --variants holdem --out eval-results/zoo-weak-2026-11-14.json.gz</code>.</sub>
+</p>
+
+[`zoo/`](zoo/README.md) holds 23 opponents written by AI assistants before the event, so the bot had a field to practise against that was not itself. Five `claude_*` bots are personas written by Claude Code (a tourist that limps, a maniac, a grinder, a shark, a seat-by-seat exploiter). Seven `codex_*` bots are strategies: A to E implemented by Codex from one strategy chat, F designed by Vedaant and implemented by Claude, and one default-style filler. Eleven `gpt_*` bots are field fillers, most built around one habit: plays every ace, min-raises everything, folds to pressure. The prefixes are folder names, not authors: the `gpt_*` bots and `codex_default_1` were written overnight in Cursor, imitating ChatGPT's and Codex's default answers. Each is one standalone `agent.py` under the competition's rules, plays the pre-event rulesets named on its `Variants:` header line (see [`zoo/variants/`](zoo/variants/README.md)), and is checked by `tools/check_zoo.py`. None has an entry for the Pittsburgh variant: there it takes the automatic choice in the discard phase. In the run above none of the 23 failed a decision in 13,800 tables.
+
+The spread of styles is real: from 2% of hands played to 77%, and from raising 0.1% of hands to raising almost every hand played. What the zoo could not do was stand in for the field, which is why the kit gauntlet misread it (see [Results](#results)). On the hold'em tables above five zoo bots outscore the round 6 bot (23.8), and the order means little: the one zoo bot that reached the platform, ported as `v90`, had our lowest run. Use the zoo to find crashes and timing problems at a full table, not to judge strength.
+
 ## Roadmap
 
 | Component | Status |
@@ -117,13 +178,13 @@ pokerbot/
 │   └── history/    # seven streaming readers for the platform's hand histories
 ├── skills/         # launch, build and between-rounds playbooks; STATE.md, the event log
 ├── docs/           # pittsburgh-results.md and its raw outputs; research notes, the pre-event ones dated
-├── media/          # results figure and the 34-second results video (MP4 and GIF)
+├── media/          # figures, the 47-second build video and the 34-second results video (MP4 and GIF)
 ├── starter/        # the original starter bot, kept as a baseline
 ├── sparring/       # five hand-written opponents
 ├── zoo/            # 23 AI-written opponents, a bot template, one ruleset file per variant
 ├── devtest/        # unofficial mini simulator and a stand-in for the organizers' SDK
 ├── ui/             # local practice page (plain HTML, CSS and JS, served by ui/server.py)
-├── eval-results/   # pre-event mini-simulator rankings
+├── eval-results/   # mini-simulator rankings: the pre-event ones, and the zoo's styles from 2026-11-14
 ├── rehearsal/      # a sealed practice variant for a timed conversion
 ├── practice.py     # upload check and five line-ups for one bot
 └── CLAUDE.md       # instructions for Claude Code sessions in this repo

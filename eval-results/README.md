@@ -136,3 +136,17 @@ Paired `bots/final` minus `starter` (same tables):
 | irish | +23.36 | 1.05 |
 | auction | +11.74 | 1.05 |
 | discard_reveal | +12.65 | 1.11 |
+
+## Zoo styles, 2026-11-14
+
+Added after the event, for the zoo figure in the main README (`media/zoo.png`). The weak-field run again, hold'em only,
+with the 31 bots in the repo on that day (`bots/final` is the round 6 bot):
+
+```bash
+python3.12 tools/eval_all.py run weak 600 --seed zoo1 --variants holdem --out eval-results/zoo-weak-2026-11-14.json.gz
+python3.12 tools/eval_all.py report "" eval-results/zoo-weak-2026-11-14.json.gz
+```
+
+600 tables per bot, 18,600 in all, each against 7 bots drawn from `sparring/*` and `starter`. No failed decisions. The
+figure uses each bot's share of hands played (VPIP) and raised (PFR) before the flop and its points per table. Like
+everything above, these are mini-simulator numbers and say nothing about the platform.

@@ -7,6 +7,12 @@ and real teams in 8 to 13%, and a bot that scored 28 points per table against th
 12.4 on the platform (`skills/STATE.md`). Use the zoo to find crashes, not to judge strength.
 Background and the reasoning are in [`docs/bot-zoo.md`](../docs/bot-zoo.md).
 
+<p align="center">
+  <img src="../media/zoo.png" alt="A chart of the 23 zoo bots in three groups by folder prefix (claude, codex, gpt), one row per bot: its name, how it was written, a light bar for the share of hands it plays before the flop with a solid bar for the share it raises, and its points per table" width="820">
+  <br>
+  <sub>Each zoo bot over 600 hold'em tables on the mini simulator, each table against seven opponents drawn from the five sparring bots and the starter, on 2026-11-14. Data: <code>eval-results/zoo-weak-2026-11-14.json.gz</code>.</sub>
+</p>
+
 ## Variants
 
 The tournament's variant is secret until the build starts, so zoo bots are built to take
