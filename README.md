@@ -53,13 +53,11 @@ Each scored round played 20,000 tables of eight bots; a table pays 50, 30 and 20
 
 Final standing: 37th of 112 scoring teams (146 entries, 34 forfeited), 468.31 points; first place had 598.3 and tenth 542.3. Every run including the eight practice runs, the standing after each round and the comparison with each round's ten best teams are in [`docs/pittsburgh-results.md`](docs/pittsburgh-results.md); the reader outputs behind it are in [`docs/pittsburgh-results/`](docs/pittsburgh-results/), and the step-by-step log of the night is [`skills/STATE.md`](skills/STATE.md). Vedaant's analysis from the night, run by run, is in [`docs/research_notes/pittsburgh/`](docs/research_notes/pittsburgh/README.md).
 
-<p align="center">
-  <a href="media/results.mp4">
-    <img src="media/results.gif" alt="The results video, playing: the title, 37th of 112 teams with 468.31 points, a bar chart of the six rounds against the field median and the top-ten mean, the same bot at 28.08 on the kit gauntlet and 12.40 on the platform, two line charts of chips per 100 hands and heads-up matches won against the ten best teams, and the overall rank going from 67th after round 1 to 37th" width="820">
-  </a>
-  <br>
-  <sub>The 34-second results video, playing as a GIF: charts only, drawn from the numbers in <code>docs/pittsburgh-results.md</code>. Chips are counted over hands dealt with four or more players left. Click for the MP4 (1920x1080).</sub>
-</p>
+
+
+https://github.com/user-attachments/assets/a3a245ae-6bc9-43ed-a008-19818bbda6eb
+
+
 
 What the numbers do and do not show:
 
