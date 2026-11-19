@@ -330,4 +330,4 @@ At this event, the field: its results arrived within seconds of a run finishing,
 
 ## Author
 
-Henry Zou and Vedaant, Team Allow It. NO LIMIT '26, Pittsburgh regional, 2026-11-12.
+Henry Zou and Vedaant Kulkarni, Team Allow It. NO LIMIT '26, Pittsburgh regional, 2026-11-12.
